@@ -1,71 +1,45 @@
-# materialize README
-
-This is the README for your extension "materialize". After writing up a brief description, we recommend including the following sections.
+# VSCode Extension
+This project is currently under research and development 👷‍♂️
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+The Materialize extension allows VSCode users to:
+* Login to Materialize
+* Explore the schema
+* Run queries from SQL files
 
-For example if there is an image subfolder under your extension project workspace:
+Preview:
 
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+<img width="1728" alt="Screenshot 2023-06-20 at 10 50 07" src="https://github.com/MaterializeInc/vscode-extension/assets/11491779/46058781-9528-4710-8c61-a6960b8279ac">
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+No requirements. The extension is only available for VSCode.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+The extension uses the same configuration file as mz and provides a way to authenticate using the browser. Users can change the profile or any runtime configuration, like cluster, database, or schema, at any time given.
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+There are no known issues. In any case, take into consideration that this extension is under development. 
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+[Placeholder for release notes]
 
 ---
 
-## Following extension guidelines
+<!--# Developers-->
+<!--## Following extension guidelines-->
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+<!--Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.-->
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+<!--* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)-->
 
-## Working with Markdown
+<!--## For more information-->
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+<!--* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)-->
+<!--* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)-->
 
 **Enjoy!**
