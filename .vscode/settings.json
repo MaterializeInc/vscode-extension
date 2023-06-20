@@ -9,17 +9,5 @@
         "dist": true // set this to false to include "dist" folder in search results
     },
     // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
-    "typescript.tsc.autoDetect": "off",
-    "sqltools.connections": [
-        {
-            "pgOptions": {
-                "ssl": true
-            },
-            "previewLimit": 50,
-            "server": "localhost",
-            "driver": "PostgreSQL",
-            "name": "Materialize",
-            "connectString": "postgres://joaquin%40materialize.com:mzp_c9828e370f204b3ab92a786e1726b12c7c3f8e1994314ddcac823abae70d8386@da8gqtiy8g8jx8ni5c5g9gri0.us-east-1.aws.materialize.cloud:6875/materialize?application_name=mz_datadog_integration&sslmode=require&options=--cluster%3Dmz_introspection"
-        }
-    ]
+    "typescript.tsc.autoDetect": "off"
 }
