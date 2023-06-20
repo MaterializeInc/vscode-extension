@@ -1,6 +1,14 @@
 # VSCode Extension
 This project is currently under research and development 👷‍♂️
 
+## How to try it?
+
+1. Clone.
+2. Open the project with VSCode.
+3. Add your credentials to `.vscode/launch.json`
+4. Go to `Run and Debug`.
+5. Click on `Start Debugging`. 
+
 ## Features
 
 The Materialize extension allows VSCode users to:
