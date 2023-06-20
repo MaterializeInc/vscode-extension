@@ -12,7 +12,8 @@
     let profiles = oldState.profiles;
 
     document.getElementById("profiles")?.addEventListener('change', (e) => {
-        onProfileChange();
+        // @ts-ignore
+        onProfileChange(e.target && e.target.value);
     });
 
     // @ts-ignore
@@ -31,8 +32,8 @@
         }
     });
 
-    function onProfileChange() {
-        vscode.postMessage({ type: "onProfileChange" });
+    function onProfileChange(name) {
+        vscode.postMessage({ type: "onProfileChange", data: { name } });
     }
     function onLoginClicked() {
         vscode.postMessage({ type: 'onLogin' });

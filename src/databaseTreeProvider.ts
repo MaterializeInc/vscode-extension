@@ -1,33 +1,20 @@
 import * as vscode from 'vscode';
-import { Profile } from './authProvider';
-import { Pool } from 'pg';
-import path = require('path');
+import Context, { EventType } from './context/context';
+import { QueryResult } from 'pg';
 
 export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Node> {
 
     private _onDidChangeTreeData: vscode.EventEmitter<Node | undefined | null | void> = new vscode.EventEmitter<Node | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<Node | undefined | null | void> = this._onDidChangeTreeData.event;
-    private client: Promise<Pool>;
+    private context: Context;
 
-    constructor(private profile?: Profile) {
-        let pool = new Pool({
-            host: process.env.MZ_HOST,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            application_name: "mz_vscode",
-            port: 6875,
-            user: process.env.MZ_USER,
-            password: process.env.MZ_PASSWORD,
-            ssl: true,
-        });
-
-        this.client = new Promise((res, rej) => {
-            pool.connect((err) => {
-                if (err) {
-                    rej(err);
-                } else {
-                    res(pool);
-                }
-            });
+    constructor(context: Context) {
+        this.context = context;
+        this.context.on("event", ({ type }) => {
+            if (type === EventType.profileChange) {
+                console.log("[DatabaseTreeProvider]", "Profile change detected. Refreshing provider.");
+                this.refresh();
+            }
         });
     }
 
@@ -40,25 +27,23 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
     }
 
     getChildren(element?: Node): Thenable<Node[]> {
-        // TODO: Reactivate this after enabling profiles.
-        // if (!this.profile) {
-        //     vscode.window.showInformationMessage('No profile available.');
-        //     return Promise.resolve([]);
-        // }
-
         if (element) {
-            console.log("Getting children.");
+            console.log("[DatabaseTreeProvider]", "Getting children.");
             return Promise.resolve(this.getChildrenFromNode(element));
         } else {
             // Returns databases
-            console.log("Getting databases");
+            console.log("[DatabaseTreeProvider]", "Getting databases.");
             return Promise.resolve(this.getDatabases());
         }
     }
 
-    private async query(text: string, vals?: Array<any>) {
-        let client = await this.client;
-        return client.query(text, vals);
+    private async query(text: string, vals?: Array<any>): Promise<Array<any>> {
+        const pool = this.context.pool && await this.context.pool;
+        if (pool) {
+            return (await pool.query(text, vals)).rows;
+        }
+
+        return [];
     }
 
     private async getChildrenFromNode(element: Node): Promise<Array<Node>> {
@@ -75,7 +60,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
     private async getObjects(schema: String): Promise<Array<Node>> {
         const materializedViews: Promise<Array<Node>> = new Promise((res, rej) => {
             this.query("SELECT id, name, owner_id, cluster_id FROM mz_materialized_views WHERE schema_id = $1", [schema]).then((results) => {
-                let materializedViews = results.rows.map(({ id, name, owner_id: ownerId }) => {
+                let materializedViews = results.map(({ id, name, owner_id: ownerId }) => {
                     return new MaterializedView(name, vscode.TreeItemCollapsibleState.None, { id, name, ownerId });
                 });
                 res(materializedViews);
@@ -84,7 +69,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
 
         const views: Promise<Array<Node>> = new Promise((res, rej) => {
             this.query("SELECT id, name, owner_id FROM mz_views WHERE schema_id = $1", [schema]).then((results) => {
-                let views = results.rows.map(({ id, name, owner_id: ownerId }) => {
+                let views = results.map(({ id, name, owner_id: ownerId }) => {
                     return new View(name, vscode.TreeItemCollapsibleState.None, { id, name, ownerId });
                 });
                 res(views);
@@ -93,7 +78,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
 
         const tables: Promise<Array<Node>> = new Promise((res, rej) => {
             this.query("SELECT id, name, owner_id FROM mz_tables WHERE schema_id = $1", [schema]).then((results) => {
-                let tables = results.rows.map(({ id, name, owner_id: ownerId }) => {
+                let tables = results.map(({ id, name, owner_id: ownerId }) => {
                     return new Table(name, vscode.TreeItemCollapsibleState.None, { id, name, ownerId });
                 });
                 res(tables);
@@ -107,7 +92,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
     private async getSchemas(database: String): Promise<Array<Schema>> {
         return new Promise((res, rej) => {
             this.query("SELECT id, name, owner_id FROM mz_schemas WHERE database_id = $1", [database]).then((results) => {
-                const schemas = results.rows.map(({ id, name, owner_id: ownerId }) => {
+                const schemas = results.map(({ id, name, owner_id: ownerId }) => {
                     return new Schema(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
                 });
                 res(schemas);
@@ -118,9 +103,11 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
     private async getDatabases(): Promise<Array<Database>> {
         return new Promise((res, rej) => {
             this.query("SELECT id, name, owner_id FROM mz_databases").then((results) => {
-                const databases = results.rows.map(({ id, name, owner_id: ownerId }) => {
+                const databases = results.map(({ id, name, owner_id: ownerId }) => {
                     return new Database(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
                 });
+                console.log("[DatabaseTreeProvider]", "Datbases: ", databases);
+
                 res(databases);
             }).catch(rej);
         });

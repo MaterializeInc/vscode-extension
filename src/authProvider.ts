@@ -3,6 +3,7 @@ import * as toml from "toml";
 import * as os from "os";
 import { readFileSync } from "fs";
 import { Request, Response, Application } from 'express';
+import { Context } from "./context";
 
 const homeDir = os.homedir();
 const configDir = `${homeDir}/.config/materialize`;
@@ -19,17 +20,20 @@ export interface Profile {
     "cloud-endpoint": String,
 }
 
-interface Config {
+export interface Config {
     profile: String;
     profiles: { [name: string] : Profile; }
 }
 
-export class SidebarProvider implements vscode.WebviewViewProvider {
+export default class AuthProvider implements vscode.WebviewViewProvider {
     _view?: vscode.WebviewView;
     _doc?: vscode.TextDocument;
     config?: Config;
+    context: Context;
 
-    constructor(private readonly _extensionUri: vscode.Uri) {
+    constructor(private readonly _extensionUri: vscode.Uri, context: Context) {
+        this._extensionUri = _extensionUri;
+        this.context = context;
         try {
             let configInToml = readFileSync(configPath, 'utf-8');
             this.config = toml.parse(configInToml);
@@ -51,8 +55,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
         // Listen for messages from the Sidebar component and execute action
-        webviewView.webview.onDidReceiveMessage(async (data) => {
-            switch (data.type) {
+        webviewView.webview.onDidReceiveMessage(async ({ data, type }) => {
+            switch (type) {
                 case "onLogin": {
                     const express = require('express');
                     const app: Application = express();
@@ -77,6 +81,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     break;
                 }
                 case "onProfileChange": {
+                    const { name } = data;
+                    console.log("[AuthProvider]", "onProfileChange(): ", data);
+                    this.context.setProfile(name);
                     break;
                 }
                 case "onInfo": {
@@ -137,10 +144,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         </head>
         <body>
             <div id="profiles_container">
-                <label for="profiles">Profile</label>
-                <select id="profiles">
-                    ${this.config && Object.keys(this.config.profiles).map((name) => `<option>${name}</option>`)}
-                </select>
+                ${this.config && this.config.profiles ?
+                    (
+                        `<label for="profiles">Profile</label>
+                        <select id="profiles">
+                            ${this.config && Object.keys(this.config.profiles).map((name) => `<option>${name}</option>`)}
+                        </select>`
+                    ): ("")
+                }
             </div>
             <button id="loginButton">Login</button>
 

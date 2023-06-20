@@ -1,27 +1,28 @@
 import * as vscode from 'vscode';
 import DatabaseTreeProvider from "./databaseTreeProvider";
-import { SidebarProvider } from './authProvider';
-// import { RunEditorProvider } from './runEditorProvider';
-// import FileTreeProvider from './fileExplorer';
+import AuthProvider from './authProvider';
+import { Context } from './context';
 
-export function activate(context: vscode.ExtensionContext) {
-	const rootPath = (vscode.workspace.workspaceFolders && (vscode.workspace.workspaceFolders.length > 0))
-	? vscode.workspace.workspaceFolders[0].uri.fsPath : undefined;
+export function activate(vsContext: vscode.ExtensionContext) {
+    // User context.
+    // Contains auth information, cluster, database, schema, etc.
+    const context = new Context();
 
-    const databaseTreeProvider = new DatabaseTreeProvider();
+    // Register the database explorer
+	const databaseTreeProvider = new DatabaseTreeProvider(context);
     vscode.window.createTreeView('explorer', { treeDataProvider: databaseTreeProvider });
 
-    // Register the Sidebar Panel
-	const sidebarProvider = new SidebarProvider(context.extensionUri);
-	context.subscriptions.push(
+    // Register the Auth Provider
+	const sidebarProvider = new AuthProvider(vsContext.extensionUri, context);
+	vsContext.subscriptions.push(
 		vscode.window.registerWebviewViewProvider(
 			"auth",
 			sidebarProvider
 		)
 	);
 
-    // Register a command with the provided command identifier
-    let disposable = vscode.commands.registerCommand('materialize.run', () => {
+    // Register the `Run SQL` command.
+    let disposable = vscode.commands.registerCommand('materialize.run', async () => {
         const activeEditor = vscode.window.activeTextEditor;
         if (!activeEditor) {
             vscode.window.showErrorMessage('No active editor.');
@@ -37,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
         // The code to be executed when the command is triggered
         vscode.window.showInformationMessage('Custom command executed!');
     });
-    context.subscriptions.push(disposable);
+    vsContext.subscriptions.push(disposable);
 }
 
 export function deactivate() {}
