@@ -3,7 +3,8 @@ import * as toml from "toml";
 import * as os from "os";
 import { readFileSync } from "fs";
 import { Request, Response, Application } from 'express';
-import { Context } from "./context";
+import { Context } from "../context";
+import { getUri } from "../utilities/getUri";
 
 const homeDir = os.homedir();
 const configDir = `${homeDir}/.config/materialize`;
@@ -48,8 +49,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         webviewView.webview.options = {
             // Allow scripts in the webview
             enableScripts: true,
-
-            localResourceRoots: [this._extensionUri],
+            localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, 'out'), this._extensionUri]
         };
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
@@ -110,17 +110,14 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
     }
 
     private _getHtmlForWebview(webview: vscode.Webview) {
-        // Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
-		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
-
-
 		// Do the same for the stylesheet.
-		const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css'));
-		const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css'));
-		const styleCustomUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'custom.css'));
+        const webviewUri = getUri(webview, this._extensionUri, ["out", "webview.js"]);
+        const scriptUri = getUri(webview, this._extensionUri, ["media", "auth.js"]);
+        const styleUri = getUri(webview, this._extensionUri, ["media", "style.css"]);
 
 		// Use a nonce to only allow a specific script to be run.
 		const nonce = getNonce();
+        const profile = this.context.getProfile();
 
         return `<!DOCTYPE html>
         <html lang="en">
@@ -133,29 +130,30 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 (See the 'webview-sample' extension sample for img-src content security policy examples)
             -->
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
-
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-            <link href="${styleResetUri}" rel="stylesheet">
-            <link href="${styleVSCodeUri}" rel="stylesheet">
-            <link href="${styleCustomUri}" rel="stylesheet">
+            <link href="${styleUri}" rel="stylesheet">
 
             <title>Materialize Auth</title>
         </head>
         <body>
-            <div id="profiles_container">
+            <div id="profiles_container" class="dropdown-container">
                 ${this.config && this.config.profiles ?
                     (
-                        `<label for="profiles">Profile</label>
-                        <select id="profiles">
-                            ${this.config && Object.keys(this.config.profiles).map((name) => `<option>${name}</option>`)}
-                        </select>`
+                        `
+                        <div>
+                            <label for="profiles">Profile</label>
+                            <vscode-dropdown id="profiles">
+                                ${this.config && Object.keys(this.config.profiles).map((name) => `<vscode-option>${name}</vscode-option>`)}
+                            </vscode-dropdown>
+                        </div>
+                        `
                     ): ("")
                 }
             </div>
-            <button id="loginButton">Login</button>
+            <vscode-button id="loginButton">Login</vscode-button>
 
             <script nonce="${nonce}" src="${scriptUri}"></script>
+            <script type="module" nonce="${nonce}" src="${webviewUri}"></script>
         </body>
         </html>`;
     }

@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import AdminClient from "./adminClient";
+import AdminClient from "./AdminClient";
 
 const SYNC_CLOUD_ENDPOINT = 'https://sync.cloud.materialize.com';
 const PROVIDERS_ENDPOINT = `${SYNC_CLOUD_ENDPOINT}/api/cloud-regions`;
@@ -105,7 +105,6 @@ export default class CloudClient {
     }
 
     async getEnvironment(region: Region): Promise<Environment> {
-        console.log(region);
         const ENVIRONMENT_ENDPOINT = `${region.environmentControllerUrl}/api/environment`;
 
         let response = await this.fetch(ENVIRONMENT_ENDPOINT);

@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
-import * as jwksClient from "jwks-rsa";
 import AppPassword from "./appPassword";
+const jwksClient = require("jwks-rsa");
 const jwt = require("node-jsonwebtoken");
 
 interface AuthenticationResponse {

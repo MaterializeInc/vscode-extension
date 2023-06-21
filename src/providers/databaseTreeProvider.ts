@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import Context, { EventType } from './context/context';
-import { QueryResult } from 'pg';
+import Context, { EventType } from '../context/Context';
 
 export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Node> {
 

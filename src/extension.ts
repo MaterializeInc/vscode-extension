@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
-import DatabaseTreeProvider from "./databaseTreeProvider";
-import AuthProvider from './authProvider';
-import { Context } from './context';
+import { AuthProvider, ResultsProvider, DatabaseTreeProvider } from './providers';
+import { Context, EventType } from './context';
 
 export function activate(vsContext: vscode.ExtensionContext) {
     // User context.
@@ -13,16 +12,19 @@ export function activate(vsContext: vscode.ExtensionContext) {
     vscode.window.createTreeView('explorer', { treeDataProvider: databaseTreeProvider });
 
     // Register the Auth Provider
-	const sidebarProvider = new AuthProvider(vsContext.extensionUri, context);
+	const authProvider = new AuthProvider(vsContext.extensionUri, context);
 	vsContext.subscriptions.push(
 		vscode.window.registerWebviewViewProvider(
 			"auth",
-			sidebarProvider
+			authProvider
 		)
 	);
 
     // Register the `Run SQL` command.
     let disposable = vscode.commands.registerCommand('materialize.run', async () => {
+        vscode.window.showInformationMessage('Running SQL query.');
+
+        console.log("[RunSQLCommand]", "Firing detected.");
         const activeEditor = vscode.window.activeTextEditor;
         if (!activeEditor) {
             vscode.window.showErrorMessage('No active editor.');
@@ -33,11 +35,30 @@ export function activate(vsContext: vscode.ExtensionContext) {
         const fileContent = document.getText();
         const contentText = fileContent.toString();
 
-        vscode.window.showInformationMessage(contentText);
+        if (!context.pool) {
+            vscode.window.showInformationMessage('The SQL Client is not setup yet. Check that you are successfully login.');
+        } else {
+            console.log("[RunSQLCommand]", "Awaiting pool.");
+            const pool = await context.pool;
 
-        // The code to be executed when the command is triggered
-        vscode.window.showInformationMessage('Custom command executed!');
+            console.log("[RunSQLCommand]", "Running query.");
+            const results = await pool.query(contentText);
+            console.log("[RunSQLCommand]", "Results: ", results);
+
+            console.log("[RunSQLCommand]", "Emitting results.");
+            context.emit("event", { type: EventType.queryResults, data: { ...results }});
+        }
     });
+
+    const resultsProvider = new ResultsProvider(vsContext.extensionUri, context);
+	vsContext.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(
+			"queryResults",
+			resultsProvider,
+            { webviewOptions: { retainContextWhenHidden: true } }
+		)
+	);
+
     vsContext.subscriptions.push(disposable);
 }
 

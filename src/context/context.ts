@@ -1,10 +1,9 @@
 import * as toml from "toml";
 import * as os from "os";
-import * as vscode from 'vscode';
 import { accessSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import EventEmitter = require("node:events");
-import AdminClient from "./adminClient";
-import CloudClient from "./cloudClient";
+import AdminClient from "./AdminClient";
+import CloudClient from "./CloudClient";
 import { Pool } from "pg";
 
 export interface Profile {
@@ -25,6 +24,7 @@ export interface Config {
 export enum EventType {
     profileChange,
     connected,
+    queryResults
 }
 
 export default class Context extends EventEmitter {
@@ -37,16 +37,6 @@ export default class Context extends EventEmitter {
         super();
         this.config = this.loadConfig();
         this.reload();
-
-        // this.on("event", ({ type }) => {
-        //     // Await login.
-        //     if (type === EventType.profileChange) {
-
-        //         vscode.window.showInformationMessage(`Loading profile...`);
-        //         console.log("[Context]","Profile change event.");
-        //         this.reload();
-        //     }
-        // });
     }
 
     private reload() {
@@ -141,10 +131,10 @@ export default class Context extends EventEmitter {
     private createFileOrDir(path: string): void {
         try {
           mkdirSync(path);
-          console.log(`Directory created: ${path}`);
+          console.log("[Context]", "Directory created: ", path);
         } catch (error) {
           writeFileSync(path, '');
-          console.log(`File created: ${path}`);
+          console.log("[Context]", "File created:", path);
         }
     }
 
@@ -228,6 +218,17 @@ export default class Context extends EventEmitter {
                 const environment = await this.cloudClient.getEnvironment(region);
                 console.log("[Context]", "Environment: ", environment);
                 return environment.environmentdPgwireAddress;
+            }
+        }
+
+        return undefined;
+    }
+
+    async getCluster(): Promise<string | undefined> {
+        if (this.pool) {
+            const { rows } = await (await this.pool).query("SHOW CLUSTER;");
+            if (rows.length > 0) {
+                return rows[0].cluster;
             }
         }
 

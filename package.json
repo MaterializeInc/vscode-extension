@@ -3,6 +3,11 @@
   "displayName": "materialize",
   "description": "Working environment for Materialize",
   "version": "0.0.1",
+  "tasks": [
+    {
+      "problemMatcher": "$esbuild-watch"
+    }
+  ],
   "engines": {
     "vscode": "^1.79.0"
   },
@@ -10,9 +15,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:calicoColors.colorsView"
+    "onWebviewPanel:sqlResults"
   ],
-  "main": "./dist/extension.js",
+  "main": "./out/extension.js",
   "contributes": {
     "menus": {
       "editor/title": [
@@ -31,6 +36,13 @@
           "id": "materialize",
           "title": "Materialize"
         }
+      ],
+      "panel": [
+        {
+          "id": "materializePanelContainer",
+          "icon": "resources/logo.svg",
+          "title": "Query Results"
+        }
       ]
     },
     "views": {
@@ -47,6 +59,15 @@
           "name": "Explorer",
           "icon": "",
           "contextualTitle": "Explorer"
+        }
+      ],
+      "materializePanelContainer": [
+        {
+          "id": "queryResults",
+          "name": "Query Results",
+          "icon": "",
+          "type": "webview",
+          "contextualTitle": "Materialize"
         }
       ]
     },
@@ -68,14 +89,15 @@
   },
   "scripts": {
     "vscode:prepublish": "yarn run package",
-    "compile": "webpack",
-    "watch": "webpack --watch",
-    "package": "webpack --mode production --devtool hidden-source-map",
+    "node": "./esbuild.js",
+    "watch": "node ./esbuild.js --watch",
+    "compile": "node ./esbuild.js",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "package": "NODE_ENV=production node ./esbuild.js"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
@@ -85,19 +107,19 @@
     "@typescript-eslint/eslint-plugin": "^5.59.8",
     "@typescript-eslint/parser": "^5.59.8",
     "@vscode/test-electron": "^2.3.2",
+    "esbuild": "^0.16.17",
     "eslint": "^8.41.0",
     "glob": "^8.1.0",
     "mocha": "^10.2.0",
     "ts-loader": "^9.4.3",
-    "typescript": "^5.1.3",
-    "webpack": "^5.85.0",
-    "webpack-cli": "^5.1.1"
+    "typescript": "^5.1.3"
   },
   "dependencies": {
     "@types/express": "^4.17.17",
     "@types/node-fetch": "^2.6.4",
     "@types/pg": "^8.10.2",
     "@types/uuid": "^9.0.2",
+    "@vscode/webview-ui-toolkit": "^1.2.2",
     "express": "^4.18.2",
     "jwks-rsa": "^3.0.1",
     "node-fetch": "^3.3.1",

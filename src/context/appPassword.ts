@@ -1,6 +1,6 @@
+import * as uuid from "uuid";
 
 const PREFIX = 'mzp_';
-import * as uuid from "uuid";
 
 export default class AppPassword {
     clientId: string;
@@ -54,23 +54,4 @@ export default class AppPassword {
 
         throw new Error("Invalid app-password");
       }
-
-    // static fromString(appPassword: string) {
-    //     console.log("Parsing password: ", appPassword);
-    //     if (!appPassword.startsWith(PREFIX)) {
-    //         throw new Error('Invalid app password format');
-    //     }
-
-    //     const encoded = appPassword.substring(PREFIX.length);
-
-    //     // const modifiedBase64 = base64.replace(/-/g, '');
-    //     const buffer = Buffer.from(encoded, 'base64');
-    //     const decoded = buffer.toString('hex');
-
-    //     // const decoded = Buffer.from(encoded, 'base64').toString('ascii');
-    //     const clientId = decoded.substring(0, 16);
-    //     const secretKey = decoded.substring(16);
-    //     console.log(clientId, secretKey);
-    //     return new AppPassword(clientId, secretKey);
-    // }
 }
