@@ -1,19 +1,21 @@
-import * as toml from "toml";
+/* eslint-disable @typescript-eslint/naming-convention */
+import * as TOML from "@iarna/toml";
 import * as os from "os";
 import { accessSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import EventEmitter = require("node:events");
 import AdminClient from "./AdminClient";
 import CloudClient from "./CloudClient";
 import { Pool } from "pg";
+import AppPassword from "./AppPassword";
 
 export interface Profile {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     "app-password": string,
     region: string,
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    "admin-endpoint": string,
+    "admin-endpoint"?: string,
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    "cloud-endpoint": string,
+    "cloud-endpoint"?: string,
 }
 
 export interface Config {
@@ -22,12 +24,19 @@ export interface Config {
 }
 
 export enum EventType {
+    newProfiles,
     profileChange,
     connected,
     queryResults
 }
 
 export default class Context extends EventEmitter {
+    private homeDir = os.homedir();
+    private configDir = `${this.homeDir}/.config/materialize`;
+    private configName = "mz.toml";
+    private configFilePath = `${this.configDir}/${this.configName}`;
+
+
     config: Config;
     adminClient?: AdminClient;
     cloudClient?: CloudClient;
@@ -91,24 +100,23 @@ export default class Context extends EventEmitter {
 
     private loadConfig(): Config {
         // Load configuration
-        const homeDir = os.homedir();
-        const configDir = `${homeDir}/.config/materialize`;
 
-        if (!this.checkFileOrDirExists(configDir)) {
-            this.createFileOrDir(configDir);
+        try {
+            if (!this.checkFileOrDirExists(this.configDir)) {
+                this.createFileOrDir(this.configDir);
+            }
+        } catch (err) {
+
         }
 
-
-        const configName = "mz.toml";
-        const configFilePath = `${configDir}/${configName}`;
-        if (!this.checkFileOrDirExists(configFilePath)) {
-            this.createFileOrDir(configFilePath);
+        if (!this.checkFileOrDirExists(this.configFilePath)) {
+            writeFileSync(this.configFilePath, '');
         }
 
         try {
-            let configInToml = readFileSync(configFilePath, 'utf-8');
+            let configInToml = readFileSync(this.configFilePath, 'utf-8');
             try {
-                return (toml.parse(configInToml)) as Config;
+                return (TOML.parse(configInToml)) as Config;
             } catch (err) {
                 console.error("Error parsing configuration file.");
                 throw err;
@@ -133,9 +141,16 @@ export default class Context extends EventEmitter {
           mkdirSync(path);
           console.log("[Context]", "Directory created: ", path);
         } catch (error) {
-          writeFileSync(path, '');
+        //   writeFileSync(path, '');
           console.log("[Context]", "File created:", path);
         }
+    }
+
+    getProfileNames(): Array<String> | undefined {
+        if (this.config.profiles) {
+            return Object.keys(this.config.profiles);
+        }
+        return undefined;
     }
 
     /// Returns the current profile.
@@ -159,6 +174,10 @@ export default class Context extends EventEmitter {
         return undefined;
     }
 
+    getProfileName(): string | undefined {
+        return this.config.profile;
+    }
+
     /// Returns a particular profile.
     getProfileByName(name: string): Profile | undefined {
         if (this.config) {
@@ -172,15 +191,19 @@ export default class Context extends EventEmitter {
         return undefined;
     }
 
-    saveContext() {
-            // TODO: Save into file.
+    private saveContext() {
+        const configToml = TOML.stringify(this.config as any);
+        console.log("[Context]","Saving TOML profile.");
+
+        writeFileSync(this.configFilePath, configToml);
     }
 
     setProfile(name: string) {
         console.log("[Context]", "Setting new profile name: ", name);
         if (this.config) {
             this.config.profile = name;
-            this.saveContext();
+            // Do not change default profile.
+            // this.saveContext();
             this.reload();
 
             this.emit("event", { type: EventType.profileChange });
@@ -222,6 +245,25 @@ export default class Context extends EventEmitter {
         }
 
         return undefined;
+    }
+
+    async addProfile(name: string, appPassword: AppPassword, region: string) {
+        this.config.profile = "vscode";
+        const newProfile: Profile = {
+            "app-password": appPassword.toString(),
+            "region": region,
+        };
+        if (this.config.profiles) {
+            this.config.profiles[name] = newProfile;
+        } else {
+            this.config.profiles = {
+                [name]: newProfile
+            };
+        }
+
+        this.saveContext();
+        this.emit("event", { type: EventType.newProfiles });
+        this.setProfile(name);
     }
 
     async getCluster(): Promise<string | undefined> {

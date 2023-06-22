@@ -25,8 +25,23 @@
     window.addEventListener('message', event => {
         const message = event.data; // The json data that the extension sent
         switch (message.type) {
-            case 'addProfile':
+            case 'newProfile':
                 {
+                    const { profiles, profile } = message.data;
+                    const selectNode = document.getElementById("profiles");
+
+                    if (selectNode) {
+                        selectNode.innerHTML = '';
+
+                        profiles.forEach((name) => {
+                            const optionNode = document.createElement("vscode-option");
+                            optionNode.innerText = name;
+                            selectNode.appendChild(optionNode);
+                        });
+
+                        // @ts-ignore
+                        selectNode.value = profile;
+                    }
                     break;
                 }
         }

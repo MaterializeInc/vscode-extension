@@ -12,12 +12,22 @@ export default class AppPassword {
     }
 
     toString() {
-        const encoded = Buffer.from(this.clientId + this.secretKey).toString('base64');
-        return PREFIX + encoded;
+      return PREFIX + this.clientId.replace(/-/g, "") + this.secretKey.replace(/-/g, "");
+    }
+
+    static formatDashlessUuid(dashlessUuid: string): string {
+      const uuidWithDashes = [
+        dashlessUuid.substring(0, 8),
+        dashlessUuid.substring(8, 12),
+        dashlessUuid.substring(12, 16),
+        dashlessUuid.substring(16, 20),
+        dashlessUuid.substring(20)
+      ].join("-");
+
+      return uuidWithDashes;
     }
 
     static fromString(password: string) {
-        const PREFIX = 'mzp_'; // Replace 'prefix' with the actual prefix used in Rust code
 
         let strippedPassword = password.replace(PREFIX, '');
         if (strippedPassword.length === 43 || strippedPassword.length === 44) {
@@ -43,13 +53,18 @@ export default class AppPassword {
             throw new Error();
           }
 
-          const clientId = filteredChars.slice(0, 32).join('');
-          const secretKey = filteredChars.slice(32).join('');
+          // Lazy way to rebuild uuid.
+          try {
+            const clientId = AppPassword.formatDashlessUuid(filteredChars.slice(0, 32).join(''));
+            const secretKey = AppPassword.formatDashlessUuid(filteredChars.slice(32).join(''));
 
           return {
             clientId,
             secretKey,
           };
+          } catch (err) {
+            console.log("Error parsing UUID.");
+          }
         }
 
         throw new Error("Invalid app-password");

@@ -1,15 +1,8 @@
 import * as vscode from "vscode";
-import * as toml from "toml";
-import * as os from "os";
-import { readFileSync } from "fs";
 import { Request, Response, Application } from 'express';
-import { Context } from "../context";
+import { Context, EventType } from "../context";
 import { getUri } from "../utilities/getUri";
-
-const homeDir = os.homedir();
-const configDir = `${homeDir}/.config/materialize`;
-const configName = "mz.toml";
-const configPath = `${configDir}/${configName}`;
+import AppPassword from "../context/AppPassword";
 
 export interface Profile {
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -29,18 +22,27 @@ export interface Config {
 export default class AuthProvider implements vscode.WebviewViewProvider {
     _view?: vscode.WebviewView;
     _doc?: vscode.TextDocument;
-    config?: Config;
     context: Context;
 
     constructor(private readonly _extensionUri: vscode.Uri, context: Context) {
         this._extensionUri = _extensionUri;
         this.context = context;
-        try {
-            let configInToml = readFileSync(configPath, 'utf-8');
-            this.config = toml.parse(configInToml);
-        } catch (err) {
-            console.error(err);
-        }
+
+        this.context.on("event", ({ type }) => {
+            if (type === EventType.newProfiles) {
+                console.log("[AuthProvider]", "New profiles available.");
+                if (this._view) {
+                    console.log("[AuthProvider]", "Posting new profiles.");
+                    const profiles = this.context.getProfileNames();
+                    const profile = this.context.getProfileName();
+
+                    const thenable = this._view.webview.postMessage({ type: "newProfile", data: { profiles, profile } });
+                    thenable.then((posted) => {
+                        console.log("[AuthProvider]", "Message posted: ", posted);
+                    });
+                }
+            }
+        });
     }
 
     public resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -63,7 +65,9 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 
                     await new Promise((resolve, reject) => {
                         app.get('/', (req: Request, res: Response) => {
-                            const {secret, clientId, email, description } = req.query;
+                            const {secret, clientId } = req.query;
+                            // TODO: Handle any issue here removing casting.
+                            this.context.addProfile("vscode", new AppPassword(clientId as string, secret as string), "aws/us-east-1");
                             res.send('You can now close the tab.');
                             resolve(true);
                         });
@@ -137,18 +141,12 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         </head>
         <body>
             <div id="profiles_container" class="dropdown-container">
-                ${this.config && this.config.profiles ?
-                    (
-                        `
-                        <div>
-                            <label for="profiles">Profile</label>
-                            <vscode-dropdown id="profiles">
-                                ${this.config && Object.keys(this.config.profiles).map((name) => `<vscode-option>${name}</vscode-option>`)}
-                            </vscode-dropdown>
-                        </div>
-                        `
-                    ): ("")
-                }
+                <div>
+                    <label for="profiles">Profile</label>
+                    <vscode-dropdown id="profiles">
+                        ${(this.context.getProfileNames() || []).map((name) => `<vscode-option>${name}</vscode-option>`).join('')}
+                    </vscode-dropdown>
+                </div>
             </div>
             <vscode-button id="loginButton">Login</vscode-button>
 
