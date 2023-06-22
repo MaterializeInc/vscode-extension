@@ -4,8 +4,8 @@ This project is currently under research and development 👷‍♂️
 ## How to try it?
 
 1. Clone.
-2. Open the project with VSCode.
-3. Add your credentials to `.vscode/launch.json`
+2. Run `yarn install` or `npm install`
+3. Open the project with VSCode.
 4. Go to `Run and Debug`.
 5. Click on `Start Debugging`. 
 
