@@ -47,7 +47,6 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
                         return;
                     }
                     console.log("[ResultsProvider]", messages);
-                    // vscode.window.showInformationMessage(message);
                     break;
                 }
                 case "logError": {
@@ -55,8 +54,7 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
                     if (!error) {
                         return;
                     }
-                    console.error(error);
-                    // vscode.window.showErrorMessage(data.value);
+                    console.error("[ResultsProvider]", error);
                     break;
                 }
             }

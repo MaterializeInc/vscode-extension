@@ -27,7 +27,8 @@ export enum EventType {
     newProfiles,
     profileChange,
     connected,
-    queryResults
+    queryResults,
+    newClusters
 }
 
 export default class Context extends EventEmitter {
@@ -36,14 +37,16 @@ export default class Context extends EventEmitter {
     private configName = "mz.toml";
     private configFilePath = `${this.configDir}/${this.configName}`;
 
-
     config: Config;
     adminClient?: AdminClient;
     cloudClient?: CloudClient;
     pool?: Promise<Pool>;
+    private clusters: Array<String>;
+    private cluster: String | undefined;
 
     constructor() {
         super();
+        this.clusters = [];
         this.config = this.loadConfig();
         this.reload();
     }
@@ -85,17 +88,44 @@ export default class Context extends EventEmitter {
                     });
 
                     console.log("[Context]", "Connecting pool.");
-                    pool.connect().catch((err) => {
-                        console.error(err);
-                        rej(err);
-                    }).finally(() => {
+                    pool.connect().then(() => {
                         console.log("[Context]", "Pool successfully connected.");
                         res(pool);
                         this.emit("event", { type: EventType.connected });
+                        this.loadClusters();
+                    }).catch((err) => {
+                        console.error(err);
+                        rej(err);
                     });
                 });
             });
         });
+    }
+
+    private async loadClusters() {
+        const pool = await this.pool;
+
+        if (pool) {
+            const clustersPromise = pool.query("SHOW CLUSTERS;").then(({ rows }) => {
+                console.log("[Context]", "Setting clusters.");
+                if (rows.length > 0) {
+                    this.clusters = rows.map(x => x.name).filter(x => x.name !== "mz_introspection" && x.name !== "mz_system");
+                }
+            }).catch((err) => {
+                console.error("[Context]", "Error loading clusters: ", err);
+            });
+
+            const clusterPromise = pool.query("SHOW CLUSTER;").then(({ rows }) => {
+                if (rows.length > 0) {
+                    this.cluster = rows[0].cluster;
+                }
+            }).catch((err) => {
+                console.error("[Context]", "Error loading cluster: ", err);
+            });
+
+            await Promise.all([clustersPromise, clusterPromise]);
+            this.emit("event", { type: EventType.newClusters });
+        }
     }
 
     private loadConfig(): Config {
@@ -266,14 +296,11 @@ export default class Context extends EventEmitter {
         this.setProfile(name);
     }
 
-    async getCluster(): Promise<string | undefined> {
-        if (this.pool) {
-            const { rows } = await (await this.pool).query("SHOW CLUSTER;");
-            if (rows.length > 0) {
-                return rows[0].cluster;
-            }
-        }
+    getCluster(): String | undefined {
+        return this.cluster;
+    }
 
-        return undefined;
+    getClusters(): String[] {
+        return this.clusters;
     }
 }
