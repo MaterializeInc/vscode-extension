@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { Context } from "../context";
-import { EventType } from "../context/Context";
+import { EventType } from "../context/context";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
 

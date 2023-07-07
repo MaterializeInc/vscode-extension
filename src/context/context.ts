@@ -3,10 +3,11 @@ import * as TOML from "@iarna/toml";
 import * as os from "os";
 import { accessSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import EventEmitter = require("node:events");
-import AdminClient from "./AdminClient";
-import CloudClient from "./CloudClient";
+import AdminClient from "./adminClient";
+import CloudClient from "./cloudClient";
 import { Pool } from "pg";
 import AppPassword from "./AppPassword";
+import { MaterializeObject, MaterializeSchemaObject } from "../providers/databaseTreeProvider";
 
 export interface Profile {
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -28,10 +29,33 @@ export enum EventType {
     profileChange,
     connected,
     queryResults,
-    newClusters
+    newClusters,
+    newDatabases,
+    newSchemas,
+    environmentLoaded
 }
 
-export default class Context extends EventEmitter {
+interface Event {
+    type: EventType;
+    data?: any;
+}
+
+interface Environment {
+    current: {
+        cluster?: String | undefined,
+        schema?: String | undefined,
+        database?: String | undefined
+    },
+    clusters: Array<MaterializeObject>,
+    schemas: Array<MaterializeSchemaObject>,
+    databases: Array<MaterializeObject>
+}
+
+export declare interface Context {
+    on(event: "event", listener: (e: Event) => void): this;
+}
+
+export class Context extends EventEmitter {
     private homeDir = os.homedir();
     private configDir = `${this.homeDir}/.config/materialize`;
     private configName = "mz.toml";
@@ -41,12 +65,16 @@ export default class Context extends EventEmitter {
     adminClient?: AdminClient;
     cloudClient?: CloudClient;
     pool?: Promise<Pool>;
-    private clusters: Array<String>;
-    private cluster: String | undefined;
+    environment: Environment;
 
     constructor() {
         super();
-        this.clusters = [];
+        this.environment = {
+            current: {},
+            clusters: [],
+            databases: [],
+            schemas: []
+        };
         this.config = this.loadConfig();
         this.reload();
     }
@@ -81,6 +109,7 @@ export default class Context extends EventEmitter {
                         host: host && host.substring(0, host.length - 5),
                         // eslint-disable-next-line @typescript-eslint/naming-convention
                         application_name: "mz_vscode",
+                        database: "materialize",
                         port: 6875,
                         user: email,
                         password: profile["app-password"],
@@ -92,7 +121,7 @@ export default class Context extends EventEmitter {
                         console.log("[Context]", "Pool successfully connected.");
                         res(pool);
                         this.emit("event", { type: EventType.connected });
-                        this.loadClusters();
+                        this.loadEnvironment();
                     }).catch((err) => {
                         console.error(err);
                         rej(err);
@@ -102,22 +131,95 @@ export default class Context extends EventEmitter {
         });
     }
 
+    private async loadEnvironment () {
+        // TODO: Improve this part with and remove find(...); from the methods at the end.
+        const databasesPromise = this.loadDatabases();
+        const clustersPromise = this.loadClusters();
+        const schemasPromise = this.loadSchemas();
+
+        Promise.all([clustersPromise, schemasPromise, databasesPromise]).then(() => {
+            console.log("[Context]", "Environment loaded.");
+            this.emit("event", { type: EventType.environmentLoaded });
+        }).catch((err) => {
+            console.error("[Context]", "Error loading environment: ", err);
+        });
+    }
+
+    private async loadDatabases () {
+        const pool = await this.pool;
+
+        if (pool) {
+            const databasesPromise = pool.query("SELECT id, name, owner_id FROM mz_databases;").then(({ rows }) => {
+                console.log("[Context]", "Setting databases.");
+                this.environment.databases = rows.map(x => ({
+                    id: x.id,
+                    name: x.name,
+                    ownerId: x.owner_id,
+                }));
+            }).catch((err) => {
+                console.error("[Context]", "Error loading databases: ", err);
+            });
+
+            const databasePromise = pool.query("SHOW DATABASE;").then(({ rows }) => {
+                if (rows.length > 0) {
+                    this.environment.current.database = rows[0].database;
+                }
+            }).catch((err) => {
+                console.error("[Context]", "Error loading database: ", err);
+            });
+
+            await Promise.all([databasesPromise, databasePromise]);
+            this.emit("event", { type: EventType.newDatabases });
+        }
+    }
+
+    private async loadSchemas() {
+        const pool = await this.pool;
+
+        if (pool) {
+            const schemasPromise = pool.query("SELECT id, name, database_id, owner_id FROM mz_schemas;").then(({ rows }) => {
+                console.log("[Context]", "Setting schemas.");
+                this.environment.schemas = rows.map(x => ({
+                    id: x.id,
+                    name: x.name,
+                    ownerId: x.owner_id,
+                    databaseId: x.database_id,
+                }));
+            }).catch((err) => {
+                console.error("[Context]", "Error loading schemas: ", err);
+            });
+
+            const schemaPromise = pool.query("SHOW SCHEMA;").then(({ rows }) => {
+                if (rows.length > 0) {
+                    this.environment.current.schema = rows[0].schema;
+                }
+            }).catch((err) => {
+                console.error("[Context]", "Error loading schema: ", err);
+            });
+
+            await Promise.all([schemasPromise, schemaPromise]);
+            this.emit("event", { type: EventType.newSchemas });
+        }
+    }
+
     private async loadClusters() {
         const pool = await this.pool;
 
         if (pool) {
-            const clustersPromise = pool.query("SHOW CLUSTERS;").then(({ rows }) => {
+            const clustersPromise = pool.query("SELECT id, name, owner_id FROM mz_clusters;").then(({ rows }) => {
                 console.log("[Context]", "Setting clusters.");
-                if (rows.length > 0) {
-                    this.clusters = rows.map(x => x.name).filter(x => x.name !== "mz_introspection" && x.name !== "mz_system");
-                }
+                this.environment.clusters = rows.map(x => ({
+                    id: x.id,
+                    name: x.name,
+                    ownerId: x.owner_id,
+                }));
             }).catch((err) => {
                 console.error("[Context]", "Error loading clusters: ", err);
             });
 
             const clusterPromise = pool.query("SHOW CLUSTER;").then(({ rows }) => {
                 if (rows.length > 0) {
-                    this.cluster = rows[0].cluster;
+                    this.environment.current.cluster = rows[0].cluster;
                 }
             }).catch((err) => {
                 console.error("[Context]", "Error loading cluster: ", err);
@@ -297,10 +399,38 @@ export default class Context extends EventEmitter {
     }
 
     getCluster(): String | undefined {
-        return this.cluster;
+        return this.environment.current.cluster;
     }
 
-    getClusters(): String[] {
-        return this.clusters;
+    getClusters(): MaterializeObject[] {
+        return this.environment.clusters;
+    }
+
+    getDatabases(): MaterializeObject[] {
+        return this.environment.databases;
+    }
+
+    getDatabase(): MaterializeObject | undefined {
+        // TODO: Make this simpler after loading env correctly.
+        return this.environment.databases.find(x => x.name === this.environment.current.database);
+    }
+
+    getSchemas(): MaterializeSchemaObject[] {
+        // TODO: Make this simpler after loading env correctly.
+        return this.environment.schemas.filter(x => x.databaseId === this.getDatabase()?.id);
+    }
+
+    getSchema(): MaterializeSchemaObject | undefined {
+        // TODO: Make this simpler after loading env correctly.
+        console.log("TRICK:", this.environment.schemas, this.getDatabase(), this.environment.current.schema);
+        return this.environment.schemas.find(x => x.databaseId === this.getDatabase()?.id && x.name === this.environment.current.schema);
+    }
+
+    getSchemaId(): String | undefined {
+        // TODO: Make this simpler after loading env correctly.
+        const schema = this.environment.schemas.find(x => x.name === this.environment.current.schema && x.name === this.environment.current.schema);
+        return schema?.id;
     }
 }
+
+export default Context;

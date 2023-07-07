@@ -49,10 +49,10 @@
       "materialize": [
         {
           "type": "webview",
-          "id": "auth",
-          "name": "Auth",
+          "id": "profile",
+          "name": "Profile",
           "icon": "",
-          "contextualTitle": "Auth"
+          "contextualTitle": "Profile"
         },
         {
           "id": "explorer",

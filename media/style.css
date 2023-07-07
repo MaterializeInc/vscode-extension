@@ -1,35 +1,44 @@
 #container {
     width: 100%;
     height: 100%;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 #logo {
-    width: 50px;
-    height: 50px;
-}
-
-#profile-setup-container {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-    vertical-align: middle;
+    width: 80px;
+    height: 80px;
 }
 
 #loginButton {
     margin-top: 1rem;
 }
 
-#profile-setup-container label, vscode-dropdown, vscode-button, svg {
+.profile-container {
+    text-align: left;
+    width: fit-content;
+    margin: auto;
+}
+
+.setup-container {
+    padding-top: 1rem;
+}
+
+.invisible {
+    visibility: hidden;
+}
+
+vscode-progress-ring {
+    margin: auto;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+#setup-container label, vscode-dropdown, vscode-button, svg {
     display: inline-block;
     vertical-align: middle;
-}
-
-vscode-button {
-    margin-left: 0.5rem;
-}
-
-#addProfileLink {
-    font-size: smaller;
 }
 
 #add-profile-actions-container {
@@ -43,8 +52,4 @@ vscode-button {
 
 #cancelAddProfile {
     background: none;
-}
-
-#setup-container {
-    align-items: center;
 }

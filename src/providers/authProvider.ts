@@ -46,6 +46,7 @@ async function loginServer(): Promise<AppPassword> {
 
 interface State {
     isAddNewProfile: boolean;
+    isLoading: boolean;
 }
 
 /**
@@ -66,6 +67,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         this.context = context;
         this.state = {
             isAddNewProfile: false,
+            isLoading: true,
         };
 
         this.context.on("event", ({ type }) => {
@@ -85,17 +87,27 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     break;
                 }
 
-                case EventType.newClusters: {
-                    console.log("[AuthProvider]", "New clusters available.");
+                case EventType.environmentLoaded: {
+                    console.log("[AuthProvider]", "New environment available.");
                     if (this._view) {
-                        console.log("[AuthProvider]", "Posting new clusters.");
-                        const clusters = this.context.getClusters();
-                        const cluster = this.context.getCluster();
+                        this.state.isLoading = false;
 
-                        const thenable = this._view.webview.postMessage({ type: "newClusters", data: { clusters, cluster } });
+                        console.log("[AuthProvider]", "Posting new environment.");
+                        const data = {
+                            clusters: this.context.getClusters().map(x => x.name),
+                            cluster: this.context.getCluster(),
+                            database: this.context.getDatabase(),
+                            databases: this.context.getDatabases().map(x => x.name),
+                            schema: this.context.getSchema(),
+                            schemas: this.context.getSchemas().map(x => x.name),
+                        };
+
+                        console.log("[AuthProvider]", "Sending data: ", data);
+                        const thenable = this._view.webview.postMessage({ type: "newEnvironment", data });
                         thenable.then((posted) => {
-                            console.log("[AuthProvider]", "Clusters message posted: ", posted);
+                            console.log("[AuthProvider]", "Environment message posted: ", posted);
                         });
+                        this._view.webview.html = this._getHtmlForWebview(this._view.webview);
                     }
                     break;
                 }
@@ -121,14 +133,16 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             console.log("[AuthProvider]", type);
             switch (type) {
                 case "onLogin": {
+                    const { name } = data;
+
                     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     // TODO: Handle Err
                     loginServer().then((appPassword) => {
-                        this.context.addProfile("vscode", appPassword, "aws/us-east-1");
+                        this.context.addProfile(name, appPassword, "aws/us-east-1");
                     });
                     break;
                 }
-                case "onAddProfileConfirmed": {
+                case "onContinueProfile": {
                     const { name } = data;
                     // TODO: Handle Err
                     loginServer().then((appPassword) => {
@@ -193,9 +207,13 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 		const nonce = getNonce();
 
         let content = (
-            `<div>
-                <vscode-button id="loginButton">Login</vscode-button>
-            </div>`
+            `<div id="profile-setup-container">
+                <vscode-text-field id="profileNameInput">Profile Name</vscode-text-field>
+            </div>
+            <div id="add-profile-actions-container">
+                <vscode-button id="continueProfileButton" disabled=true>Continue</vscode-button>
+            </div>
+            `
         );
         const profileNames = this.context.getProfileNames();
 
@@ -204,20 +222,19 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             if (this.state.isAddNewProfile) {
                 content = (
                     `<div id="profile-setup-container">
-                        <label for="profileNameInput">Name</label>
-                        <input id="profileNameInput"></input>
-                    </div>
+                        <vscode-text-field id="profileNameInput">Profile Name</vscode-text-field>
                     </div>
                     <div id="add-profile-actions-container">
                         <vscode-button id="cancelAddProfile">Cancel</vscode-button>
-                        <vscode-button id="addProfileButton">Add</vscode-button>
+                        <vscode-button id="continueProfileButton"
+                        disabled=true>Continue</vscode-button>
                     </div>`
                 );
             } else {
                 content = (
-                    `<div id="setup-container">
-                        <div id="profile-setup-container">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width="24" height="24" stroke-width="1.5" stroke="currentColor">
+                    `<div class="profile-container">
+                        <div class="setup-container">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width="20" height="20" stroke-width="1" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                             <vscode-dropdown id="profiles">
@@ -225,23 +242,38 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                             </vscode-dropdown>
 
                             <vscode-button id="addProfileLink">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
                                 </svg>
                             </vscode-button>
                         </div>
-                        <div id="cluster-setup-container">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g><path d="M7.99967 1.33313L1.33301 4.66646L7.99967 7.9998L14.6663 4.66646L7.99967 1.33313Z" stroke="currentColor" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1.33301 11.3331L7.99967 14.6665L14.6663 11.3331" stroke="currentColor" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1.33301 7.99988L7.99967 11.3332L14.6663 7.99988" stroke="currentColor" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"></path></g></svg>
+                        <vscode-progress-ring id="loading-ring"></vscode-progress-ring>
+                        <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
+                            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g><path d="M7.99967 1.33313L1.33301 4.66646L7.99967 7.9998L14.6663 4.66646L7.99967 1.33313Z" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1.33301 11.3331L7.99967 14.6665L14.6663 11.3331" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1.33301 7.99988L7.99967 11.3332L14.6663 7.99988" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path></g></svg>
                             <vscode-dropdown id="clusters">
-                                ${(this.context.getClusters()).map((name) => `<vscode-option>${name}</vscode-option>`).join('')}
+                                ${(this.context.getClusters()).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
                             </vscode-dropdown>
                         </div>
-                    </div>`
-                );
+                        <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" width="20" height="20" viewBox="0 0 24 24" stroke-width="1" stroke="#FFFFFF">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                            </svg>
+                            <vscode-dropdown id="databases">
+                                ${(this.context.getDatabases()).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                            </vscode-dropdown>
+                        </div>
+                        <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
+                            <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 6.878V6a2.25 2.25 0 012.25-2.25h7.5A2.25 2.25 0 0118 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 004.5 9v.878m13.5-3A2.25 2.25 0 0119.5 9v.878m0 0a2.246 2.246 0 00-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0121 12v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6c0-.98.626-1.813 1.5-2.122" />
+                            </svg>
+                            <vscode-dropdown id="schemas">
+                                ${(this.context.getSchemas()).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                            </vscode-dropdown>
+                        </div>
+                    </div>
+                `);
             }
-        }
-
-
+        };
 
         return `<!DOCTYPE html>
         <html lang="en">
@@ -260,7 +292,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <link href="${styleUri}" rel="stylesheet">
 
-            <title>Materialize Auth</title>
+            <title>Materialize Profile</title>
         </head>
         <body>
             <div id="container">

@@ -15,7 +15,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
 	const authProvider = new AuthProvider(vsContext.extensionUri, context);
 	vsContext.subscriptions.push(
 		vscode.window.registerWebviewViewProvider(
-			"auth",
+			"profile",
 			authProvider
 		)
 	);
@@ -41,7 +41,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
             console.log("[RunSQLCommand]", "Awaiting pool.");
             const pool = await context.pool;
 
-            console.log("[RunSQLCommand]", "Running query.");
+            console.log("[RunSQLCommand]", "Running query: ", contentText);
             const results = await pool.query(contentText);
             console.log("[RunSQLCommand]", "Results: ", results);
 
