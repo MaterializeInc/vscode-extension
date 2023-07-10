@@ -45,7 +45,7 @@ export default class SqlClient {
             host: host && host.substring(0, host.length - 5),
             // eslint-disable-next-line @typescript-eslint/naming-convention
             application_name: "mz_vscode",
-            database: (this.context.getDatabase() || "materialize").toString(),
+            database: (this.context.getDatabase()?.name || "materialize").toString(),
             port: 6875,
             user: email,
             options: this.context.getConnectionOptions(),
@@ -55,7 +55,9 @@ export default class SqlClient {
     }
 
     async query(statement: string): Promise<QueryResult<any>> {
-        return (await this.pool).query(statement);
+        const results = await (await this.pool).query(statement);
+
+        return results;
     }
 
     async cursorQuery(statement: string) {

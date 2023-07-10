@@ -14,6 +14,9 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
             if (type === EventType.profileChange) {
                 console.log("[DatabaseTreeProvider]", "Profile change detected. Refreshing provider.");
                 this.refresh();
+            } else if (type === EventType.environmentChange) {
+                console.log("[DatabaseTreeProvider]", "Environment change detected. Refreshing provider.");
+                this.refresh();
             }
         });
     }

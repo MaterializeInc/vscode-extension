@@ -185,7 +185,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                             this.context.setCluster(name);
                             break;
 
-                        case "schema":
+                        case "schemas":
                             this.context.setSchema(name);
                             break;
                         default:

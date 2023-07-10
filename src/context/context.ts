@@ -32,7 +32,8 @@ export enum EventType {
     newClusters,
     newDatabases,
     newSchemas,
-    environmentLoaded
+    environmentLoaded,
+    environmentChange,
 }
 
 interface Event {
@@ -118,8 +119,17 @@ export class Context extends EventEmitter {
         }
     }
 
-    getConnectionOptions() {
-        return this.environment.current.cluster ? `--cluster=${this.environment.current.cluster}` : undefined;
+    getConnectionOptions(): string {
+        const connectionOptions = [];
+        if (this.environment.current.cluster) {
+            connectionOptions.push(`--cluster=${this.environment.current.cluster}`);
+        };
+
+        if (this.environment.current.schema) {
+            connectionOptions.push(`-csearch_path==${this.environment.current.schema}`);
+        }
+
+        return connectionOptions.join(" ");
     }
 
     private async loadEnvironment () {
@@ -137,33 +147,41 @@ export class Context extends EventEmitter {
     }
 
     private async loadDatabases () {
-        const databasesPromise = this.sqlClient?.query("SELECT id, name, owner_id FROM mz_databases;").then(({ rows }) => {
-            console.log("[Context]", "Setting databases.");
-            this.environment.databases = rows.map(x => ({
-                id: x.id,
-                name: x.name,
-                ownerId: x.owner_id,
-            }));
-        }).catch((err) => {
-            console.error("[Context]", "Error loading databases: ", err);
-        });
+        let promises = [];
 
-        const databasePromise = this.sqlClient?.query("SHOW DATABASE;").then(({ rows }) => {
-            console.log("DB: ", rows);
-            if (rows.length > 0) {
-                console.log("[Context]", "Setting database: ", rows[0].database);
-                this.environment.current.database = rows[0].database;
-            }
-        }).catch((err) => {
-            console.error("[Context]", "Error loading database: ", err);
-        });
+        promises.push(
+            this.sqlClient?.query("SELECT id, name, owner_id FROM mz_databases;").then(({ rows }) => {
+                console.log("[Context]", "Setting databases.");
+                this.environment.databases = rows.map(x => ({
+                    id: x.id,
+                    name: x.name,
+                    ownerId: x.owner_id,
+                }));
+            }).catch((err) => {
+                console.error("[Context]", "Error loading databases: ", err);
+            })
+        );
 
-        await Promise.all([databasesPromise, databasePromise]);
+        if (!this.environment.current.database) {
+            promises.push(
+                this.sqlClient?.query("SHOW DATABASE;").then(({ rows }) => {
+                    if (rows.length > 0) {
+                        console.log("[Context]", "Setting database: ", rows[0].database);
+                        this.environment.current.database = rows[0].database;
+                    }
+                }).catch((err) => {
+                    console.error("[Context]", "Error loading database: ", err);
+                })
+            );
+        }
+
+        await Promise.all(promises);
         this.emit("event", { type: EventType.newDatabases });
     }
 
     private async loadSchemas() {
-        const schemasPromise = this.sqlClient?.query("SELECT id, name, database_id, owner_id FROM mz_schemas;").then(({ rows }) => {
+        const promises = [];
+        promises.push(this.sqlClient?.query("SELECT id, name, database_id, owner_id FROM mz_schemas;").then(({ rows }) => {
             console.log("[Context]", "Setting schemas.");
             this.environment.schemas = rows.map(x => ({
                 id: x.id,
@@ -173,24 +191,26 @@ export class Context extends EventEmitter {
             }));
         }).catch((err) => {
             console.error("[Context]", "Error loading schemas: ", err);
-        });
+        }));
 
-        const schemaPromise = this.sqlClient?.query("SHOW SCHEMA;").then(({ rows }) => {
-            if (rows.length > 0) {
-                console.log("SCHEMA: ", rows);
-                console.log("[Context]", "Setting schema: ", rows[0].schema);
-                this.environment.current.schema = rows[0].schema;
-            }
-        }).catch((err) => {
-            console.error("[Context]", "Error loading schema: ", err);
-        });
+        if (!this.environment.current.schema) {
+            promises.push(this.sqlClient?.query("SHOW SCHEMA;").then(({ rows }) => {
+                if (rows.length > 0) {
+                    console.log("[Context]", "Setting schema: ", rows[0].schema);
+                    this.environment.current.schema = rows[0].schema;
+                }
+            }).catch((err) => {
+                console.error("[Context]", "Error loading schema: ", err);
+            }));
+        }
 
-        await Promise.all([schemasPromise, schemaPromise]);
+        await Promise.all(promises);
         this.emit("event", { type: EventType.newSchemas });
     }
 
     private async loadClusters() {
-        const clustersPromise = this.sqlClient?.query("SELECT id, name, owner_id FROM mz_clusters;").then(({ rows }) => {
+        const promises = [];
+        promises.push(this.sqlClient?.query("SELECT id, name, owner_id FROM mz_clusters;").then(({ rows }) => {
             console.log("[Context]", "Setting clusters.");
             this.environment.clusters = rows.map(x => ({
                 id: x.id,
@@ -199,19 +219,20 @@ export class Context extends EventEmitter {
             }));
         }).catch((err) => {
             console.error("[Context]", "Error loading clusters: ", err);
-        });
+        }));
 
-        const clusterPromise = this.sqlClient?.query("SHOW CLUSTER;").then(({ rows }) => {
-            if (rows.length > 0) {
-                console.log("CLUSTER: ", rows);
-                console.log("[Context]", "Setting cluster: ", rows[0].cluster);
-                this.environment.current.cluster = rows[0].cluster;
-            }
-        }).catch((err) => {
-            console.error("[Context]", "Error loading cluster: ", err);
-        });
+        if (!this.environment.current.cluster) {
+            promises.push(this.sqlClient?.query("SHOW CLUSTER;").then(({ rows }) => {
+                if (rows.length > 0) {
+                    console.log("[Context]", "Setting cluster: ", rows[0].cluster);
+                    this.environment.current.cluster = rows[0].cluster;
+                }
+            }).catch((err) => {
+                console.error("[Context]", "Error loading cluster: ", err);
+            }));
+        }
 
-        await Promise.all([clustersPromise, clusterPromise]);
+        await Promise.all(promises);
         this.emit("event", { type: EventType.newClusters });
     }
 
@@ -407,7 +428,6 @@ export class Context extends EventEmitter {
 
     getSchema(): MaterializeSchemaObject | undefined {
         // TODO: Make this simpler after loading env correctly.
-        console.log("GetSchema: ", this.getDatabase(), this.environment.schemas);
         return this.environment.schemas.find(x => x.databaseId === this.getDatabase()?.id && x.name === this.environment.current.schema);
     }
 
@@ -419,16 +439,19 @@ export class Context extends EventEmitter {
 
     setDatabase(name: String) {
         this.environment.current.database = name;
+        this.emit("event", { type: EventType.environmentChange });
         this.loadSqlClient();
     }
 
     setSchema(name: String) {
         this.environment.current.schema = name;
+        this.emit("event", { type: EventType.environmentChange });
         this.loadSqlClient();
     }
 
     setCluster(name: String) {
         this.environment.current.cluster = name;
+        this.emit("event", { type: EventType.environmentChange });
         this.loadSqlClient();
     }
 }
