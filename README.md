@@ -18,7 +18,7 @@ The Materialize extension allows VSCode users to:
 
 Preview:
 
-<img width="1728" alt="Screenshot 2023-06-20 at 10 50 07" src="https://github.com/MaterializeInc/vscode-extension/assets/11491779/46058781-9528-4710-8c61-a6960b8279ac">
+<img width="1610" alt="Screenshot 2023-07-10 at 17 50 17" src="https://github.com/MaterializeInc/vscode-extension/assets/11491779/a27ddb2e-0060-48ed-8a5e-96776c347d32">
 
 ## Requirements
 
