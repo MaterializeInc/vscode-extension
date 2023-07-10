@@ -5,9 +5,9 @@ import { accessSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import EventEmitter = require("node:events");
 import AdminClient from "./adminClient";
 import CloudClient from "./cloudClient";
-import { Pool } from "pg";
 import AppPassword from "./AppPassword";
 import { MaterializeObject, MaterializeSchemaObject } from "../providers/databaseTreeProvider";
+import SqlClient from "./sqlClient";
 
 export interface Profile {
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -65,7 +65,7 @@ export class Context extends EventEmitter {
     config: Config;
     adminClient?: AdminClient;
     cloudClient?: CloudClient;
-    pool?: Promise<Pool>;
+    sqlClient?: SqlClient;
     environment: Environment;
 
     constructor() {
@@ -87,7 +87,6 @@ export class Context extends EventEmitter {
             console.log("[Context]", "Loading profile: ", profile);
 
             this.loadClients();
-            this.loadPool();
         }
     }
 
@@ -99,53 +98,28 @@ export class Context extends EventEmitter {
         if (profile) {
             this.adminClient = new AdminClient(profile["app-password"]);
             this.cloudClient = new CloudClient(this.adminClient);
+            this.loadSqlClient();
         } else {
             console.error("[Context]", "No profile available for the clients.");
         }
     }
 
-    private getConnectionOptions() {
-        return this.environment.current.cluster ? `--cluster=${this.environment.current.cluster}` : undefined;
+    private loadSqlClient() {
+        const profile = this.getProfile();
+
+        if (profile) {
+            this.sqlClient = new SqlClient(this, profile);
+
+            // Wait the pool to be ready to announce the we are connected.
+            this.sqlClient.pool.then(() => {
+                this.emit("event", { type: EventType.connected });
+                this.loadEnvironment();
+            });
+        }
     }
 
-    private loadPool() {
-        console.log("[Context]", "Loading pool.");
-
-        const profile = this.getProfile();
-        if (profile) {
-            this.pool = new Promise((res, rej) => {
-                console.log("[Context]", "Loading host.");
-                this.getHost(profile.region).then((host) => {
-                    console.log("[Context]", "Loading user email.");
-                    this.getEmail().then((email) => {
-                        const pool = new Pool({
-                            host: host && host.substring(0, host.length - 5),
-                            // eslint-disable-next-line @typescript-eslint/naming-convention
-                            application_name: "mz_vscode",
-                            database: (this.environment.current.database || "materialize").toString(),
-                            port: 6875,
-                            user: email,
-                            options: this.getConnectionOptions(),
-                            password: profile["app-password"],
-                            ssl: true,
-                        });
-
-                        console.log("[Context]", "Connecting pool.");
-                        pool.connect().then(() => {
-                            console.log("[Context]", "Pool successfully connected.");
-                            res(pool);
-                            this.emit("event", { type: EventType.connected });
-                            this.loadEnvironment();
-                        }).catch((err) => {
-                            console.error(err);
-                            rej(err);
-                        });
-                    });
-                });
-            });
-        } else {
-            console.error("[Context]", "No profile available for the connection pool.");
-        }
+    getConnectionOptions() {
+        return this.environment.current.cluster ? `--cluster=${this.environment.current.cluster}` : undefined;
     }
 
     private async loadEnvironment () {
@@ -163,88 +137,82 @@ export class Context extends EventEmitter {
     }
 
     private async loadDatabases () {
-        const pool = await this.pool;
+        const databasesPromise = this.sqlClient?.query("SELECT id, name, owner_id FROM mz_databases;").then(({ rows }) => {
+            console.log("[Context]", "Setting databases.");
+            this.environment.databases = rows.map(x => ({
+                id: x.id,
+                name: x.name,
+                ownerId: x.owner_id,
+            }));
+        }).catch((err) => {
+            console.error("[Context]", "Error loading databases: ", err);
+        });
 
-        if (pool) {
-            const databasesPromise = pool.query("SELECT id, name, owner_id FROM mz_databases;").then(({ rows }) => {
-                console.log("[Context]", "Setting databases.");
-                this.environment.databases = rows.map(x => ({
-                    id: x.id,
-                    name: x.name,
-                    ownerId: x.owner_id,
-                }));
-            }).catch((err) => {
-                console.error("[Context]", "Error loading databases: ", err);
-            });
+        const databasePromise = this.sqlClient?.query("SHOW DATABASE;").then(({ rows }) => {
+            console.log("DB: ", rows);
+            if (rows.length > 0) {
+                console.log("[Context]", "Setting database: ", rows[0].database);
+                this.environment.current.database = rows[0].database;
+            }
+        }).catch((err) => {
+            console.error("[Context]", "Error loading database: ", err);
+        });
 
-            const databasePromise = pool.query("SHOW DATABASE;").then(({ rows }) => {
-                if (rows.length > 0) {
-                    this.environment.current.database = rows[0].database;
-                }
-            }).catch((err) => {
-                console.error("[Context]", "Error loading database: ", err);
-            });
-
-            await Promise.all([databasesPromise, databasePromise]);
-            this.emit("event", { type: EventType.newDatabases });
-        }
+        await Promise.all([databasesPromise, databasePromise]);
+        this.emit("event", { type: EventType.newDatabases });
     }
 
     private async loadSchemas() {
-        const pool = await this.pool;
+        const schemasPromise = this.sqlClient?.query("SELECT id, name, database_id, owner_id FROM mz_schemas;").then(({ rows }) => {
+            console.log("[Context]", "Setting schemas.");
+            this.environment.schemas = rows.map(x => ({
+                id: x.id,
+                name: x.name,
+                ownerId: x.owner_id,
+                databaseId: x.database_id,
+            }));
+        }).catch((err) => {
+            console.error("[Context]", "Error loading schemas: ", err);
+        });
 
-        if (pool) {
-            const schemasPromise = pool.query("SELECT id, name, database_id, owner_id FROM mz_schemas;").then(({ rows }) => {
-                console.log("[Context]", "Setting schemas.");
-                this.environment.schemas = rows.map(x => ({
-                    id: x.id,
-                    name: x.name,
-                    ownerId: x.owner_id,
-                    databaseId: x.database_id,
-                }));
-            }).catch((err) => {
-                console.error("[Context]", "Error loading schemas: ", err);
-            });
+        const schemaPromise = this.sqlClient?.query("SHOW SCHEMA;").then(({ rows }) => {
+            if (rows.length > 0) {
+                console.log("SCHEMA: ", rows);
+                console.log("[Context]", "Setting schema: ", rows[0].schema);
+                this.environment.current.schema = rows[0].schema;
+            }
+        }).catch((err) => {
+            console.error("[Context]", "Error loading schema: ", err);
+        });
 
-            const schemaPromise = pool.query("SHOW SCHEMA;").then(({ rows }) => {
-                if (rows.length > 0) {
-                    this.environment.current.schema = rows[0].schema;
-                }
-            }).catch((err) => {
-                console.error("[Context]", "Error loading schema: ", err);
-            });
-
-            await Promise.all([schemasPromise, schemaPromise]);
-            this.emit("event", { type: EventType.newSchemas });
-        }
+        await Promise.all([schemasPromise, schemaPromise]);
+        this.emit("event", { type: EventType.newSchemas });
     }
 
     private async loadClusters() {
-        const pool = await this.pool;
+        const clustersPromise = this.sqlClient?.query("SELECT id, name, owner_id FROM mz_clusters;").then(({ rows }) => {
+            console.log("[Context]", "Setting clusters.");
+            this.environment.clusters = rows.map(x => ({
+                id: x.id,
+                name: x.name,
+                ownerId: x.owner_id,
+            }));
+        }).catch((err) => {
+            console.error("[Context]", "Error loading clusters: ", err);
+        });
 
-        if (pool) {
-            const clustersPromise = pool.query("SELECT id, name, owner_id FROM mz_clusters;").then(({ rows }) => {
-                console.log("[Context]", "Setting clusters.");
-                this.environment.clusters = rows.map(x => ({
-                    id: x.id,
-                    name: x.name,
-                    ownerId: x.owner_id,
-                }));
-            }).catch((err) => {
-                console.error("[Context]", "Error loading clusters: ", err);
-            });
+        const clusterPromise = this.sqlClient?.query("SHOW CLUSTER;").then(({ rows }) => {
+            if (rows.length > 0) {
+                console.log("CLUSTER: ", rows);
+                console.log("[Context]", "Setting cluster: ", rows[0].cluster);
+                this.environment.current.cluster = rows[0].cluster;
+            }
+        }).catch((err) => {
+            console.error("[Context]", "Error loading cluster: ", err);
+        });
 
-            const clusterPromise = pool.query("SHOW CLUSTER;").then(({ rows }) => {
-                if (rows.length > 0) {
-                    this.environment.current.cluster = rows[0].cluster;
-                }
-            }).catch((err) => {
-                console.error("[Context]", "Error loading cluster: ", err);
-            });
-
-            await Promise.all([clustersPromise, clusterPromise]);
-            this.emit("event", { type: EventType.newClusters });
-        }
+        await Promise.all([clustersPromise, clusterPromise]);
+        this.emit("event", { type: EventType.newClusters });
     }
 
     private loadConfig(): Config {
@@ -439,6 +407,7 @@ export class Context extends EventEmitter {
 
     getSchema(): MaterializeSchemaObject | undefined {
         // TODO: Make this simpler after loading env correctly.
+        console.log("GetSchema: ", this.getDatabase(), this.environment.schemas);
         return this.environment.schemas.find(x => x.databaseId === this.getDatabase()?.id && x.name === this.environment.current.schema);
     }
 
@@ -450,17 +419,17 @@ export class Context extends EventEmitter {
 
     setDatabase(name: String) {
         this.environment.current.database = name;
-        this.loadPool();
+        this.loadSqlClient();
     }
 
     setSchema(name: String) {
         this.environment.current.schema = name;
-        this.loadPool();
+        this.loadSqlClient();
     }
 
     setCluster(name: String) {
         this.environment.current.cluster = name;
-        this.loadPool();
+        this.loadSqlClient();
     }
 }
 
