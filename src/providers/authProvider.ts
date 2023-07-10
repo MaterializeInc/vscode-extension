@@ -92,21 +92,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     if (this._view) {
                         this.state.isLoading = false;
 
-                        console.log("[AuthProvider]", "Posting new environment.");
-                        const data = {
-                            clusters: this.context.getClusters().map(x => x.name),
-                            cluster: this.context.getCluster(),
-                            database: this.context.getDatabase(),
-                            databases: this.context.getDatabases().map(x => x.name),
-                            schema: this.context.getSchema(),
-                            schemas: this.context.getSchemas().map(x => x.name),
-                        };
-
-                        console.log("[AuthProvider]", "Sending data: ", data);
-                        const thenable = this._view.webview.postMessage({ type: "newEnvironment", data });
-                        thenable.then((posted) => {
-                            console.log("[AuthProvider]", "Environment message posted: ", posted);
-                        });
+                        console.log("[AuthProvider]", "Triggering configuration webview.");
                         this._view.webview.html = this._getHtmlForWebview(this._view.webview);
                     }
                     break;
@@ -187,6 +173,26 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     console.error("[AuthProvider]", error);
                     break;
                 }
+                case "onConfigChange": {
+                    const { name, type } = data;
+                    console.log("[AuthProvider]", "onConfigChange(): ", data);
+                    switch (type) {
+                        case "databases":
+                            this.context.setDatabase(name);
+                            break;
+
+                        case "clusters":
+                            this.context.setCluster(name);
+                            break;
+
+                        case "schema":
+                            this.context.setSchema(name);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
             }
         });
 
@@ -231,6 +237,10 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     </div>`
                 );
             } else {
+                const database = this.context.getDatabase();
+                const schema = this.context.getSchema();
+                const cluster = this.context.getCluster();
+
                 content = (
                     `<div class="profile-container">
                         <div class="setup-container">
@@ -247,11 +257,13 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                                 </svg>
                             </vscode-button>
                         </div>
-                        <vscode-progress-ring id="loading-ring"></vscode-progress-ring>
+                        <vscode-divider></vscode-divider>
+                        ${this.state.isLoading ? `<vscode-progress-ring id="loading-ring"></vscode-progress-ring>` : "<div style=''>Configuration</div>"}
                         <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
                             <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g><path d="M7.99967 1.33313L1.33301 4.66646L7.99967 7.9998L14.6663 4.66646L7.99967 1.33313Z" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1.33301 11.3331L7.99967 14.6665L14.6663 11.3331" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1.33301 7.99988L7.99967 11.3332L14.6663 7.99988" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path></g></svg>
                             <vscode-dropdown id="clusters">
-                                ${(this.context.getClusters()).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                            <vscode-option>${cluster}</vscode-option>
+                                ${(this.context.getClusters()).filter(x => x.name !== cluster).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
                             </vscode-dropdown>
                         </div>
                         <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
@@ -259,7 +271,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
                             </svg>
                             <vscode-dropdown id="databases">
-                                ${(this.context.getDatabases()).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                                <vscode-option>${database && database.name}</vscode-option>
+                                ${(this.context.getDatabases()).filter(x => x.name !== database?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
                             </vscode-dropdown>
                         </div>
                         <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
@@ -267,7 +280,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 6.878V6a2.25 2.25 0 012.25-2.25h7.5A2.25 2.25 0 0118 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 004.5 9v.878m13.5-3A2.25 2.25 0 0119.5 9v.878m0 0a2.246 2.246 0 00-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0121 12v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6c0-.98.626-1.813 1.5-2.122" />
                             </svg>
                             <vscode-dropdown id="schemas">
-                                ${(this.context.getSchemas()).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                                <vscode-option>${schema && schema.name}</vscode-option>
+                                ${(this.context.getSchemas()).filter(x => x.name !== schema?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
                             </vscode-dropdown>
                         </div>
                     </div>
@@ -285,10 +299,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 and only allow scripts that have a specific nonce.
                 (See the 'webview-sample' extension sample for img-src content secsurity policy examples)
             -->
-            <meta
-            http-equiv="Content-Security-Policy"
-            content="default-src 'none'; img-src ${webview.cspSource} https:; script-src ${webview.cspSource}; style-src ${webview.cspSource};"
-            />
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https:; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <link href="${styleUri}" rel="stylesheet">
 

@@ -15,16 +15,25 @@
     };
     console.log = logInfo;
 
-    console.log("ALL IS WELL");
-
     const logError = (error) => {
         vscode.postMessage({ type: "logError", data: { error } });
     };
     console.error = logError;
 
-    console.log("Adding list1ener0.");
     document.getElementById("profiles")?.addEventListener('change', (e) => {
         onProfileChange(e.target && e.target.value);
+    });
+
+    document.getElementById("schemas")?.addEventListener('change', (e) => {
+        onConfigChange(e.target && e.target.value, "schemas");
+    });
+
+    document.getElementById("clusters")?.addEventListener('change', (e) => {
+        onConfigChange(e.target && e.target.value, "clusters");
+    });
+
+    document.getElementById("databases")?.addEventListener('change', (e) => {
+        onConfigChange(e.target && e.target.value, "databases");
     });
 
     document.getElementById('loginButton')?.addEventListener('click', () => {
@@ -36,7 +45,6 @@
         onAddProfile();
     });
 
-    console.log("Adding list1ener.");
     const porfileNameInput = document.getElementById('profileNameInput');
 
     if (porfileNameInput) {
@@ -56,19 +64,16 @@
         });
     }
 
-    console.log("Adding li2stener.");
     document.getElementById('cancelAddProfile')?.addEventListener('click', () => {
         onCancelAddProfile();
     });
 
 
-    console.log("Adding li2ste3ner.");
     document.getElementById('continueProfileButton')?.addEventListener('click', () => {
         const profileName = document.getElementById('profileNameInput')?.value;
         onContinueProfile(profileName);
     });
 
-    // console.log("Adding listener.");
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {
         const message = event.data; // The json data that the extension sent
@@ -91,31 +96,6 @@
                     }
                     break;
                 }
-            case 'newEnvironment':
-                {
-                    const { data } = message;
-
-                    console.log("Loading stuff");
-                    ["clusters", "schemas", "databases"].forEach((type) => {
-                        const selectNode = document.getElementById(type);
-
-                        if (selectNode) {
-                            selectNode.innerHTML = '';
-
-                            data[type].forEach((name) => {
-                                console.log("??- ", name);
-                                const optionNode = document.createElement("vscode-option");
-                                optionNode.innerText = name;
-                                selectNode.appendChild(optionNode);
-                            });
-
-                            selectNode.value = data[type.substring(0, type.length - 1)];
-                        }
-                    });
-                    console.log("JS", "Setting invisible");
-                    document.getElementById("loading-ring")?.style.visibility = "hidden";
-                    break;
-                }
         }
     });
 
@@ -133,6 +113,9 @@
     }
     function onContinueProfile(name) {
         vscode.postMessage({ type: 'onContinueProfile', data: { name } });
+    }
+    function onConfigChange(name, type) {
+        vscode.postMessage({ type: 'onConfigChange', data: { name, type } });
     }
 }());
 

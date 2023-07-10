@@ -36,16 +36,22 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                 // EventType.newSchemas
                 this.context.on("event", ({ type }) => {
                     switch (type) {
-                        case EventType.newSchemas: {
-                            console.log("[DatabaseTreeProvider]", "New databases.");
+                        case EventType.environmentLoaded: {
+                            console.log("[DatabaseTreeProvider]", "Environment loaded.");
                             const schema = this.context.getSchema();
-                            return [
-                                // new SourceTab("Sources", vscode.TreeItemCollapsibleState.Collapsed, { name: schema,  }),
-                                // new ViewTab("Views", vscode.TreeItemCollapsibleState.Collapsed, element.props as Props),
-                                // new MaterializedViewTab("Materialized Views", vscode.TreeItemCollapsibleState.Collapsed, element.props as Props),
-                                // new TableTab("Tables", vscode.TreeItemCollapsibleState.Collapsed, element.props as Props),
-                                // new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, element.props as Props)
-                            ];
+                            if (schema) {
+                                res([
+                                    new SourceTab("Sources", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new ViewTab("Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new MaterializedViewTab("Materialized Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new TableTab("Tables", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, schema)
+                                ]);
+                            } else {
+                                // TODO: Wrong state.
+                                console.error("[DatabaseTreeProvider]", "Error wrong state. Missing schema.");
+                                rej(new Error("Missing schema."));
+                            }
                         }
                     }
                 });

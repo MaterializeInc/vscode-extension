@@ -36,6 +36,11 @@ vscode-progress-ring {
     text-align: center;
 }
 
+vscode-divider {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
 #setup-container label, vscode-dropdown, vscode-button, svg {
     display: inline-block;
     vertical-align: middle;

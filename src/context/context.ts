@@ -55,6 +55,7 @@ export declare interface Context {
     on(event: "event", listener: (e: Event) => void): this;
 }
 
+// TODO: Separate context in two context. One with profile available, another without it.
 export class Context extends EventEmitter {
     private homeDir = os.homedir();
     private configDir = `${this.homeDir}/.config/materialize`;
@@ -85,50 +86,66 @@ export class Context extends EventEmitter {
         if (profile) {
             console.log("[Context]", "Loading profile: ", profile);
 
-            this.loadClients(profile);
-            this.loadPool(profile);
+            this.loadClients();
+            this.loadPool();
         }
     }
 
-    private loadClients(profile: Profile) {
+    private loadClients() {
         console.log("[Context]", "Loading clients.");
 
-        this.adminClient = new AdminClient(profile["app-password"]);
-        this.cloudClient = new CloudClient(this.adminClient);
+        const profile = this.getProfile();
+
+        if (profile) {
+            this.adminClient = new AdminClient(profile["app-password"]);
+            this.cloudClient = new CloudClient(this.adminClient);
+        } else {
+            console.error("[Context]", "No profile available for the clients.");
+        }
     }
 
-    private loadPool(profile: Profile) {
+    private getConnectionOptions() {
+        return this.environment.current.cluster ? `--cluster=${this.environment.current.cluster}` : undefined;
+    }
+
+    private loadPool() {
         console.log("[Context]", "Loading pool.");
 
-        this.pool = new Promise((res, rej) => {
-            console.log("[Context]", "Loading host.");
-            this.getHost(profile.region).then((host) => {
-                console.log("[Context]", "Loading user email.");
-                this.getEmail().then((email) => {
-                    const pool = new Pool({
-                        host: host && host.substring(0, host.length - 5),
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
-                        application_name: "mz_vscode",
-                        database: "materialize",
-                        port: 6875,
-                        user: email,
-                        password: profile["app-password"],
-                        ssl: true,
-                    });
+        const profile = this.getProfile();
+        if (profile) {
+            this.pool = new Promise((res, rej) => {
+                console.log("[Context]", "Loading host.");
+                this.getHost(profile.region).then((host) => {
+                    console.log("[Context]", "Loading user email.");
+                    this.getEmail().then((email) => {
+                        const pool = new Pool({
+                            host: host && host.substring(0, host.length - 5),
+                            // eslint-disable-next-line @typescript-eslint/naming-convention
+                            application_name: "mz_vscode",
+                            database: (this.environment.current.database || "materialize").toString(),
+                            port: 6875,
+                            user: email,
+                            options: this.getConnectionOptions(),
+                            password: profile["app-password"],
+                            ssl: true,
+                        });
 
-                    console.log("[Context]", "Connecting pool.");
-                    pool.connect().then(() => {
-                        console.log("[Context]", "Pool successfully connected.");
-                        res(pool);
-                        this.emit("event", { type: EventType.connected });
-                        this.loadEnvironment();
-                    }).catch((err) => {
-                        console.error(err);
-                        rej(err);
+                        console.log("[Context]", "Connecting pool.");
+                        pool.connect().then(() => {
+                            console.log("[Context]", "Pool successfully connected.");
+                            res(pool);
+                            this.emit("event", { type: EventType.connected });
+                            this.loadEnvironment();
+                        }).catch((err) => {
+                            console.error(err);
+                            rej(err);
+                        });
                     });
                 });
             });
-        });
+        } else {
+            console.error("[Context]", "No profile available for the connection pool.");
+        }
     }
 
     private async loadEnvironment () {
@@ -286,7 +303,7 @@ export class Context extends EventEmitter {
     }
 
     /// Returns the current profile.
-    getProfile(): Profile | undefined {
+               getProfile(): Profile | undefined {
         if (this.config) {
             const { profile, profiles } = this.config;
 
@@ -380,7 +397,7 @@ export class Context extends EventEmitter {
     }
 
     async addProfile(name: string, appPassword: AppPassword, region: string) {
-        this.config.profile = "vscode";
+        this.config.profile = name;
         const newProfile: Profile = {
             "app-password": appPassword.toString(),
             "region": region,
@@ -422,7 +439,6 @@ export class Context extends EventEmitter {
 
     getSchema(): MaterializeSchemaObject | undefined {
         // TODO: Make this simpler after loading env correctly.
-        console.log("TRICK:", this.environment.schemas, this.getDatabase(), this.environment.current.schema);
         return this.environment.schemas.find(x => x.databaseId === this.getDatabase()?.id && x.name === this.environment.current.schema);
     }
 
@@ -430,6 +446,21 @@ export class Context extends EventEmitter {
         // TODO: Make this simpler after loading env correctly.
         const schema = this.environment.schemas.find(x => x.name === this.environment.current.schema && x.name === this.environment.current.schema);
         return schema?.id;
+    }
+
+    setDatabase(name: String) {
+        this.environment.current.database = name;
+        this.loadPool();
+    }
+
+    setSchema(name: String) {
+        this.environment.current.schema = name;
+        this.loadPool();
+    }
+
+    setCluster(name: String) {
+        this.environment.current.cluster = name;
+        this.loadPool();
     }
 }
 
