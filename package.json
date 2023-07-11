@@ -19,6 +19,13 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "iconThemes": [
+      {
+        "id": "materialize-icons",
+        "label": "Materialize Icons",
+        "path": "./icons"
+      }
+    ],
     "menus": {
       "editor/title": [
         {
@@ -81,8 +88,8 @@
         "title": "Run SQL",
         "category": "materialize",
         "icon": {
-          "light": "resources/logo.svg",
-          "dark": "resources/logo.svg"
+          "light": "resources/play.svg",
+          "dark": "resources/play.svg"
         }
       }
     ]

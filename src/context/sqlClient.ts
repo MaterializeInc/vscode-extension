@@ -81,7 +81,7 @@ export default class SqlClient {
 
             // Run the query
             while (!finish) {
-                let results: QueryResult = await client.query(`FETCH ${batchSize} c WITH (timeout='0s');`);
+                let results: QueryResult = await client.query(`FETCH ${batchSize} c;`);
                 const { rowCount } = results;
 
                 if (rowCount === 0) {
@@ -91,6 +91,11 @@ export default class SqlClient {
                 yield results;
             }
         } finally {
+            try {
+                await client.query("COMMIT;");
+            } catch (err) {
+                console.error("[SqlClient]", "Error commiting transaction.", err);
+            }
             // Release the client and pool resources
             client.release();
         }

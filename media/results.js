@@ -32,6 +32,9 @@
             case "newQuery": {
                 console.log("[Results.js]", "New query");
                 container.innerHTML = "";
+                const progressRing = document.createElement("vscode-progress-ring");
+                progressRing.id = "progress-ring";
+                container.appendChild(progressRing);
                 break;
             }
 
@@ -45,6 +48,11 @@
                 let table = document.getElementById(tableId);
                 if (!table) {
                     console.log("[Results.js]", "New table.");
+
+                    const progressRing = document.getElementById("progress-ring");
+                    if (progressRing) {
+                        progressRing.style.display = "none";
+                    }
 
                     // Create the main table element
                     table = document.createElement("vscode-data-grid");

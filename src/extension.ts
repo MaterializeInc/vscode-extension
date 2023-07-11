@@ -36,7 +36,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
         const contentText = fileContent.toString();
 
         if (!context.sqlClient) {
-            vscode.window.showInformationMessage('The SQL Client is not setup yet. Check that you are successfully login.');
+            vscode.window.showInformationMessage('The SQL Client is not setup yet.');
         } else {
             console.log("[RunSQLCommand]", "Running query: ", contentText);
             context.emit("event", { type: EventType.newQuery });
