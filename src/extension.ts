@@ -11,6 +11,10 @@ export function activate(vsContext: vscode.ExtensionContext) {
 	const databaseTreeProvider = new DatabaseTreeProvider(context);
     vscode.window.createTreeView('explorer', { treeDataProvider: databaseTreeProvider });
 
+    vsContext.subscriptions.push(vscode.commands.registerCommand('materialize.refresh', () => {
+        databaseTreeProvider.refresh();
+    }));
+
     // Register the Auth Provider
 	const authProvider = new AuthProvider(vsContext.extensionUri, context);
 	vsContext.subscriptions.push(
@@ -22,8 +26,6 @@ export function activate(vsContext: vscode.ExtensionContext) {
 
     // Register the `Run SQL` command.
     let disposable = vscode.commands.registerCommand('materialize.run', async () => {
-        vscode.window.showInformationMessage('Running SQL query.');
-
         console.log("[RunSQLCommand]", "Firing detected.");
         const activeEditor = vscode.window.activeTextEditor;
         if (!activeEditor) {
@@ -41,12 +43,22 @@ export function activate(vsContext: vscode.ExtensionContext) {
             console.log("[RunSQLCommand]", "Running query: ", contentText);
             context.emit("event", { type: EventType.newQuery });
 
-            for await (const results of context.sqlClient?.cursorQuery(contentText)) {
+            try {
+                const results = await context.sqlClient?.query(contentText);
                 console.log("[RunSQLCommand]", "Results: ", results);
 
                 console.log("[RunSQLCommand]", "Emitting results.");
                 context.emit("event", { type: EventType.queryResults, data: results });
+            } catch (err) {
+                context.emit("event", { type: EventType.queryResults, data: { rows: [], fields: []} });
+                throw err;
             }
+            // for await (const results of context.sqlClient?.cursorQuery(contentText)) {
+            //     console.log("[RunSQLCommand]", "Results: ", results);
+
+            //     console.log("[RunSQLCommand]", "Emitting results.");
+            //     context.emit("event", { type: EventType.queryResults, data: results });
+            // }
         }
     });
 

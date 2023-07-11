@@ -34,6 +34,13 @@
           "alt": "materialize.run",
           "group": "navigation"
         }
+      ],
+      "view/title": [
+        {
+          "when": "view == explorer",
+          "command": "materialize.refresh",
+          "group": "navigation"
+        }
       ]
     },
     "viewsContainers": {
@@ -80,8 +87,9 @@
     },
     "commands": [
       {
-        "command": "materialize.helloWorld",
-        "title": "Hello World"
+        "command": "materialize.refresh",
+        "title": "Refresh",
+        "icon": "resources/refresh.svg"
       },
       {
         "command": "materialize.run",

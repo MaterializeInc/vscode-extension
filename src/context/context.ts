@@ -69,6 +69,7 @@ export class Context extends EventEmitter {
     cloudClient?: CloudClient;
     sqlClient?: SqlClient;
     environment: Environment;
+    environmentLoaded: boolean;
 
     constructor() {
         super();
@@ -78,6 +79,7 @@ export class Context extends EventEmitter {
             databases: [],
             schemas: []
         };
+        this.environmentLoaded = false;
         this.config = this.loadConfig();
         this.reload();
     }
@@ -134,6 +136,8 @@ export class Context extends EventEmitter {
     }
 
     private async loadEnvironment () {
+        this.environmentLoaded = false;
+
         // TODO: Improve this part with and remove find(...); from the methods at the end.
         const databasesPromise = this.loadDatabases();
         const clustersPromise = this.loadClusters();
@@ -141,6 +145,7 @@ export class Context extends EventEmitter {
 
         Promise.all([clustersPromise, schemasPromise, databasesPromise]).then(() => {
             console.log("[Context]", "Environment loaded.");
+            this.environmentLoaded = true;
             this.emit("event", { type: EventType.environmentLoaded });
         }).catch((err) => {
             console.error("[Context]", "Error loading environment: ", err);

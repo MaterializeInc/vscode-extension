@@ -35,29 +35,37 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
             return Promise.resolve(this.getChildrenFromNode(element));
         } else {
             console.log("[DatabaseTreeProvider]", "Getting databases.");
+
             return new Promise((res, rej) => {
-                // EventType.newSchemas
-                this.context.on("event", ({ type }) => {
-                    switch (type) {
-                        case EventType.environmentLoaded: {
-                            console.log("[DatabaseTreeProvider]", "Environment loaded.");
-                            const schema = this.context.getSchema();
-                            if (schema) {
-                                res([
-                                    new SourceTab("Sources", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new ViewTab("Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new MaterializedViewTab("Materialized Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new TableTab("Tables", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, schema)
-                                ]);
-                            } else {
-                                // TODO: Wrong state.
-                                console.error("[DatabaseTreeProvider]", "Error wrong state. Missing schema.");
-                                rej(new Error("Missing schema."));
-                            }
-                        }
+                const asyncOp = async () => {
+                    if (!this.context.environmentLoaded) {
+                        await new Promise((res, rej) => {
+                            this.context.on("event", ({ type }) => {
+                                if (type === EventType.environmentLoaded) {
+                                    res(true);
+                                }
+                            });
+                        });
+                    };
+
+                    console.log("[DatabaseTreeProvider]", "Environment loaded.");
+                    const schema = this.context.getSchema();
+                    if (schema) {
+                        res([
+                            new SourceTab("Sources", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                            new ViewTab("Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                            new MaterializedViewTab("Materialized Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                            new TableTab("Tables", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                            new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, schema)
+                        ]);
+                    } else {
+                        // TODO: Wrong state.
+                        console.error("[DatabaseTreeProvider]", "Error wrong state. Missing schema.");
+                        rej(new Error("Missing schema."));
                     }
-                });
+                };
+
+                asyncOp();
             });
         }
     }
