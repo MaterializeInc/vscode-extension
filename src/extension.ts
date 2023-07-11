@@ -38,15 +38,15 @@ export function activate(vsContext: vscode.ExtensionContext) {
         if (!context.sqlClient) {
             vscode.window.showInformationMessage('The SQL Client is not setup yet. Check that you are successfully login.');
         } else {
-            console.log("[RunSQLCommand]", "Awaiting pool.");
-            const pool = await context.sqlClient.pool;
-
             console.log("[RunSQLCommand]", "Running query: ", contentText);
-            const results = await pool.query(contentText);
-            console.log("[RunSQLCommand]", "Results: ", results);
+            context.emit("event", { type: EventType.newQuery });
 
-            console.log("[RunSQLCommand]", "Emitting results.");
-            context.emit("event", { type: EventType.queryResults, data: results });
+            for await (const results of context.sqlClient?.cursorQuery(contentText)) {
+                console.log("[RunSQLCommand]", "Results: ", results);
+
+                console.log("[RunSQLCommand]", "Emitting results.");
+                context.emit("event", { type: EventType.queryResults, data: results });
+            }
         }
     });
 

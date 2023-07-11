@@ -3,9 +3,9 @@ import Context, { EventType, Profile } from "./context";
 import { randomUUID } from "crypto";
 
 export default class SqlClient {
-    pool: Promise<Pool>;
-    context: Context;
-    profile: Profile;
+    private pool: Promise<Pool>;
+    private context: Context;
+    private profile: Profile;
 
     constructor(
         context: Context,
@@ -34,6 +34,12 @@ export default class SqlClient {
         });
     }
 
+    async connected() {
+        await this.pool;
+
+        return true;
+    }
+
     private async buildPoolConfig() {
         // TODO: Can be done in parallel
         console.log("[Context]", "Loading host.");
@@ -54,32 +60,39 @@ export default class SqlClient {
         };
     }
 
-    async query(statement: string): Promise<QueryResult<any>> {
-        const results = await (await this.pool).query(statement);
+    async query(statement: string, values?: Array<any>): Promise<QueryResult<any>> {
+        // TODO: Remove double await.
+        const results = await (await this.pool).query(statement, values);
 
         return results;
     }
 
-    async cursorQuery(statement: string) {
-        (await this.pool).connect(async (err, client, done) => {
-            const id = randomUUID();
-            try {
-                const batchSize = 100; // Number of rows to fetch in each batch
+    async* cursorQuery(statement: string): AsyncGenerator<QueryResult> {
+        // TODO: Remove doulbe await
+        const client = await (await this.pool).connect();
+        const id = randomUUID();
 
-                await client.query("BEGIN");
-                await client.query(`DECLARE ${id} CURSOR FOR ${statement})`);
+        try {
+            const batchSize = 100; // Number of rows to fetch in each batch
 
-                // Run the query
-                let results: QueryResult = await client.query(`FETCH ${batchSize} c`);
+            await client.query("BEGIN");
+            await client.query(`DECLARE c CURSOR FOR ${statement}`);
+            let finish = false;
 
-                while (results.rowCount > 0) {
-                    results = await client.query(`FETCH ${batchSize} c`);
-                    this.context.emit("event", { type: EventType.queryResults, data: { id, results }});
+            // Run the query
+            while (!finish) {
+                let results: QueryResult = await client.query(`FETCH ${batchSize} c WITH (timeout='0s');`);
+                const { rowCount } = results;
+
+                if (rowCount === 0) {
+                  finish = true;
                 }
-              } finally {
-                // Release the client and pool resources
-                done();
-              }
-        });
+
+                yield results;
+            }
+        } finally {
+            // Release the client and pool resources
+            client.release();
+        }
     }
 }

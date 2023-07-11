@@ -63,9 +63,8 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
     }
 
     private async query(text: string, vals?: Array<any>): Promise<Array<any>> {
-        const pool = this.context.sqlClient && await this.context.sqlClient.pool;
-        if (pool) {
-            return (await pool.query(text, vals)).rows;
+        if (this.context.sqlClient && await this.context.sqlClient.connected()) {
+            return (await this.context.sqlClient.query(text, vals)).rows;
         }
 
         return [];

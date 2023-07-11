@@ -14,11 +14,16 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
         this.context = context;
 
         this.context.on("event", ({ type, data }) => {
-            if (type === EventType.queryResults) {
-                console.log("[ResultsProvider]", "New query results.");
-                if (this._view) {
-                    console.log("[ResultsProvider]", "Posting results.");
+            if (this._view) {
+                if (type === EventType.queryResults) {
+                    console.log("[ResultsProvider]", "New query results.");
                     const thenable = this._view.webview.postMessage({ type: "results", data });
+                    thenable.then((posted) => {
+                        console.log("[ResultsProvider]", "Message posted: ", posted);
+                    });
+                } else if (type === EventType.newQuery) {
+                    console.log("[ResultsProvider]", "New query.");
+                    const thenable = this._view.webview.postMessage({ type: "newQuery", data });
                     thenable.then((posted) => {
                         console.log("[ResultsProvider]", "Message posted: ", posted);
                     });

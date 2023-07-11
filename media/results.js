@@ -21,54 +21,79 @@
     };
     console.error = logError;
 
+    console.log("[Results.js]","Adding listener");
+
     // Handle messages sent from the extension to the webview
-    window.addEventListener('message', ({ data }) => {
-        const { data: results } = data;
-        console.log("[Results.js]", "New message - Results: ", results);
-
-        const { fields, rows } = results;
+    window.addEventListener('message', ({ data: message }) => {
+        const { type } = message;
         const container = document.getElementById("container");
-        container.innerHTML = "";
 
-        // Create the main table element
-        const table = document.createElement("vscode-data-grid");
-        table.setAttribute("aria-label", "Basic");
+        switch (type) {
+            case "newQuery": {
+                console.log("[Results.js]", "New query");
+                container.innerHTML = "";
+                break;
+            }
 
-        // Create the header row
-        const headerRow = document.createElement("vscode-data-grid-row");
-        headerRow.setAttribute("row-type", "header");
+            case "results": {
+                const { data: results } = message;
+                console.log("[Results.js]", "New message - Results: ", results);
 
-        // Create and append the header cells
-        fields.forEach(({name: field}, fi) => {
-            const headerCell = document.createElement("vscode-data-grid-cell");
-            headerCell.setAttribute("cell-type", "columnheader");
-            headerCell.setAttribute("grid-column", String(fi + 1));
-            headerCell.innerText = field;
+                const { fields, rows } = results;
+                const tableId = "table";
 
-            headerRow.appendChild(headerCell);
-        });
+                let table = document.getElementById(tableId);
+                if (!table) {
+                    console.log("[Results.js]", "New table.");
 
-        // Append the header row to the table
-        table.appendChild(headerRow);
+                    // Create the main table element
+                    table = document.createElement("vscode-data-grid");
+                    table.setAttribute("aria-label", "Basic");
+                    table.id = tableId;
 
-        // Create data rows
-        // Loop through the data and create rows and cells
-        rows.forEach((row, i) => {
-            const dataRow = document.createElement("vscode-data-grid-row");
+                    // Create the header row
+                    const headerRow = document.createElement("vscode-data-grid-row");
+                    headerRow.setAttribute("row-type", "header");
 
-            fields.forEach(({ name: field }, index) => {
-                const dataCell = document.createElement("vscode-data-grid-cell");
-                dataCell.setAttribute("grid-column", String(index + 1));
-                dataCell.innerText = row[field];
+                    // Create and append the header cells
+                    fields.forEach(({name: field}, fi) => {
+                        const headerCell = document.createElement("vscode-data-grid-cell");
+                        headerCell.setAttribute("cell-type", "columnheader");
+                        headerCell.setAttribute("grid-column", String(fi + 1));
+                        headerCell.innerText = field;
 
-                dataRow.appendChild(dataCell);
-            });
+                        headerRow.appendChild(headerCell);
+                    });
 
-            table.appendChild(dataRow);
-        });
+                    // Append the header row to the table
+                    table.appendChild(headerRow);
 
-        // Append the table to the document body or a container element
-        container.appendChild(table);
+                    // Append the table to the document body or a container element
+                    container.appendChild(table);
+                }
+
+                // Create data rows
+                // Loop through the data and create rows and cells
+                rows.forEach((row, i) => {
+                    const dataRow = document.createElement("vscode-data-grid-row");
+
+                    fields.forEach(({ name: field }, index) => {
+                        const dataCell = document.createElement("vscode-data-grid-cell");
+                        dataCell.setAttribute("grid-column", String(index + 1));
+                        const value = row[field];
+                        dataCell.innerText = typeof value === "object" ? JSON.stringify(value) : value;
+
+                        dataRow.appendChild(dataCell);
+                    });
+
+                    table.appendChild(dataRow);
+                });
+                break;
+            }
+
+            default:
+                break;
+        }
     });
 }());
 

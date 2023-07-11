@@ -26,6 +26,7 @@ export interface Config {
 
 export enum EventType {
     newProfiles,
+    newQuery,
     profileChange,
     connected,
     queryResults,
@@ -112,7 +113,7 @@ export class Context extends EventEmitter {
             this.sqlClient = new SqlClient(this, profile);
 
             // Wait the pool to be ready to announce the we are connected.
-            this.sqlClient.pool.then(() => {
+            this.sqlClient.connected().then(() => {
                 this.emit("event", { type: EventType.connected });
                 this.loadEnvironment();
             });
