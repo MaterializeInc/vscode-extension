@@ -46,11 +46,16 @@ vscode-divider {
     vertical-align: middle;
 }
 
+#profile-setup-container {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
 #add-profile-actions-container {
     display: flex;
     align-items: center;
     gap: 3rem;
-    margin-top: 1rem;
+    margin-top: 2rem;
     width: fit-content;
     margin: auto;
 }

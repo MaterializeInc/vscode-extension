@@ -346,10 +346,9 @@ export class Context extends EventEmitter {
         console.log("[Context]", "Setting new profile name: ", name);
         if (this.config) {
             this.config.profile = name;
-            // Do not change default profile.
-            // this.saveContext();
             this.reload();
 
+            this.emit("event", { type: EventType.environmentChange });
             this.emit("event", { type: EventType.profileChange });
         }
     }
