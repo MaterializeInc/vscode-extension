@@ -15,7 +15,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onWebviewPanel:sqlResults"
+    "onWebviewPanel:sqlResults",
+    "onLanguage:sql"
   ],
   "main": "./out/extension.js",
   "contributes": {
