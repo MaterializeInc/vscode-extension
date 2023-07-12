@@ -34,8 +34,9 @@ export function activate(vsContext: vscode.ExtensionContext) {
         }
 
         const document = activeEditor.document;
-        const fileContent = document.getText();
-        const contentText = fileContent.toString();
+        const selection = activeEditor.selection;
+        const textSelected = activeEditor.document.getText(selection).trim();
+        const contentText = textSelected ? textSelected : document.getText();
 
         if (!context.sqlClient) {
             vscode.window.showInformationMessage('The SQL Client is not setup yet.');
