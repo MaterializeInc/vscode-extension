@@ -96,6 +96,19 @@
                     }
                     break;
                 }
+            case "environmentChange": {
+                const profiles = document.getElementById("profiles");
+                profiles.disabled = true;
+
+                const clusters = document.getElementById("clusters");
+                clusters.disabled = true;
+
+                const databases = document.getElementById("databases");
+                databases.disabled = true;
+
+                const schemas = document.getElementById("schemas");
+                schemas.disabled = true;
+            }
         }
     });
 

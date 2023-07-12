@@ -87,6 +87,17 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     break;
                 }
 
+                case EventType.environmentChange: {
+                    console.log("[AuthProvider]", "Environment change.");
+                    if (this._view) {
+                        const thenable = this._view.webview.postMessage({ type: "environmentChange" });
+                        thenable.then((posted) => {
+                            console.log("[AuthProvider]", "Environment change message posted: ", posted);
+                        });
+                    }
+                    break;
+                }
+
                 case EventType.environmentLoaded: {
                     console.log("[AuthProvider]", "New environment available.");
                     if (this._view) {
