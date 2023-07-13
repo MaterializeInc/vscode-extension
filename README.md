@@ -30,7 +30,7 @@ The extension uses the same configuration file as mz and provides a way to authe
 
 ## Known Issues
 
-There are no known issues. In any case, take into consideration that this extension is under development. 
+There are a few known issues. In any case, take into consideration that this extension is under development. 
 
 ## Release Notes
 
