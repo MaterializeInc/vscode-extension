@@ -39,21 +39,42 @@
             }
 
             case "results": {
+                const progressRing = document.getElementById("progress-ring");
+                if (progressRing) {
+                    progressRing.style.display = "none";
+                }
+
                 const { data: results } = message;
                 console.log("[Results.js]", "New message - Results: ", results);
 
-                const { fields, rows } = results;
+                const { fields, rows, error } = results;
                 const tableId = "table";
-
                 let table = document.getElementById(tableId);
-                if (!table) {
+
+                if (error) {
+                    const errorContainer = document.createElement("div");
+                    errorContainer.id = "errorContainer";
+
+                    const { position, query, message } = error;
+
+                    const lines = query.split('\n');
+                    const lineNumber = lines.slice(0, position - 1).length;
+
+                    const errorMessage = `${message}`;
+                    const linePositionMessage = `LINE ${lineNumber}: ...${lines[lineNumber - 1]}`;
+                    // const helperMessage = '&nbsp;'.repeat(linePositionMessage.length - 1) + '^';
+
+                    const errorElement = document.createElement("p");
+                    errorElement.innerHTML = errorMessage;
+                    errorContainer.appendChild(errorElement);
+
+                    const linePositionElement = document.createElement("p");
+                    linePositionElement.innerHTML = linePositionMessage;
+                    errorContainer.appendChild(linePositionElement);
+
+                    container.appendChild(errorContainer);
+                } else if (!table) {
                     console.log("[Results.js]", "New table.");
-
-                    const progressRing = document.getElementById("progress-ring");
-                    if (progressRing) {
-                        progressRing.style.display = "none";
-                    }
-
                     // Create the main table element
                     table = document.createElement("vscode-data-grid");
                     table.setAttribute("aria-label", "Basic");

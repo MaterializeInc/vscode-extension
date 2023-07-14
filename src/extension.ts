@@ -36,30 +36,30 @@ export function activate(vsContext: vscode.ExtensionContext) {
         const document = activeEditor.document;
         const selection = activeEditor.selection;
         const textSelected = activeEditor.document.getText(selection).trim();
-        const contentText = textSelected ? textSelected : document.getText();
+        const query = textSelected ? textSelected : document.getText();
 
         if (!context.sqlClient) {
             vscode.window.showInformationMessage('The SQL Client is not setup yet.');
         } else {
-            console.log("[RunSQLCommand]", "Running query: ", contentText);
+            console.log("[RunSQLCommand]", "Running query: ", query);
             context.emit("event", { type: EventType.newQuery });
 
             try {
-                const results = await context.sqlClient?.query(contentText);
+                const results = await context.sqlClient?.query(query);
                 console.log("[RunSQLCommand]", "Results: ", results);
 
                 console.log("[RunSQLCommand]", "Emitting results.");
                 context.emit("event", { type: EventType.queryResults, data: results });
-            } catch (err) {
-                context.emit("event", { type: EventType.queryResults, data: { rows: [], fields: []} });
-                throw err;
-            }
-            // for await (const results of context.sqlClient?.cursorQuery(contentText)) {
-            //     console.log("[RunSQLCommand]", "Results: ", results);
+            } catch (error: any) {
+                console.log("[RunSQLCommand]", error.toString());
+                console.log("[RunSQLCommand]", JSON.stringify(error));
 
-            //     console.log("[RunSQLCommand]", "Emitting results.");
-            //     context.emit("event", { type: EventType.queryResults, data: results });
-            // }
+                context.emit("event", { type: EventType.queryResults, data: { rows: [], fields: [], error: {
+                    message: error.toString(),
+                    position: error.position,
+                    query,
+                } }});
+            }
         }
     });
 
