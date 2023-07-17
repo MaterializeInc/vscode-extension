@@ -24,6 +24,15 @@ export function activate(vsContext: vscode.ExtensionContext) {
 		)
 	);
 
+    const resultsProvider = new ResultsProvider(vsContext.extensionUri, context);
+	vsContext.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(
+			"queryResults",
+			resultsProvider,
+            { webviewOptions: { retainContextWhenHidden: true } }
+		)
+	);
+
     // Register the `Run SQL` command.
     let disposable = vscode.commands.registerCommand('materialize.run', async () => {
         console.log("[RunSQLCommand]", "Firing detected.");
@@ -45,11 +54,16 @@ export function activate(vsContext: vscode.ExtensionContext) {
             context.emit("event", { type: EventType.newQuery });
 
             try {
+                // Benchmark
+                const startTime = Date.now();
                 const results = await context.sqlClient?.query(query);
-                console.log("[RunSQLCommand]", "Results: ", results);
+                const endTime = Date.now();
 
+                const elapsedTime = endTime - startTime;
+
+                console.log("[RunSQLCommand]", "Results: ", results);
                 console.log("[RunSQLCommand]", "Emitting results.");
-                context.emit("event", { type: EventType.queryResults, data: results });
+                context.emit("event", { type: EventType.queryResults, data: { ...results, elapsedTime } });
             } catch (error: any) {
                 console.log("[RunSQLCommand]", error.toString());
                 console.log("[RunSQLCommand]", JSON.stringify(error));
@@ -59,18 +73,11 @@ export function activate(vsContext: vscode.ExtensionContext) {
                     position: error.position,
                     query,
                 } }});
+            } finally {
+                resultsProvider._view?.show();
             }
         }
     });
-
-    const resultsProvider = new ResultsProvider(vsContext.extensionUri, context);
-	vsContext.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(
-			"queryResults",
-			resultsProvider,
-            { webviewOptions: { retainContextWhenHidden: true } }
-		)
-	);
 
     vsContext.subscriptions.push(disposable);
 }

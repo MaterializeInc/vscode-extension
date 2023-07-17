@@ -91,9 +91,9 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
 
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link href="${styleUri}" rel="stylesheet">
 
-            <title>Materialize Auth</title>
+
+            <title>Materialize Results</title>
         </head>
         <body>
             <div id="container"></div>
