@@ -1,14 +1,15 @@
 import { Pool, QueryResult } from "pg";
-import Context, { EventType, Profile } from "./context";
+import { Profile } from "../context";
 import { randomUUID } from "crypto";
+import { ProfileContext } from "../profileContext";
 
 export default class SqlClient {
     private pool: Promise<Pool>;
-    private context: Context;
+    private context: ProfileContext;
     private profile: Profile;
 
     constructor(
-        context: Context,
+        context: ProfileContext,
         profile: Profile
     ) {
         this.context = context;

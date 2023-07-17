@@ -1,5 +1,5 @@
-import AdminClient from "./adminClient";
-import CloudClient from "./cloudClient";
+import AdminClient from "./clients/admin";
+import CloudClient from "./clients/cloud";
 import Context, { EventType } from "./context";
 
 export {

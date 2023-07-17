@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import AppPassword from "./AppPassword";
+import AppPassword from "../AppPassword";
 const jwksClient = require("jwks-rsa");
 const jwt = require("node-jsonwebtoken");
 
@@ -68,6 +68,16 @@ export default class AdminClient {
         const authData = jwt.verify(token, key, { complete: true });
 
         return authData.payload;
+    }
+
+    /// Returns the current user's email.
+    async getEmail() {
+        const claims = await this.getClaims();
+        if (typeof claims === "string") {
+            return JSON.parse(claims).email as string;
+        } else {
+            return claims.email as string;
+        }
     }
 }
 
