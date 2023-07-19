@@ -76,8 +76,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     console.log("[AuthProvider]", "New profiles available.");
                     if (this._view) {
                         console.log("[AuthProvider]", "Posting new profiles.");
-                        const profiles = this.context.getProfileNames();
-                        const profile = this.context.getProfileName();
+                        const profiles = this.context.config.getProfileNames();
+                        const profile = this.context.config.getProfileName();
 
                         const thenable = this._view.webview.postMessage({ type: "newProfile", data: { profiles, profile } });
                         thenable.then((posted) => {
@@ -135,7 +135,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     // TODO: Handle Err
                     loginServer().then((appPassword) => {
-                        this.context.addProfile(name, appPassword, "aws/us-east-1");
+                        this.context.config.addProfile(name, appPassword, "aws/us-east-1");
                     });
                     break;
                 }
@@ -144,7 +144,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     // TODO: Handle Err
                     loginServer().then((appPassword) => {
                         this.state.isAddNewProfile = false;
-                        this.context.addProfile(name, appPassword, "aws/us-east-1");
+                        this.context.config.addProfile(name, appPassword, "aws/us-east-1");
                     }).finally(() => {
                         this.state.isAddNewProfile = false;
                         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
@@ -165,7 +165,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 case "onProfileChange": {
                     const { name } = data;
                     console.log("[AuthProvider]", "onProfileChange(): ", data);
-                    this.context.setProfile(name);
+                    this.context.config.setProfile(name);
                     break;
                 }
                 case "logInfo": {
@@ -187,17 +187,18 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 case "onConfigChange": {
                     const { name, type } = data;
                     console.log("[AuthProvider]", "onConfigChange(): ", data);
+
                     switch (type) {
                         case "databases":
-                            this.context.setDatabase(name);
+                            this.context.config.setDatabase(name);
                             break;
 
                         case "clusters":
-                            this.context.setCluster(name);
+                            this.context.config.setCluster(name);
                             break;
 
                         case "schemas":
-                            this.context.setSchema(name);
+                            this.context.config.setSchema(name);
                             break;
                         default:
                             break;
@@ -232,7 +233,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             </div>
             `
         );
-        const profileNames = this.context.getProfileNames();
+        const profileNames = this.context.config.getProfileNames();
 
         console.log("[AuthProvider]", this.state, profileNames);
         if (profileNames) {
@@ -248,6 +249,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     </div>`
                 );
             } else {
+                // TODO: Fill this async.
                 const database = this.context.getDatabase();
                 const schema = this.context.getSchema();
                 const cluster = this.context.getCluster();
@@ -259,8 +261,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                             <vscode-dropdown id="profiles">
-                                <vscode-option>${(this.context.getProfileName())}</vscode-option>
-                                ${(this.context.getProfileNames() || []).filter(name => name !== this.context.getProfileName()).map((name) => `<vscode-option>${name}</vscode-option>`).join('')}
+                                <vscode-option>${(this.context.config.getProfileName())}</vscode-option>
+                                ${(this.context.config.getProfileNames() || []).filter(name => name !== this.context.config.getProfileName()).map((name) => `<vscode-option>${name}</vscode-option>`).join('')}
                             </vscode-dropdown>
 
                             <vscode-button id="addProfileLink">
@@ -275,7 +277,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                             <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g><path d="M7.99967 1.33313L1.33301 4.66646L7.99967 7.9998L14.6663 4.66646L7.99967 1.33313Z" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1.33301 11.3331L7.99967 14.6665L14.6663 11.3331" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path><path d="M1.33301 7.99988L7.99967 11.3332L14.6663 7.99988" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path></g></svg>
                             <vscode-dropdown id="clusters">
                             <vscode-option>${cluster}</vscode-option>
-                                ${(this.context.getClusters()).filter(x => x.name !== cluster).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                                ${(this.context.getClusters() || []).filter(x => x.name !== cluster?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
                             </vscode-dropdown>
                         </div>
                         <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
@@ -284,7 +286,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                             </svg>
                             <vscode-dropdown id="databases">
                                 <vscode-option>${database && database.name}</vscode-option>
-                                ${(this.context.getDatabases()).filter(x => x.name !== database?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                                ${(this.context.getDatabases() || []).filter(x => x.name !== database?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
                             </vscode-dropdown>
                         </div>
                         <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
@@ -293,7 +295,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                             </svg>
                             <vscode-dropdown id="schemas">
                                 <vscode-option>${schema && schema.name}</vscode-option>
-                                ${(this.context.getSchemas()).filter(x => x.name !== schema?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                                ${(this.context.getSchemas() || []).filter(x => x.name !== schema?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
                             </vscode-dropdown>
                         </div>
                     </div>

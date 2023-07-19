@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import AppPassword from "../AppPassword";
+import AppPassword from "../context/AppPassword";
 const jwksClient = require("jwks-rsa");
 const jwt = require("node-jsonwebtoken");
 

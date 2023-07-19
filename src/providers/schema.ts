@@ -38,17 +38,9 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
 
             return new Promise((res, rej) => {
                 const asyncOp = async () => {
-                    if (!this.context.environmentLoaded) {
-                        await new Promise((res, rej) => {
-                            this.context.on("event", ({ type }) => {
-                                if (type === EventType.environmentLoaded) {
-                                    res(true);
-                                }
-                            });
-                        });
-                    };
-
                     console.log("[DatabaseTreeProvider]", "Environment loaded.");
+
+                    await this.context.isReady();
                     const schema = this.context.getSchema();
                     if (schema) {
                         res([
@@ -71,11 +63,9 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
     }
 
     private async query(text: string, vals?: Array<any>): Promise<Array<any>> {
-        if (this.context.sqlClient && await this.context.sqlClient.connected()) {
-            return (await this.context.sqlClient.query(text, vals)).rows;
-        }
+        const { rows } =  await this.context.query(text, vals);
 
-        return [];
+        return rows;
     }
 
     private async getChildrenFromNode(element: Node): Promise<Array<Node>> {
@@ -83,7 +73,6 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
             case ContextValue.database:
                 return this.getSchemas(element.props.id);
             case ContextValue.schema:
-                // return this.getObjects(element.props.id);
                 // TODO: Correct type; avoid casting.
                 return [
                     new SourceTab("Sources", vscode.TreeItemCollapsibleState.Collapsed, element.props as MaterializeObject),
@@ -119,7 +108,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
 
     private async getSources(schema: String): Promise<Array<Node>> {
         const views: Promise<Array<Node>> = new Promise((res, rej) => {
-            this.query("SELECT id, name, owner_id FROM mz_sources WHERE schema_id = $1", [schema]).then((results) => {
+            this.query("SELECT id, name, owner_id FROM mz_sinks WHERE schema_id = $1", [schema]).then((results) => {
                 let views = results.map(({ id, name, owner_id: ownerId }) => {
                     return new View(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
                 });
@@ -180,38 +169,6 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
         });
 
         return tables;
-    }
-
-    private async getObjects(schema: String): Promise<Array<Node>> {
-        const materializedViews: Promise<Array<Node>> = new Promise((res, rej) => {
-            this.query("SELECT id, name, owner_id, cluster_id FROM mz_materialized_views WHERE schema_id = $1", [schema]).then((results) => {
-                let materializedViews = results.map(({ id, name, owner_id: ownerId }) => {
-                    return new MaterializedView(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
-                });
-                res(materializedViews);
-            }).catch(rej);
-        });
-
-        const views: Promise<Array<Node>> = new Promise((res, rej) => {
-            this.query("SELECT id, name, owner_id FROM mz_views WHERE schema_id = $1", [schema]).then((results) => {
-                let views = results.map(({ id, name, owner_id: ownerId }) => {
-                    return new View(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
-                });
-                res(views);
-            }).catch(rej);
-        });
-
-        const tables: Promise<Array<Node>> = new Promise((res, rej) => {
-            this.query("SELECT id, name, owner_id FROM mz_tables WHERE schema_id = $1", [schema]).then((results) => {
-                let tables = results.map(({ id, name, owner_id: ownerId }) => {
-                    return new Table(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
-                });
-                res(tables);
-            }).catch(rej);
-        });
-
-        let promise = await Promise.all<Array<Node>>([materializedViews, views, tables]);
-        return promise.flatMap(x => x);
     }
 
     private async getSchemas(database: String): Promise<Array<Schema>> {

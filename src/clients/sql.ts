@@ -1,18 +1,22 @@
 import { Pool, QueryResult } from "pg";
-import { Profile } from "../context";
 import { randomUUID } from "crypto";
-import { ProfileContext } from "../profileContext";
+import { AdminClient, CloudClient, Context } from "../context";
+import { NonStorableConfigProfile } from "../context/config";
+import { MaterializeObject } from "../providers/schema";
 
 export default class SqlClient {
     private pool: Promise<Pool>;
-    private context: ProfileContext;
-    private profile: Profile;
+    private adminClient: AdminClient;
+    private cloudClient: CloudClient;
+    private profile: NonStorableConfigProfile;
 
     constructor(
-        context: ProfileContext,
-        profile: Profile
+        adminClient: AdminClient,
+        cloudClient: CloudClient,
+        profile: NonStorableConfigProfile,
     ) {
-        this.context = context;
+        this.adminClient = adminClient;
+        this.cloudClient = cloudClient;
         this.profile = profile;
 
         this.pool = new Promise((res, rej) => {
@@ -41,21 +45,41 @@ export default class SqlClient {
         return true;
     }
 
+    /**
+     * Rreturns the connection options for a PSQL connection.
+     * @returns string connection options
+     */
+    private getConnectionOptions(): string {
+        const connectionOptions = [];
+
+        const cluster = this.profile.cluster;
+        if (cluster) {
+            connectionOptions.push(`--cluster=${cluster}`);
+        };
+
+        const schema = this.profile.schema;
+        if (schema) {
+            connectionOptions.push(`-csearch_path==${schema}`);
+        }
+
+        return connectionOptions.join(" ");
+    }
+
     private async buildPoolConfig() {
         // TODO: Can be done in parallel
         console.log("[Context]", "Loading host.");
-        const host = await this.context.getHost(this.profile.region);
+        const host = await this.cloudClient?.getHost(this.profile.region);
         console.log("[Context]", "Loading user email.");
-        const email = await this.context.getEmail();
+        const email = await this.adminClient?.getEmail();
 
         return {
             host: host && host.substring(0, host.length - 5),
             // eslint-disable-next-line @typescript-eslint/naming-convention
             application_name: "mz_vscode",
-            database: (this.context.getDatabase()?.name || "materialize").toString(),
+            database: (this.profile.database || "materialize").toString(),
             port: 6875,
             user: email,
-            options: this.context.getConnectionOptions(),
+            options: this.getConnectionOptions(),
             password: this.profile["app-password"],
             ssl: true,
         };
@@ -100,5 +124,23 @@ export default class SqlClient {
             // Release the client and pool resources
             client.release();
         }
+    }
+
+
+    async getDatabases(): Promise<Array<MaterializeObject>> {
+        const { rows }: QueryResult<MaterializeObject> = await this.query(`SELECT id, name, owner_id as "ownerId" FROM mz_databases;`);
+        return rows;
+    }
+
+    async getSchemas(database: MaterializeObject) {
+        const { rows: schemas } = await this.query(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas WHERE database_id = $1`, [database.id]);
+
+        return schemas;
+    }
+
+    async getClusters() {
+        const { rows: clusters }: QueryResult<MaterializeObject> = await this.query(`SELECT id, name, owner_id as "ownerId" FROM mz_clusters;`);
+
+        return clusters;
     }
 }

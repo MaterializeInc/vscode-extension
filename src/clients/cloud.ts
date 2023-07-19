@@ -118,22 +118,22 @@ export default class CloudClient {
      * @param regionId Possible values: "aws/us-east-1", "aws/eu-west-1"
      * @returns
      */
-    async getHost(region: "aws/us-east-1" | "aws/eu-west-1") {
-        console.log("[Context]", "Listing cloud providers.");
+    async getHost(region: string) {
+        console.log("[CloudClient]", "Listing cloud providers.");
 
         const cloudProviders = await this.listCloudProviders();
-        console.log("[Context]", "Providers: ", cloudProviders);
+        console.log("[CloudClient]", "Providers: ", cloudProviders);
 
         const provider = cloudProviders.find(x => x.id === region);
-        console.log("[Context]", "Selected provider: ", provider);
+        console.log("[CloudClient]", "Selected provider: ", provider);
         if (provider) {
-            console.log("[Context]", "Retrieving region.");
+            console.log("[CloudClient]", "Retrieving region.");
             const region = await this.getRegion(provider);
-            console.log("[Context]", "Region: ", region);
+            console.log("[CloudClient]", "Region: ", region);
 
-            console.log("[Context]", "Retrieving environment.");
+            console.log("[CloudClient]", "Retrieving environment.");
             const environment = await this.getEnvironment(region);
-            console.log("[Context]", "Environment: ", environment);
+            console.log("[CloudClient]", "Environment: ", environment);
             return environment.environmentdPgwireAddress;
         }
     }
