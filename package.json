@@ -108,8 +108,6 @@
     "node": "./esbuild.js",
     "watch": "node ./esbuild.js --watch",
     "compile": "node ./esbuild.js",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
