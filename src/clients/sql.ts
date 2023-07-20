@@ -1,8 +1,9 @@
 import { Pool, QueryResult } from "pg";
 import { randomUUID } from "crypto";
-import { AdminClient, CloudClient, Context } from "../context";
 import { NonStorableConfigProfile } from "../context/config";
 import { MaterializeObject } from "../providers/schema";
+import AdminClient from "./admin";
+import CloudClient from "./cloud";
 
 export default class SqlClient {
     private pool: Promise<Pool>;
@@ -37,12 +38,6 @@ export default class SqlClient {
 
             asyncOp();
         });
-    }
-
-    async connected() {
-        await this.pool;
-
-        return true;
     }
 
     /**

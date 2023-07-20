@@ -182,19 +182,6 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
         });
     }
 
-    private async getDatabases(): Promise<Array<Database>> {
-        return new Promise((res, rej) => {
-            this.query("SELECT id, name, owner_id FROM mz_databases").then((results) => {
-                const databases = results.map(({ id, name, owner_id: ownerId }) => {
-                    return new Database(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
-                });
-                console.log("[DatabaseTreeProvider]", "Datbases: ", databases);
-
-                res(databases);
-            }).catch(rej);
-        });
-    }
-
     private async getColumns(id: String): Promise<Array<Column>> {
         return new Promise((res, rej) => {
             this.query("SELECT name, type FROM mz_columns WHERE id = $1", [id]).then((results) => {
@@ -225,7 +212,7 @@ enum ContextValue {
     database = "database",
 }
 
-type Node = Database | Schema | MaterializedView | View | Table | Column;
+type Node = Schema | MaterializedView | View | Table | Column;
 
 export interface MaterializeObject {
     name: String,
@@ -235,24 +222,6 @@ export interface MaterializeObject {
 
 export interface MaterializeSchemaObject extends MaterializeObject {
     databaseId: String
-}
-
-class Database extends vscode.TreeItem {
-    constructor(
-        public readonly label: string,
-        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-        public readonly props: MaterializeObject,
-        public readonly iconPath = {
-            light: path.join(__filename, '..', '..', 'resources', 'database.svg'),
-            dark: path.join(__filename, '..', '..', 'resources', 'database.svg')
-        }
-    ) {
-        super(label, collapsibleState);
-
-        this.tooltip = props.name.toString();
-    }
-
-    contextValue = ContextValue.database;
 }
 
 class Schema extends vscode.TreeItem {

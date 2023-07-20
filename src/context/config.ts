@@ -2,15 +2,15 @@ import * as os from "os";
 import { accessSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import EventEmitter = require("node:events");
 import * as TOML from "@iarna/toml";
-import { EventType } from "./context";
-import AppPassword from "./AppPassword";
+import AppPassword from "./appPassword";
 
 /// The NonStorableConfigProfile additional properties for Config
 /// That can't be stored due to compatibility issues with the CLI.
 export interface NonStorableConfigProfile extends ConfigProfile {
-    cluster?: string,
-    database?: string,
-    schema?: string,
+    cluster: string | undefined,
+    database: string | undefined,
+    schema: string | undefined,
+    name: string | undefined,
 }
 
 export interface ConfigProfile {
@@ -28,7 +28,7 @@ export interface ConfigFile {
     profiles?: { [name: string] : ConfigProfile; }
 }
 
-export class Config extends EventEmitter {
+export class Config {
     private homeDir = os.homedir();
     private configDir = `${this.homeDir}/.config/materialize`;
     private configName = "mz.toml";
@@ -37,25 +37,24 @@ export class Config extends EventEmitter {
     profile?: NonStorableConfigProfile;
 
     constructor() {
-        super();
-
         this.config = this.loadConfig();
-        this.profile = this.loadProfile();
+        this.profile = this.loadDefaultProfile();
     }
 
-    private profileToNonStorable(profile: ConfigProfile) {
+    private profileToNonStorable(name: string, profile: ConfigProfile) {
         return {
             ...JSON.parse(JSON.stringify(profile)),
             database: undefined,
             cluster: undefined,
             schema: undefined,
+            name,
         };
     }
 
-    private loadProfile(): NonStorableConfigProfile | undefined {
+    private loadDefaultProfile(): NonStorableConfigProfile | undefined {
         // TODO: Capture error while cloning.
         if (this.config.profiles && this.config.profile) {
-            return this.profileToNonStorable(this.config.profiles[this.config.profile]);
+            return this.profileToNonStorable(this.config.profile, this.config.profiles[this.config.profile]);
         }
     }
 
@@ -91,6 +90,7 @@ export class Config extends EventEmitter {
 
     /// Adds a new profile to the configuration file
     async addProfile(name: string, appPassword: AppPassword, region: string) {
+        // Turn it into the new default profile.
         this.config.profile = name;
         const newProfile: ConfigProfile = {
             // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -108,7 +108,6 @@ export class Config extends EventEmitter {
 
         this.save();
         this.setProfile(name);
-        this.emit("event", { type: EventType.newProfiles });
     }
 
     private checkFileOrDirExists(path: string): boolean {
@@ -160,7 +159,7 @@ export class Config extends EventEmitter {
 
     /// Returns the current profile name.
     getProfileName(): string | undefined {
-        return this.config.profile;
+        return this.profile?.name;
     }
 
     getDatabase(): string | undefined {
@@ -168,6 +167,7 @@ export class Config extends EventEmitter {
     }
 
     getCluster(): string | undefined {
+        console.log("[Config]", this.profile?.cluster);
         return this.profile?.cluster;
     }
 
@@ -178,11 +178,12 @@ export class Config extends EventEmitter {
     /// Changes the current profile
     setProfile(name: string) {
         console.log("[Context]", "Setting new profile name: ", name);
-        if (this.config) {
-            this.config.profile = name;
 
-            this.emit("event", { type: EventType.environmentChange });
-            this.emit("event", { type: EventType.profileChange });
+        if (this.config.profiles) {
+            const profile = this.config.profiles[name];
+            this.profile = this.profileToNonStorable(name, profile);
+        } else {
+            console.error("Error loading profile. The profile is missing.");
         }
     }
 
