@@ -1,6 +1,6 @@
-import AuthProvider from "./authProvider";
-import ResultsProvider from "./resultsProvider";
-import DatabaseTreeProvider from "./databaseTreeProvider";
+import AuthProvider from "./auth";
+import ResultsProvider from "./results";
+import DatabaseTreeProvider from "./schema";
 
 export {
     AuthProvider,

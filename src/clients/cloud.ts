@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import AdminClient from "./AdminClient";
+import AdminClient from "./admin";
 
 const SYNC_CLOUD_ENDPOINT = 'https://sync.cloud.materialize.com';
 const PROVIDERS_ENDPOINT = `${SYNC_CLOUD_ENDPOINT}/api/cloud-regions`;
@@ -52,7 +52,6 @@ interface CloudProviderResponse {
     data: Array<CloudProvider>,
     nextCursor?: string,
 }
-
 
 export default class CloudClient {
     adminClient: AdminClient;
@@ -112,5 +111,30 @@ export default class CloudClient {
         console.log("[CloudClient]", `Status: ${response.status}`);
         const [environment]: Array<Environment> = (await response.json()) as Array<Environment>;
         return environment;
+    }
+
+    /**
+     * Returns an environment's hostname
+     * @param regionId Possible values: "aws/us-east-1", "aws/eu-west-1"
+     * @returns
+     */
+    async getHost(region: string) {
+        console.log("[CloudClient]", "Listing cloud providers.");
+
+        const cloudProviders = await this.listCloudProviders();
+        console.log("[CloudClient]", "Providers: ", cloudProviders);
+
+        const provider = cloudProviders.find(x => x.id === region);
+        console.log("[CloudClient]", "Selected provider: ", provider);
+        if (provider) {
+            console.log("[CloudClient]", "Retrieving region.");
+            const region = await this.getRegion(provider);
+            console.log("[CloudClient]", "Region: ", region);
+
+            console.log("[CloudClient]", "Retrieving environment.");
+            const environment = await this.getEnvironment(region);
+            console.log("[CloudClient]", "Environment: ", environment);
+            return environment.environmentdPgwireAddress;
+        }
     }
 }

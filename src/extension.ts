@@ -47,35 +47,36 @@ export function activate(vsContext: vscode.ExtensionContext) {
         const textSelected = activeEditor.document.getText(selection).trim();
         const query = textSelected ? textSelected : document.getText();
 
-        if (!context.sqlClient) {
-            vscode.window.showInformationMessage('The SQL Client is not setup yet.');
-        } else {
-            console.log("[RunSQLCommand]", "Running query: ", query);
-            context.emit("event", { type: EventType.newQuery });
+        console.log("[RunSQLCommand]", "Running query: ", query);
+        context.emit("event", { type: EventType.newQuery });
 
-            try {
-                // Benchmark
-                const startTime = Date.now();
-                const results = await context.sqlClient?.query(query);
-                const endTime = Date.now();
+        try {
+            // Benchmark
+            const startTime = Date.now();
+            const results = await context.query(query);
+            const endTime = Date.now();
 
-                const elapsedTime = endTime - startTime;
+            const elapsedTime = endTime - startTime;
 
-                console.log("[RunSQLCommand]", "Results: ", results);
-                console.log("[RunSQLCommand]", "Emitting results.");
+            console.log("[RunSQLCommand]", "Results: ", results);
+            console.log("[RunSQLCommand]", "Emitting results.");
+
+            if (Array.isArray(results)) {
+                context.emit("event", { type: EventType.queryResults, data: { ...results[0], elapsedTime } });
+            } else {
                 context.emit("event", { type: EventType.queryResults, data: { ...results, elapsedTime } });
-            } catch (error: any) {
-                console.log("[RunSQLCommand]", error.toString());
-                console.log("[RunSQLCommand]", JSON.stringify(error));
-
-                context.emit("event", { type: EventType.queryResults, data: { rows: [], fields: [], error: {
-                    message: error.toString(),
-                    position: error.position,
-                    query,
-                } }});
-            } finally {
-                resultsProvider._view?.show();
             }
+        } catch (error: any) {
+            console.log("[RunSQLCommand]", error.toString());
+            console.log("[RunSQLCommand]", JSON.stringify(error));
+
+            context.emit("event", { type: EventType.queryResults, data: { rows: [], fields: [], error: {
+                message: error.toString(),
+                position: error.position,
+                query,
+            } }});
+        } finally {
+            resultsProvider._view?.show();
         }
     });
 

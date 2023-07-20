@@ -1,34 +1,15 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import * as TOML from "@iarna/toml";
-import * as os from "os";
-import { accessSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import EventEmitter = require("node:events");
-import AdminClient from "./adminClient";
-import CloudClient from "./cloudClient";
-import AppPassword from "./AppPassword";
-import { MaterializeObject, MaterializeSchemaObject } from "../providers/databaseTreeProvider";
-import SqlClient from "./sqlClient";
-
-export interface Profile {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    "app-password": string,
-    region: string,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    "admin-endpoint"?: string,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    "cloud-endpoint"?: string,
-}
-
-export interface Config {
-    profile?: string;
-    profiles?: { [name: string] : Profile; }
-}
+import { AdminClient, CloudClient, SqlClient } from "../clients";
+import { Config } from "./config";
+import { MaterializeObject, MaterializeSchemaObject } from "../providers/schema";
+import AppPassword from "./appPassword";
 
 export enum EventType {
     newProfiles,
     newQuery,
     profileChange,
-    connected,
+    sqlClientConnected,
     queryResults,
     newClusters,
     newDatabases,
@@ -37,427 +18,213 @@ export enum EventType {
     environmentChange,
 }
 
-interface Event {
-    type: EventType;
-    data?: any;
-}
-
 interface Environment {
-    current: {
-        cluster?: String | undefined,
-        schema?: String | undefined,
-        database?: String | undefined
-    },
-    clusters: Array<MaterializeObject>,
-    schemas: Array<MaterializeSchemaObject>,
-    databases: Array<MaterializeObject>
+    clusters: Array<MaterializeObject>;
+    schemas: Array<MaterializeSchemaObject>;
+    databases: Array<MaterializeObject>;
+    schema: MaterializeSchemaObject;
+    database: MaterializeObject;
+    cluster: MaterializeObject;
 }
 
-export declare interface Context {
-    on(event: "event", listener: (e: Event) => void): this;
-}
-
-// TODO: Separate context in two context. One with profile available, another without it.
 export class Context extends EventEmitter {
-    private homeDir = os.homedir();
-    private configDir = `${this.homeDir}/.config/materialize`;
-    private configName = "mz.toml";
-    private configFilePath = `${this.configDir}/${this.configName}`;
+    private config: Config;
+    private loaded: boolean;
 
-    config: Config;
-    adminClient?: AdminClient;
-    cloudClient?: CloudClient;
-    sqlClient?: SqlClient;
-    environment: Environment;
-    environmentLoaded: boolean;
+    private adminClient?: AdminClient;
+    private cloudClient?: CloudClient;
+    private sqlClient?: SqlClient;
+
+    private environment?: Environment;
 
     constructor() {
         super();
-        this.environment = {
-            current: {},
-            clusters: [],
-            databases: [],
-            schemas: []
-        };
-        this.environmentLoaded = false;
-        this.config = this.loadConfig();
-        this.reload();
+        this.config = new Config();
+        this.loaded = false;
+        this.loadContext();
     }
 
-    private reload() {
-        const profile = this.getProfile();
-
-        if (profile) {
-            console.log("[Context]", "Loading profile: ", profile);
-
-            this.loadClients();
-        }
-    }
-
-    private loadClients() {
-        console.log("[Context]", "Loading clients.");
-
-        const profile = this.getProfile();
+    private loadContext() {
+        const profile = this.config.getProfile();
 
         if (profile) {
             this.adminClient = new AdminClient(profile["app-password"]);
             this.cloudClient = new CloudClient(this.adminClient);
-            this.loadSqlClient();
-        } else {
-            console.error("[Context]", "No profile available for the clients.");
+            this.loadEnvironment();
+            return true;
         }
+
+        return false;
     }
 
-    private loadSqlClient() {
-        const profile = this.getProfile();
+    private async loadEnvironment() {
+        this.loaded = false;
+        this.emit("event", { type: EventType.environmentChange });
 
-        if (profile) {
-            this.sqlClient = new SqlClient(this, profile);
+        const profile = this.config.getProfile();
 
-            // Wait the pool to be ready to announce the we are connected.
-            this.sqlClient.connected().then(() => {
-                this.emit("event", { type: EventType.connected });
-                this.loadEnvironment();
+        if (!this.adminClient || !this.cloudClient || !profile) {
+            throw new Error("Missing clients.");
+        } else {
+            this.sqlClient = new SqlClient(this.adminClient, this.cloudClient, profile);
+
+            // TODO: Do in parallel.
+            if (!this.config.getCluster()) {
+                console.log("[Context]", "Setting cluster.");
+                this.config.setCluster((await this.query("SHOW CLUSTER;")).rows[0].cluster);
+            }
+
+            if (!this.config.getDatabase()) {
+                console.log("[Context]", "Setting database.");
+                this.config.setDatabase((await this.query("SHOW DATABASE;")).rows[0].database);
+            }
+
+            if (!this.config.getSchema()) {
+                console.log("[Context]", "Setting schema.");
+                this.config.setSchema((await this.query("SHOW SCHEMA;")).rows[0].schema);
+            }
+
+            const clustersPromise = this.sqlClient.getClusters();
+            const databases = await this.sqlClient.getDatabases();
+            const database = databases.find(x => x.name === this.config.getDatabase());
+
+            console.log("[Context]", "Databases: ", databases, " - Database: " , this.config.getDatabase());
+            if (!database) {
+                // Display error to user.
+                throw new Error("Error finding database.");
+            }
+
+            const schemasPromise = this.sqlClient.getSchemas(database);
+
+            Promise.all([clustersPromise, schemasPromise]).then(([clusters, schemas]) => {
+                const cluster = clusters.find(x => x.name === this.config.getCluster());
+                const schema = schemas.find(x => x.name === this.config.getSchema());
+
+                if (!cluster) {
+                    // Display error to user.
+                    throw new Error("Error finding cluster.");
+                }
+
+                if (!schema) {
+                    // Display error to user.
+                    throw new Error("Error finding schema.");
+                }
+
+                this.environment = {
+                    cluster,
+                    schema,
+                    clusters,
+                    database,
+                    databases,
+                    schemas
+                };
+                console.log("[Context]", "Environment loaded.");
+                this.loaded = true;
+                this.emit("event", { type: EventType.environmentLoaded });
+            }).catch((err) => {
+                console.error("[Context]", "Error loading environment: ", err);
             });
         }
     }
 
-    getConnectionOptions(): string {
-        const connectionOptions = [];
-        if (this.environment.current.cluster) {
-            connectionOptions.push(`--cluster=${this.environment.current.cluster}`);
-        };
-
-        if (this.environment.current.schema) {
-            connectionOptions.push(`-csearch_path==${this.environment.current.schema}`);
-        }
-
-        return connectionOptions.join(" ");
-    }
-
-    private async loadEnvironment () {
-        this.environmentLoaded = false;
-
-        // TODO: Improve this part with and remove find(...); from the methods at the end.
-        const databasesPromise = this.loadDatabases();
-        const clustersPromise = this.loadClusters();
-        const schemasPromise = this.loadSchemas();
-
-        Promise.all([clustersPromise, schemasPromise, databasesPromise]).then(() => {
-            console.log("[Context]", "Environment loaded.");
-            this.environmentLoaded = true;
-            this.emit("event", { type: EventType.environmentLoaded });
-        }).catch((err) => {
-            console.error("[Context]", "Error loading environment: ", err);
+    async isReady(): Promise<boolean> {
+        return await new Promise((res, rej) => {
+            if (this.loaded === true) {
+                res(true);
+            } else {
+                this.on("event", ({ type }) => {
+                    if (type === EventType.environmentLoaded) {
+                        if (!this.environment) {
+                            rej(new Error("Error getting environment."));
+                        } else {
+                            res(true);
+                        }
+                    }
+                });
+            }
         });
     }
 
-    private async loadDatabases () {
-        let promises = [];
-
-        promises.push(
-            this.sqlClient?.query("SELECT id, name, owner_id FROM mz_databases;").then(({ rows }) => {
-                console.log("[Context]", "Setting databases.");
-                this.environment.databases = rows.map(x => ({
-                    id: x.id,
-                    name: x.name,
-                    ownerId: x.owner_id,
-                }));
-            }).catch((err) => {
-                console.error("[Context]", "Error loading databases: ", err);
-            })
-        );
-
-        if (!this.environment.current.database) {
-            promises.push(
-                this.sqlClient?.query("SHOW DATABASE;").then(({ rows }) => {
-                    if (rows.length > 0) {
-                        console.log("[Context]", "Setting database: ", rows[0].database);
-                        this.environment.current.database = rows[0].database;
+    private async getSqlClient(): Promise<SqlClient> {
+        if (this.sqlClient) {
+            return this.sqlClient;
+        } else {
+            // Profile needs to be created first.
+            return await new Promise((res, rej) => {
+                this.on("event", ({ type }) => {
+                    if (type === EventType.sqlClientConnected) {
+                        if (!this.sqlClient) {
+                            rej(new Error("Error getting SQL client."));
+                        } else {
+                            res(this.sqlClient);
+                        }
                     }
-                }).catch((err) => {
-                    console.error("[Context]", "Error loading database: ", err);
-                })
-            );
-        }
-
-        await Promise.all(promises);
-        this.emit("event", { type: EventType.newDatabases });
-    }
-
-    private async loadSchemas() {
-        const promises = [];
-        promises.push(this.sqlClient?.query("SELECT id, name, database_id, owner_id FROM mz_schemas;").then(({ rows }) => {
-            console.log("[Context]", "Setting schemas.");
-            this.environment.schemas = rows.map(x => ({
-                id: x.id,
-                name: x.name,
-                ownerId: x.owner_id,
-                databaseId: x.database_id,
-            }));
-        }).catch((err) => {
-            console.error("[Context]", "Error loading schemas: ", err);
-        }));
-
-        if (!this.environment.current.schema) {
-            promises.push(this.sqlClient?.query("SHOW SCHEMA;").then(({ rows }) => {
-                if (rows.length > 0) {
-                    console.log("[Context]", "Setting schema: ", rows[0].schema);
-                    this.environment.current.schema = rows[0].schema;
-                }
-            }).catch((err) => {
-                console.error("[Context]", "Error loading schema: ", err);
-            }));
-        }
-
-        await Promise.all(promises);
-        this.emit("event", { type: EventType.newSchemas });
-    }
-
-    private async loadClusters() {
-        const promises = [];
-        promises.push(this.sqlClient?.query("SELECT id, name, owner_id FROM mz_clusters;").then(({ rows }) => {
-            console.log("[Context]", "Setting clusters.");
-            this.environment.clusters = rows.map(x => ({
-                id: x.id,
-                name: x.name,
-                ownerId: x.owner_id,
-            }));
-        }).catch((err) => {
-            console.error("[Context]", "Error loading clusters: ", err);
-        }));
-
-        if (!this.environment.current.cluster) {
-            promises.push(this.sqlClient?.query("SHOW CLUSTER;").then(({ rows }) => {
-                if (rows.length > 0) {
-                    console.log("[Context]", "Setting cluster: ", rows[0].cluster);
-                    this.environment.current.cluster = rows[0].cluster;
-                }
-            }).catch((err) => {
-                console.error("[Context]", "Error loading cluster: ", err);
-            }));
-        }
-
-        await Promise.all(promises);
-        this.emit("event", { type: EventType.newClusters });
-    }
-
-    private loadConfig(): Config {
-        // Load configuration
-
-        try {
-            if (!this.checkFileOrDirExists(this.configDir)) {
-                this.createFileOrDir(this.configDir);
-            }
-        } catch (err) {
-
-        }
-
-        if (!this.checkFileOrDirExists(this.configFilePath)) {
-            writeFileSync(this.configFilePath, '');
-        }
-
-        try {
-            let configInToml = readFileSync(this.configFilePath, 'utf-8');
-            try {
-                return (TOML.parse(configInToml)) as Config;
-            } catch (err) {
-                console.error("Error parsing configuration file.");
-                throw err;
-            }
-        } catch (err) {
-            console.error("Error reading the configuration file.", err);
-            throw err;
+                });
+            });
         }
     }
 
-    private checkFileOrDirExists(path: string): boolean {
-        try {
-          accessSync(path);
-          return true;
-        } catch (error) {
-          return false;
-        }
+    async query(text: string, vals?: Array<any>) {
+        const client = await this.getSqlClient();
+
+        return await client.query(text, vals);
     }
 
-    private createFileOrDir(path: string): void {
-        try {
-          mkdirSync(path);
-          console.log("[Context]", "Directory created: ", path);
-        } catch (error) {
-        //   writeFileSync(path, '');
-          console.log("[Context]", "File created:", path);
-        }
+    getClusters(): MaterializeObject[] | undefined {
+        return this.environment?.clusters;
     }
 
-    getProfileNames(): Array<String> | undefined {
-        if (this.config.profiles) {
-            return Object.keys(this.config.profiles);
-        }
-        return undefined;
+    getCluster(): MaterializeObject | undefined {
+        return this.environment?.cluster;
     }
 
-    /// Returns the current profile.
-               getProfile(): Profile | undefined {
-        if (this.config) {
-            const { profile, profiles } = this.config;
-
-            if (profile) {
-                if (profiles) {
-                    return profiles[profile];
-                } else {
-                    console.log("[Context]", "Missing profiles.");
-                }
-            } else {
-                console.log("[Context]", "Missing profile name.");
-            }
-        } else {
-            console.log("[Context]", "Missing config.");
-        }
-
-        return undefined;
-    }
-
-    getProfileName(): string | undefined {
-        return this.config.profile;
-    }
-
-    /// Returns a particular profile.
-    getProfileByName(name: string): Profile | undefined {
-        if (this.config) {
-            const { profiles } = this.config;
-
-            if (profiles) {
-                return profiles[name];
-            }
-        }
-
-        return undefined;
-    }
-
-    private saveContext() {
-        const configToml = TOML.stringify(this.config as any);
-        console.log("[Context]","Saving TOML profile.");
-
-        writeFileSync(this.configFilePath, configToml);
-    }
-
-    setProfile(name: string) {
-        console.log("[Context]", "Setting new profile name: ", name);
-        if (this.config) {
-            this.config.profile = name;
-            this.reload();
-
-            this.emit("event", { type: EventType.environmentChange });
-            this.emit("event", { type: EventType.profileChange });
-        }
-    }
-
-    async getEmail(): Promise<string | undefined> {
-        if (this.adminClient) {
-            const claims = await this.adminClient.getClaims();
-            if (typeof claims === "string") {
-                return JSON.parse(claims).email as string;
-            } else {
-                return claims.email as string;
-            }
-        }
-
-        return undefined;
-    }
-
-    async getHost(region: string): Promise<string | undefined> {
-        if (this.cloudClient) {
-            console.log("[Context]", "Listing cloud providers.");
-
-            const cloudProviders = await this.cloudClient.listCloudProviders();
-            console.log("[Context]", "Providers: ", cloudProviders);
-
-            const provider = cloudProviders.find(x => x.id === region);
-            console.log("[Context]", "Selected provider: ", provider);
-            if (provider) {
-                console.log("[Context]", "Retrieving region.");
-                const region = await this.cloudClient.getRegion(provider);
-                console.log("[Context]", "Region: ", region);
-
-                console.log("[Context]", "Retrieving environment.");
-                const environment = await this.cloudClient.getEnvironment(region);
-                console.log("[Context]", "Environment: ", environment);
-                return environment.environmentdPgwireAddress;
-            }
-        }
-
-        return undefined;
-    }
-
-    async addProfile(name: string, appPassword: AppPassword, region: string) {
-        this.config.profile = name;
-        const newProfile: Profile = {
-            "app-password": appPassword.toString(),
-            "region": region,
-        };
-        if (this.config.profiles) {
-            this.config.profiles[name] = newProfile;
-        } else {
-            this.config.profiles = {
-                [name]: newProfile
-            };
-        }
-
-        this.saveContext();
-        this.emit("event", { type: EventType.newProfiles });
-        this.setProfile(name);
-    }
-
-    getCluster(): String | undefined {
-        return this.environment.current.cluster;
-    }
-
-    getClusters(): MaterializeObject[] {
-        return this.environment.clusters;
-    }
-
-    getDatabases(): MaterializeObject[] {
-        return this.environment.databases;
+    getDatabases(): MaterializeObject[] | undefined {
+        return this.environment?.databases;
     }
 
     getDatabase(): MaterializeObject | undefined {
-        // TODO: Make this simpler after loading env correctly.
-        return this.environment.databases.find(x => x.name === this.environment.current.database);
+        return this.environment?.database;
     }
 
-    getSchemas(): MaterializeSchemaObject[] {
-        // TODO: Make this simpler after loading env correctly.
-        return this.environment.schemas.filter(x => x.databaseId === this.getDatabase()?.id);
+    getSchemas(): MaterializeSchemaObject[] | undefined {
+        return this.environment?.schemas;
     }
 
     getSchema(): MaterializeSchemaObject | undefined {
-        // TODO: Make this simpler after loading env correctly.
-        return this.environment.schemas.find(x => x.databaseId === this.getDatabase()?.id && x.name === this.environment.current.schema);
+        return this.environment?.schema;
     }
 
-    getSchemaId(): String | undefined {
-        // TODO: Make this simpler after loading env correctly.
-        const schema = this.environment.schemas.find(x => x.name === this.environment.current.schema && x.name === this.environment.current.schema);
-        return schema?.id;
+    getProfileNames() {
+        return this.config.getProfileNames();
     }
 
-    setDatabase(name: String) {
-        this.environment.current.database = name;
-        this.emit("event", { type: EventType.environmentChange });
-        this.loadSqlClient();
+    getProfileName() {
+        return this.config.getProfileName();
     }
 
-    setSchema(name: String) {
-        this.environment.current.schema = name;
-        this.emit("event", { type: EventType.environmentChange });
-        this.loadSqlClient();
+    addProfile(name: string, appPassword: AppPassword, region: string) {
+        this.config.addProfile(name, appPassword, region);
+        this.loadContext();
     }
 
-    setCluster(name: String) {
-        this.environment.current.cluster = name;
-        this.emit("event", { type: EventType.environmentChange });
-        this.loadSqlClient();
+    setProfile(name: string) {
+        this.config.setProfile(name);
+        this.loadContext();
+    }
+
+    setDatabase(name: string) {
+        this.config.setDatabase(name);
+        this.loadEnvironment();
+    }
+
+    setCluster(name: string) {
+        this.config.setCluster(name);
+        this.loadEnvironment();
+    }
+
+    setSchema(name: string) {
+        this.config.setSchema(name);
+        this.loadEnvironment();
     }
 }
 
