@@ -45,8 +45,8 @@ const testConfig = {
   platform: "node",
   mainFields: ["module", "main"],
   format: "cjs",
-  entryPoints: ["./src/test/runTest.ts"],
-  outdir: "./out/tests/runTest.js",
+  entryPoints: ["./src/test/runTest.ts", "./src/test/suite/index.ts", "./src/test/suite/extension.test.ts"],
+  outdir: "./out/test",
   external: ["vscode"],
 };
 
