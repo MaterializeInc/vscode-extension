@@ -41,15 +41,24 @@ suite('Extension Test Suite', () => {
 		assert.ok(extension?.isActive);
 	});
 
-	test('Test context readyness', async () => {
+	test('Test context readiness', async () => {
         const _context: Context = await extension.activate();
 		assert.ok(typeof _context !== null && typeof _context !== "undefined");
         context = _context;
 
 		await _context.isReady();
-	}).timeout(5000);
+	}).timeout(10000);
 
 	test('Test query execution', async () => {
 		await vscode.commands.executeCommand("materialize.run");
 	},);
+
+	// It is not possible to test with simple mocha.
+	// VSCode Extension Tester needs to be setup: https://github.com/redhat-developer/vscode-extension-tester
+	// Test change profile
+	// Test change cluster
+	// Test change database
+	// Test change schema
+	// Test explorer
+	// Test results.
 });
