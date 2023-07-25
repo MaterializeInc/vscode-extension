@@ -48,6 +48,9 @@ const testConfig = {
   entryPoints: ["./src/test/runTest.ts", "./src/test/suite/index.ts", "./src/test/suite/extension.test.ts"],
   outdir: "./out/test",
   external: ["vscode"],
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  loader: { ".node": "file" },
+  nodePaths: ['node_modules'],
 };
 
 (async () => {

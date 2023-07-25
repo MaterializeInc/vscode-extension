@@ -5,7 +5,7 @@
 	"tasks": [
 		{
 			"type": "npm",
-			"script": "watch",
+			"script": "esbuild-watch",
 			"isBackground": true,
 			"presentation": {
 				"reveal": "never",
@@ -14,26 +14,34 @@
 			"group": {
 				"kind": "build",
 				"isDefault": true
-			}
+			},
+			"label": "npm: esbuild-watch"
 		},
 		{
 			"type": "npm",
-			"script": "watch-tests",
+			"script": "test-compile-watch",
 			"problemMatcher": "$tsc-watch",
 			"isBackground": true,
 			"presentation": {
 				"reveal": "never",
 				"group": "watchers"
 			},
+			"label": "npm: test-compile-watch",
 			"group": "build"
 		},
 		{
-			"label": "tasks: watch-tests",
+			"label": "tasks: test-compile-watch",
+			"isBackground": true,
 			"dependsOn": [
-				"npm: watch",
-				"npm: watch-tests"
+				"npm: esbuild-watch",
+				"npm: test-compile-watch"
 			],
-			"problemMatcher": []
+			"presentation": {
+				"reveal": "never",
+				"group": "watchers"
+			},
+			"problemMatcher": ["$tsc-watch"],
+			"group": "build"
 		}
 	]
 }

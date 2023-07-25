@@ -6,16 +6,21 @@
         "version": "0.2.0",
         "configurations": [
                 {
-                        "name": "Run Extension",
-                        "type": "extensionHost",
+                        "name": "Debug UI Tests",
+                        "type": "node",
                         "request": "launch",
+                        "program": "${workspaceFolder}/node_modules/.bin/extest",
                         "args": [
-                                "--extensionDevelopmentPath=${workspaceFolder}"
+                                "setup-and-run",
+                                "${workspaceFolder}/out/test/*.js",
+                                "-o",
+                                "settings.json",
+                                "--mocha_config",
+                                "${workspaceFolder}/src/test/.mocharc-debug.js"
                         ],
-                        "outFiles": [
-                                "${workspaceFolder}/out/**/*.js"
-                        ],
-                        "preLaunchTask": "${defaultBuildTask}"
+                        "preLaunchTask": "npm: test-compile-watch",
+                        "console": "integratedTerminal",
+                        "internalConsoleOptions": "neverOpen"
                 },
                 {
                         "name": "Extension Tests",
@@ -23,7 +28,7 @@
                         "request": "launch",
                         "args": [
                                 "--extensionDevelopmentPath=${workspaceFolder}",
-                                "--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
+                                "--extensionTestsPath=${workspaceFolder}/out/test/e2e.test.js"
                         ],
                         "outFiles": [
                                 "${workspaceFolder}/out/test/**/*.js"
