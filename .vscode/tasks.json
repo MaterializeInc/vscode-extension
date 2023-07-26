@@ -27,7 +27,7 @@
 				"group": "watchers"
 			},
 			"label": "npm: test-compile-watch",
-			"group": "build"
+			"group": "test"
 		},
 		{
 			"label": "tasks: test-compile-watch",
@@ -41,7 +41,7 @@
 				"group": "watchers"
 			},
 			"problemMatcher": ["$tsc-watch"],
-			"group": "build"
+			"group": "test"
 		}
 	]
 }

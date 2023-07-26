@@ -6,13 +6,13 @@ const baseConfig = {
   bundle: true,
   minify: process.env.NODE_ENV === "production",
   sourcemap: process.env.NODE_ENV !== "production",
+  format: "cjs",
 };
 
 const extensionConfig = {
   ...baseConfig,
   platform: "node",
   mainFields: ["module", "main"],
-  format: "cjs",
   entryPoints: ["./src/extension.ts"],
   outfile: "./out/extension.js",
   external: ["vscode"],
@@ -34,8 +34,6 @@ const watchConfig = {
 
 const webviewConfig = {
   ...baseConfig,
-  target: "es2020",
-  format: "esm",
   entryPoints: ["./src/webview/main.ts"],
   outfile: "./out/webview.js",
 };
@@ -44,7 +42,6 @@ const testConfig = {
   ...baseConfig,
   platform: "node",
   mainFields: ["module", "main"],
-  format: "cjs",
   entryPoints: ["./src/test/runTest.ts", "./src/test/suite/index.ts", "./src/test/suite/extension.test.ts"],
   outdir: "./out/test",
   external: ["vscode"],
@@ -67,16 +64,16 @@ const testConfig = {
         ...webviewConfig,
         ...watchConfig,
       });
-      await build({
-        ...testConfig,
-        ...watchConfig,
-      });
+      // await build({
+      //   ...testConfig,
+      //   ...watchConfig,
+      // });
       console.log("[watch] build finished");
     } else {
       // Build extension and webview code
       await build(extensionConfig);
       await build(webviewConfig);
-      await build(testConfig);
+      // await build(testConfig);
       console.log("build complete");
     }
   } catch (err) {

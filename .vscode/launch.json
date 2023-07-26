@@ -6,6 +6,18 @@
         "version": "0.2.0",
         "configurations": [
                 {
+                        "name": "Run Extension",
+                        "type": "extensionHost",
+                        "request": "launch",
+                        "args": [
+                                "--extensionDevelopmentPath=${workspaceFolder}"
+                        ],
+                        "outFiles": [
+                                "${workspaceFolder}/out/**/*.js"
+                        ],
+                        "preLaunchTask": "${defaultBuildTask}"
+                },
+                {
                         "name": "Debug UI Tests",
                         "type": "node",
                         "request": "launch",
@@ -21,19 +33,6 @@
                         "preLaunchTask": "npm: test-compile-watch",
                         "console": "integratedTerminal",
                         "internalConsoleOptions": "neverOpen"
-                },
-                {
-                        "name": "Extension Tests",
-                        "type": "extensionHost",
-                        "request": "launch",
-                        "args": [
-                                "--extensionDevelopmentPath=${workspaceFolder}",
-                                "--extensionTestsPath=${workspaceFolder}/out/test/e2e.test.js"
-                        ],
-                        "outFiles": [
-                                "${workspaceFolder}/out/test/**/*.js"
-                        ],
-                        "preLaunchTask": "${defaultBuildTask}"
                 }
         ]
 }

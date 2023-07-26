@@ -216,7 +216,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 
     private _getHtmlForWebview(webview: vscode.Webview) {
 		// Do the same for the stylesheet.
-        const webviewUri = getUri(webview, this._extensionUri, ["out", "webview.js"]);
+        const webviewUri = getUri(webview, this._extensionUri, ["out", "webview", "main.js"]);
         const scriptUri = getUri(webview, this._extensionUri, ["media", "auth.js"]);
         const styleUri = getUri(webview, this._extensionUri, ["media", "style.css"]);
         const logoUri = getUri(webview, this._extensionUri, ["media", "logo.svg"]);
