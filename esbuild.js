@@ -64,16 +64,16 @@ const testConfig = {
         ...webviewConfig,
         ...watchConfig,
       });
-      // await build({
-      //   ...testConfig,
-      //   ...watchConfig,
-      // });
+      await build({
+        ...testConfig,
+        ...watchConfig,
+      });
       console.log("[watch] build finished");
     } else {
       // Build extension and webview code
       await build(extensionConfig);
       await build(webviewConfig);
-      // await build(testConfig);
+      await build(testConfig);
       console.log("build complete");
     }
   } catch (err) {

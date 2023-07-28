@@ -167,7 +167,7 @@ export class Config {
     }
 
     getCluster(): string | undefined {
-        console.log("[Config]", this.profile?.cluster);
+        console.log("[Config]", "Profile's cluster: ", this.profile?.cluster);
         return this.profile?.cluster;
     }
 

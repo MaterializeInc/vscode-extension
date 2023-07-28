@@ -15,16 +15,19 @@ interface AuthenticationRequest {
     secret: string,
 };
 
-const ADMIN_ENDPOINT = 'https://admin.cloud.materialize.com';
-const TOKEN_ENDPOINT = `${ADMIN_ENDPOINT}/identity/resources/auth/v1/api-token`;
-const JWKS_ENDPOINT = `${ADMIN_ENDPOINT}/.well-known/jwks.json`;
+const DEFAULT_ADMIN_ENDPOINT = 'https://admin.cloud.materialize.com';
 
 export default class AdminClient {
     auth?: AuthenticationResponse;
     appPassword: AppPassword;
+    tokenEndpoint: string;
+    jwksEndpoint: string;
 
-    constructor (appPassword: string) {
+    constructor (appPassword: string, endpoint?: string) {
         this.appPassword = AppPassword.fromString(appPassword);
+
+        this.tokenEndpoint = `${endpoint || DEFAULT_ADMIN_ENDPOINT}/identity/resources/auth/v1/api-token`;
+        this.jwksEndpoint = `${endpoint || DEFAULT_ADMIN_ENDPOINT}/.well-known/jwks.json`;
     }
 
     async getToken() {
@@ -35,7 +38,7 @@ export default class AdminClient {
                 secret: this.appPassword.secretKey
             };
 
-            const response = await fetch(TOKEN_ENDPOINT, {
+            const response = await fetch(this.tokenEndpoint, {
                 method: 'post',
                 body: JSON.stringify(authRequest),
                 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -52,7 +55,7 @@ export default class AdminClient {
     /// Returns the JSON Web Key Set (JWKS) from the well known endpoint: `/.well-known/jwks.json`
     async getJwks() {
         const client = jwksClient({
-            jwksUri: JWKS_ENDPOINT
+            jwksUri: this.jwksEndpoint
         });
 
         const keys = await client.getSigningKeys();

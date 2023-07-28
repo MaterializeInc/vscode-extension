@@ -18,21 +18,17 @@
                         "preLaunchTask": "${defaultBuildTask}"
                 },
                 {
-                        "name": "Debug UI Tests",
-                        "type": "node",
+                        "name": "Extension Tests",
+                        "type": "extensionHost",
                         "request": "launch",
-                        "program": "${workspaceFolder}/node_modules/.bin/extest",
                         "args": [
-                                "setup-and-run",
-                                "${workspaceFolder}/out/test/*.js",
-                                "-o",
-                                "settings.json",
-                                "--mocha_config",
-                                "${workspaceFolder}/src/test/.mocharc-debug.js"
+                                "--extensionDevelopmentPath=${workspaceFolder}",
+                                "--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
                         ],
-                        "preLaunchTask": "npm: test-compile-watch",
-                        "console": "integratedTerminal",
-                        "internalConsoleOptions": "neverOpen"
+                        "outFiles": [
+                                "${workspaceFolder}/out/test/**/*.js"
+                        ],
+                        "preLaunchTask": "${defaultBuildTask}"
                 }
         ]
 }
