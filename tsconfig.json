@@ -24,7 +24,8 @@
 		"sourceMap": true,
 		"strict": true,
 		"rootDir": "src",
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"esModuleInterop": true,
 	},
 	"exclude": [ "node_modules", ".vscode-test", "test-resources", "src/ui-test/resources/**", ".test-extensions" ]
 }

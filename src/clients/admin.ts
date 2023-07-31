@@ -15,7 +15,7 @@ interface AuthenticationRequest {
     secret: string,
 };
 
-const DEFAULT_ADMIN_ENDPOINT = 'https://admin.cloud.materialize.com';
+const DEFAULT_ADMIN_ENDPOINT = process.env["MZ_ADMIN_API"] || 'https://admin.cloud.materialize.com';
 
 export default class AdminClient {
     auth?: AuthenticationResponse;
@@ -46,6 +46,7 @@ export default class AdminClient {
             });
 
             this.auth = (await response.json()) as AuthenticationResponse;
+            console.log("AUTH: ", this.auth);
             return this.auth.accessToken;
         } else {
             return this.auth.accessToken;
@@ -68,6 +69,9 @@ export default class AdminClient {
         const [jwk] = await this.getJwks();
         const key = jwk.getPublicKey();
         const token = await this.getToken();
+
+        // Ignore expiration during tests
+        // The extension is not in charge of manipulating any type of information in Materialize servers.
         const authData = jwt.verify(token, key, { complete: true });
 
         return authData.payload;

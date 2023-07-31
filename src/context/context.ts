@@ -43,8 +43,9 @@ export class Context extends EventEmitter {
     private loadContext() {
         const profile = this.config.getProfile();
 
-        console.log("[Context]", "Loading context for profile: ", profile);
         if (profile) {
+            console.log("[Context]", "Loading context for profile.");
+
             this.adminClient = new AdminClient(profile["app-password"], profile["admin-endpoint"]);
             this.cloudClient = new CloudClient(this.adminClient, profile["cloud-endpoint"]);
             this.loadEnvironment();

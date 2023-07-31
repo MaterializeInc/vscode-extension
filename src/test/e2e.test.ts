@@ -1,5 +1,7 @@
 import { expect } from 'chai';
-import { ActivityBar, BottomBarPanel, By, DefaultTreeSection, EditorView, InputBox, SideBarView, TextEditor, WebView, Workbench } from 'vscode-extension-tester';
+import { ActivityBar, EditorView, InputBox, SideBarView, TextEditor, Workbench } from 'vscode-extension-tester';
+
+
 
 describe('Text Editor sample tests', () => {
     let editor: TextEditor;

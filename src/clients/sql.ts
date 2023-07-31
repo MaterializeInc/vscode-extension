@@ -76,7 +76,8 @@ export default class SqlClient {
             user: email,
             options: this.getConnectionOptions(),
             password: this.profile["app-password"],
-            ssl: true,
+            // Disable SSL for tests
+            ssl: (host && host.startsWith("localhost")) ? false : true,
         };
     }
 
