@@ -45,7 +45,9 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                             new ViewTab("Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
                             new MaterializedViewTab("Materialized Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
                             new TableTab("Tables", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                            new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, schema)
+                            new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                            new CatalogTab("Catalog", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                            new InternalTab("Internal", vscode.TreeItemCollapsibleState.Collapsed, schema)
                         ]);
                     } else {
                         // TODO: Wrong state.
@@ -76,7 +78,9 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                     new ViewTab("Views", vscode.TreeItemCollapsibleState.Collapsed, element.props as MaterializeObject),
                     new MaterializedViewTab("Materialized Views", vscode.TreeItemCollapsibleState.Collapsed, element.props as MaterializeObject),
                     new TableTab("Tables", vscode.TreeItemCollapsibleState.Collapsed, element.props as MaterializeObject),
-                    new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, element.props as MaterializeObject)
+                    new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, element.props as MaterializeObject),
+                    new CatalogTab("Catalog", vscode.TreeItemCollapsibleState.Collapsed, element.props as MaterializeObject),
+                    new InternalTab("Internal", vscode.TreeItemCollapsibleState.Collapsed, element.props as MaterializeObject),
                 ];
             case ContextValue.viewTab:
                 return this.getViews(element.props.id);
@@ -98,9 +102,29 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                 return this.getColumns(element.props.id);
             case ContextValue.sink:
                 return this.getColumns(element.props.id);
+            case ContextValue.catalogTab:
+                return this.getCatalog();
+            case ContextValue.internalTab:
+                return this.getInternal();
             default:
                 return new Promise((res, ) => res([]));
         }
+    }
+
+    private async getCatalog(): Promise<Array<Node>> {
+        const catalogSchemaId = "s1";
+
+        const views = this.getViews(catalogSchemaId);
+        const tables = this.getTables(catalogSchemaId);
+        return (await Promise.all([views, tables])).flatMap(x => x);
+    }
+
+    private async getInternal(): Promise<Array<Node>> {
+        const internalSchemaId = "s4";
+
+        const views = this.getViews(internalSchemaId);
+        const tables = this.getTables(internalSchemaId);
+        return (await Promise.all([views, tables])).flatMap(x => x);
     }
 
     private async getSources(schema: String): Promise<Array<Node>> {
@@ -205,6 +229,8 @@ enum ContextValue {
     viewTab = "viewTab",
     sourceTab = "sourceTab",
     sinkTab = "sinkTab",
+    catalogTab = "catalogTab",
+    internalTab = "internalTab",
     schema = "schema",
     database = "database",
 }
@@ -308,6 +334,34 @@ class SinkTab extends vscode.TreeItem {
     contextValue = ContextValue.sinkTab;
 }
 
+class CatalogTab extends vscode.TreeItem {
+    constructor(
+        public readonly label: string,
+        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+        public readonly props: MaterializeObject
+    ) {
+        super(label, collapsibleState);
+
+        this.tooltip = props.name.toString();
+    }
+
+    contextValue = ContextValue.catalogTab;
+}
+
+class InternalTab extends vscode.TreeItem {
+    constructor(
+        public readonly label: string,
+        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+        public readonly props: MaterializeObject
+    ) {
+        super(label, collapsibleState);
+
+        this.tooltip = props.name.toString();
+    }
+
+    contextValue = ContextValue.internalTab;
+}
+
 class SourceTab extends vscode.TreeItem {
     constructor(
         public readonly label: string,
@@ -334,32 +388,6 @@ class View extends vscode.TreeItem {
     }
 
     contextValue = ContextValue.view;
-}
-
-class Source extends vscode.TreeItem {
-    constructor(
-        public readonly resourceUri: vscode.Uri,
-        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    ) {
-        super(resourceUri, collapsibleState);
-        this.tooltip = `${this.resourceUri.fsPath}`;
-        this.description = this.resourceUri.fsPath;
-    }
-
-    contextValue = ContextValue.source;
-}
-
-class Sink extends vscode.TreeItem {
-    constructor(
-        public readonly resourceUri: vscode.Uri,
-        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    ) {
-        super(resourceUri, collapsibleState);
-        this.tooltip = `${this.resourceUri.fsPath}`;
-        this.description = this.resourceUri.fsPath;
-    }
-
-    contextValue = ContextValue.sink;
 }
 
 class Table extends vscode.TreeItem {
