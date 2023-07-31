@@ -35,7 +35,7 @@ jobs:
       run: |
         mkdir -p ~/.config/materialize
         echo "profile = 'test'" >> ~/.config/materialize/mz.toml
-        echo "[profile.test]" >> ~/.config/materialize/mz.toml
+        echo "[profiles.test]" >> ~/.config/materialize/mz.toml
         echo "app-password = 'mzp_74b4cb1d805441d791b3132aaf82937571ac913400b94119a43e471516f2f0f0" >> ~/.config/materialize/mz.toml
         echo "region = 'aws/us-east-1'" >> ~/.config/materialize/mz.toml
         echo "cloud-endpoint = 'http://localhost:3000'" >> ~/.config/materialize/mz.toml
