@@ -1,32 +1,26 @@
 import fetch from "node-fetch";
 import AdminClient from "./admin";
 
-const SYNC_CLOUD_ENDPOINT = 'https://sync.cloud.materialize.com';
-const PROVIDERS_ENDPOINT = `${SYNC_CLOUD_ENDPOINT}/api/cloud-regions`;
+const DEFAULT_API_CLOUD_ENDPOINT = 'https://api.cloud.materialize.com';
 
-/// An environment is represented in this interface
-interface Environment {
+interface RegionInfo {
     /// Represents the environmentd PG wire protocol address.
     ///
     /// E.g.: 3es24sg5rghjku7josdcs5jd7.eu-west-1.aws.materialize.cloud:6875
-    environmentdPgwireAddress: string,
-    /// Represents the environmentd PG wire protocol address.
+    sqlAddress: String,
+    /// Represents the environmentd HTTP address.
     ///
     /// E.g.: 3es24sg5rghjku7josdcs5jd7.eu-west-1.aws.materialize.cloud:443
-    environmentdHttpsAddress: string,
+    httpAddress: String,
     /// Indicates true if the address is resolvable by DNS.
-    resolvable: boolean
+    resolvable: boolean,
+    /// The time at which the region was enabled
+    enabledAt: Date,
 }
 
+/// Connection details for an active region
 interface Region {
-    /// Represents the cluster name:
-    ///
-    /// E.g.: `mzcloud-production-eu-west-1-0`
-    cluster: string,
-    /// Represents the complete environment controller url.
-    ///
-    /// E.g.: `https://ec.0.eu-west-1.aws.cloud.materialize.com:443`
-    environmentControllerUrl: string,
+    regionInfo: RegionInfo | undefined;
 }
 
 interface CloudProvider {
@@ -40,8 +34,8 @@ interface CloudProvider {
     name: string,
     /// Contains the complete region controller url.
     ///
-    /// E..g: `https://rc.eu-west-1.aws.cloud.materialize.com`
-    apiUrl: string,
+    /// E..g: `https://api.eu-west-1.aws.cloud.materialize.com`
+    url: string,
     /// Contains the cloud provider name.
     ///
     /// E.g.: `aws` or `gcp`
@@ -55,9 +49,11 @@ interface CloudProviderResponse {
 
 export default class CloudClient {
     adminClient: AdminClient;
+    providersEndpoint: String;
 
-    constructor(adminClient: AdminClient) {
+    constructor(adminClient: AdminClient, endpoint?: string) {
         this.adminClient = adminClient;
+        this.providersEndpoint = `${endpoint || DEFAULT_API_CLOUD_ENDPOINT}/api/cloud-regions`;
     }
 
     async fetch(endpoint: string) {
@@ -77,7 +73,7 @@ export default class CloudClient {
         let cursor = '';
 
         while (true) {
-            let response = await this.fetch(`${PROVIDERS_ENDPOINT}?limit=50&cursor=${cursor}`);
+            let response = await this.fetch(`${this.providersEndpoint}?limit=50&cursor=${cursor}`);
 
             console.log("[CloudClient]", `Status: ${response.status}`);
             const cloudProviderResponse = (await response.json()) as CloudProviderResponse;
@@ -94,25 +90,14 @@ export default class CloudClient {
     }
 
     async getRegion(cloudProvider: CloudProvider): Promise<Region> {
-        const REGION_ENDPOINT = `${cloudProvider.apiUrl}/api/environmentassignment`;
+        const regionEdnpoint = `${cloudProvider.url}/api/region`;
 
-        let response = await this.fetch(REGION_ENDPOINT);
+        let response = await this.fetch(regionEdnpoint);
 
         console.log("[CloudClient]", `Status: ${response.status}`);
-        const [region]: Array<Region> = (await response.json()) as Array<Region>;
+        const region: Region = (await response.json()) as Region;
         return region;
     }
-
-    async getEnvironment(region: Region): Promise<Environment> {
-        const ENVIRONMENT_ENDPOINT = `${region.environmentControllerUrl}/api/environment`;
-
-        let response = await this.fetch(ENVIRONMENT_ENDPOINT);
-
-        console.log("[CloudClient]", `Status: ${response.status}`);
-        const [environment]: Array<Environment> = (await response.json()) as Array<Environment>;
-        return environment;
-    }
-
     /**
      * Returns an environment's hostname
      * @param regionId Possible values: "aws/us-east-1", "aws/eu-west-1"
@@ -128,13 +113,14 @@ export default class CloudClient {
         console.log("[CloudClient]", "Selected provider: ", provider);
         if (provider) {
             console.log("[CloudClient]", "Retrieving region.");
-            const region = await this.getRegion(provider);
-            console.log("[CloudClient]", "Region: ", region);
+            const { regionInfo } = await this.getRegion(provider);
+            console.log("[CloudClient]", "Region: ", regionInfo);
 
-            console.log("[CloudClient]", "Retrieving environment.");
-            const environment = await this.getEnvironment(region);
-            console.log("[CloudClient]", "Environment: ", environment);
-            return environment.environmentdPgwireAddress;
+            if (!regionInfo) {
+                console.error("[CloudClient]", "Region is not enabled.");
+            } else {
+                return regionInfo.sqlAddress;
+            }
         }
     }
 }

@@ -3,6 +3,8 @@ import { AuthProvider, ResultsProvider, DatabaseTreeProvider } from './providers
 import { Context, EventType } from './context';
 
 export function activate(vsContext: vscode.ExtensionContext) {
+    console.log("[Extension]", "Activating Materialize extension.");
+
     // User context.
     // Contains auth information, cluster, database, schema, etc.
     const context = new Context();
@@ -81,6 +83,10 @@ export function activate(vsContext: vscode.ExtensionContext) {
     });
 
     vsContext.subscriptions.push(disposable);
+
+    return context;
 }
 
-export function deactivate() {}
+export function deactivate() {
+    console.log("[Extension]", "Deactivating Materialize extension.");
+}

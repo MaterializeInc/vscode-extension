@@ -8,12 +8,8 @@ import AppPassword from "./appPassword";
 export enum EventType {
     newProfiles,
     newQuery,
-    profileChange,
     sqlClientConnected,
     queryResults,
-    newClusters,
-    newDatabases,
-    newSchemas,
     environmentLoaded,
     environmentChange,
 }
@@ -48,8 +44,10 @@ export class Context extends EventEmitter {
         const profile = this.config.getProfile();
 
         if (profile) {
-            this.adminClient = new AdminClient(profile["app-password"]);
-            this.cloudClient = new CloudClient(this.adminClient);
+            console.log("[Context]", "Loading context for profile.");
+
+            this.adminClient = new AdminClient(profile["app-password"], profile["admin-endpoint"]);
+            this.cloudClient = new CloudClient(this.adminClient, profile["cloud-endpoint"]);
             this.loadEnvironment();
             return true;
         }

@@ -4,8 +4,8 @@
   "repository": {
     "url": "https://github.com/MaterializeInc/vscode-extension"
   },
-  "displayName": "vscode-materialize",
-  "description": "Working environment for Materialize",
+  "displayName": "Materialize",
+  "description": "Working environment for Materialize.",
   "version": "0.0.1",
   "tasks": [
     {
@@ -109,18 +109,19 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "yarn run package",
-    "node": "./esbuild.js",
-    "watch": "node ./esbuild.js --watch",
-    "compile": "node ./esbuild.js",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
+    "vscode:prepublish": "npm run esbuild-base -- --minify",
+    "esbuild-base": "esbuild ./src/extension.ts ./src/webview/main.ts --bundle --outdir=out/ --external:vscode --format=cjs --platform=node",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js",
-    "package": "NODE_ENV=production node ./esbuild.js"
+    "test-compile-watch": "tsc -p ./ --watch",
+    "test-compile": "tsc -p ./",
+    "ui-test": "extest setup-and-run './out/test/e2e.test.js' --code_settings settings.json",
+    "pretest": "node esbuild.js",
+    "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.5",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "20.2.5",
@@ -128,10 +129,13 @@
     "@typescript-eslint/eslint-plugin": "^5.59.8",
     "@typescript-eslint/parser": "^5.59.8",
     "@vscode/test-electron": "^2.3.2",
+    "chai": "^4.3.7",
     "esbuild": "^0.16.17",
     "eslint": "^8.41.0",
+    "express": "^4.18.2",
     "glob": "^8.1.0",
     "mocha": "^10.2.0",
+    "selenium-webdriver": "^4.10.0",
     "ts-loader": "^9.4.3",
     "typescript": "5.0.4",
     "vscode-extension-tester": "^5.8.0"
@@ -143,7 +147,6 @@
     "@types/pg": "^8.10.2",
     "@types/uuid": "^9.0.2",
     "@vscode/webview-ui-toolkit": "^1.2.2",
-    "express": "^4.18.2",
     "jwks-rsa": "^3.0.1",
     "node-fetch": "^3.3.1",
     "node-jsonwebtoken": "^0.0.1",
