@@ -22,10 +22,6 @@ jobs:
       with:
         node-version: 16.x
 
-    - run: npm install
-    - run: xvfb-run -a npm test
-      if: runner.os == 'Linux'
-
     - name: Run Docker Image
       run: |
         docker pull materialize/materialized:v0.62.2
@@ -41,5 +37,6 @@ jobs:
         echo "cloud-endpoint = 'http://localhost:3000'" >> /home/runner/.config/materialize/mz.toml
         echo "admin-endpoint = 'http://localhost:3000'" >> /home/runner/.config/materialize/mz.toml
 
-    - run: npm test
-      if: runner.os != 'Linux'
+    - run: npm install
+    - run: xvfb-run -a npm test
+      if: runner.os == 'Linux'
