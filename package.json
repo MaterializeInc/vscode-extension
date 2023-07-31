@@ -118,7 +118,7 @@
     "test-compile": "tsc -p ./",
     "ui-test": "extest setup-and-run './out/test/e2e.test.js' --code_settings settings.json",
     "pretest": "node esbuild.js",
-    "test": "npm run pretest && node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
     "@types/chai": "^4.3.5",

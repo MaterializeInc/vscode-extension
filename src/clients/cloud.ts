@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 import AdminClient from "./admin";
 
-const DEFAULT_API_CLOUD_ENDPOINT = process.env["MZ_CLOUD_API"] || 'https://api.cloud.materialize.com';
+const DEFAULT_API_CLOUD_ENDPOINT = 'https://api.cloud.materialize.com';
 
 interface RegionInfo {
     /// Represents the environmentd PG wire protocol address.

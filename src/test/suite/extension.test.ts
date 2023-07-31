@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 import * as assert from 'assert';
 import { Context, EventType } from '../../context';
-import { mockServers } from './server';
+import { mockServer } from './server';
 
 function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -22,15 +22,9 @@ suite('Extension Test Suite', () => {
 
 	suiteSetup(async () => {
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-		// Supress console logs.
-		console.log = () => {};
 
-		const endpoint = await mockServers();
-
-		process.env["MZ_ADMIN_API"] = endpoint;
-		process.env["MZ_CLOUD_API"] = endpoint;
-		process.env["NODE_ENV"] = "test";
-		console.log("Servers mocked");
+		await mockServer();
+		console.log("[Test]","Server mocked.");
 	});
 
 	let extension: vscode.Extension<any>;

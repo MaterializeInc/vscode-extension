@@ -15,7 +15,7 @@ interface AuthenticationRequest {
     secret: string,
 };
 
-const DEFAULT_ADMIN_ENDPOINT = process.env["MZ_ADMIN_API"] || 'https://admin.cloud.materialize.com';
+const DEFAULT_ADMIN_ENDPOINT = 'https://admin.cloud.materialize.com';
 
 export default class AdminClient {
     auth?: AuthenticationResponse;

@@ -32,17 +32,14 @@ jobs:
         docker run -d -v mzdata:/mzdata -p 6875:6875 -p 6876:6876 materialize/materialized:v0.62.2
 
     - name: Setup config
-      env:
-        APP_PASSWORD: ${{ secrets.AppPassword }}
       run: |
         mkdir -p ~/.config/materialize
         echo "profile = 'test'" >> ~/.config/materialize/mz.toml
         echo "[profile.test]" >> ~/.config/materialize/mz.toml
-        echo "app-password = '${APP_PASSWORD}'" >> ~/.config/materialize/mz.toml
-        echo "region = 'aws/us-east-1" >> ~/.config/materialize/mz.toml
-        echo "region = 'aws/us-east-1" >> ~/.config/materialize/mz.toml
-        echo "cloud-endpoint = 'localhost" >> ~/.config/materialize/mz.toml
-        echo "admin-endpoint = 'localhost" >> ~/.config/materialize/mz.toml
+        echo "app-password = 'mzp_74b4cb1d805441d791b3132aaf82937571ac913400b94119a43e471516f2f0f0" >> ~/.config/materialize/mz.toml
+        echo "region = 'aws/us-east-1'" >> ~/.config/materialize/mz.toml
+        echo "cloud-endpoint = 'http://localhost:3000'" >> ~/.config/materialize/mz.toml
+        echo "admin-endpoint = 'http://localhost:3000'" >> ~/.config/materialize/mz.toml
 
     - run: npm test
       if: runner.os != 'Linux'

@@ -1,8 +1,6 @@
 import { expect } from 'chai';
 import { ActivityBar, EditorView, InputBox, SideBarView, TextEditor, Workbench } from 'vscode-extension-tester';
 
-
-
 describe('Text Editor sample tests', () => {
     let editor: TextEditor;
     let workbench: Workbench;

@@ -17,7 +17,7 @@ const keyPairOptions = {
   },
 };
 
-export function mockServers(): Promise<string> {
+export function mockServer(): Promise<string> {
     const app = express();
 
     app.use(json());
@@ -44,7 +44,7 @@ export function mockServers(): Promise<string> {
         keys: [publicKey],
     };
 
-    app.get('/.well-known/jwks.json', (_, res) => { res.json(jwks)});
+    app.get('/.well-known/jwks.json', (_, res) => res.json(jwks));
 
     app.get('/api/region', (_, res) => {
         res.json({
@@ -56,34 +56,27 @@ export function mockServers(): Promise<string> {
         }});
     });
 
-	return new Promise((res, rej) => {
-		const server = app.listen(0, 'localhost', () => {
-			const addressInfo = server.address();
-			if (!addressInfo || typeof addressInfo === "string") {
-				rej("Wrong address type.");
-			} else {
-				const endpoint = `http://${addressInfo.address}:${addressInfo.port}`;
+    app.get('/api/cloud-regions', (_, res) => {
+        res.json({
+            data: [{
+                id: "aws/us-east-1",
+                name: "us-east-1",
+                url: "http://localhost:3000",
+                cloudProvider: "aws",
+            }, {
+                id: "aws/eu-west-1",
+                name: "eu-west-1",
+                url: "http://localhost:3000",
+                cloudProvider: "aws",
+            }],
+            nextCursor: undefined,
+        });
+    });
 
-                app.get('/api/cloud-regions', (_, res) => {
-                    res.json({
-                        data: [{
-                            id: "aws/us-east-1",
-                            name: "us-east-1",
-                            url: endpoint,
-                            cloudProvider: "aws",
-                        }, {
-                            id: "aws/eu-west-1",
-                            name: "eu-west-1",
-                            url: endpoint,
-                            cloudProvider: "aws",
-                        }],
-                        nextCursor: undefined,
-                    });
-                });
-
-				console.log(`Mock server listening at ${endpoint}`);
-				res(endpoint);
-			}
+	return new Promise((res) => {
+		app.listen(3000, 'localhost', () => {
+            console.log(`Mock server listening at localhost:3000`);
+            res("Loaded.");
 		});
 	});
 }
