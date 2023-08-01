@@ -38,6 +38,12 @@ const webviewConfig = {
   outfile: "./out/webview.js",
 };
 
+const scriptsConfig = {
+  ...baseConfig,
+  entryPoints: ["./src/providers/scripts/results.ts", "./src/providers/scripts/auth.ts"],
+  outdir: "./out/scripts",
+};
+
 const testConfig = {
   ...baseConfig,
   platform: "node",
@@ -65,6 +71,10 @@ const testConfig = {
         ...watchConfig,
       });
       await build({
+        ...scriptsConfig,
+        ...watchConfig,
+      });
+      await build({
         ...testConfig,
         ...watchConfig,
       });
@@ -73,6 +83,7 @@ const testConfig = {
       // Build extension and webview code
       await build(extensionConfig);
       await build(webviewConfig);
+      await build(scriptsConfig);
       await build(testConfig);
       console.log("build complete");
     }
