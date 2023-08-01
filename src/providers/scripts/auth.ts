@@ -1,8 +1,7 @@
-// @ts-nocheck
-
 // This script will be run within the webview itself
 // It cannot access the main VS Code APIs directly.
 (function () {
+    // @ts-ignore
     const vscode = acquireVsCodeApi();
 
     const oldState = vscode.getState() || { profiles: [] };
@@ -10,34 +9,34 @@
     /** @type {Array<{ value: string }>} */
     let profiles = oldState.profiles;
 
-    const logInfo = (...messages) => {
+    const logInfo = (...messages: Array<string>) => {
         vscode.postMessage({ type: "logInfo", data: { messages } });
     };
     console.log = logInfo;
 
-    const logError = (error) => {
+    const logError = (error: string) => {
         vscode.postMessage({ type: "logError", data: { error } });
     };
     console.error = logError;
 
     document.getElementById("profiles")?.addEventListener('change', (e) => {
-        onProfileChange(e.target && e.target.value);
+        onProfileChange((e.target as HTMLSelectElement).value);
     });
 
     document.getElementById("schemas")?.addEventListener('change', (e) => {
-        onConfigChange(e.target && e.target.value, "schemas");
+        onConfigChange((e.target as HTMLSelectElement).value, "schemas");
     });
 
     document.getElementById("clusters")?.addEventListener('change', (e) => {
-        onConfigChange(e.target && e.target.value, "clusters");
+        onConfigChange((e.target as HTMLSelectElement).value, "clusters");
     });
 
     document.getElementById("databases")?.addEventListener('change', (e) => {
-        onConfigChange(e.target && e.target.value, "databases");
+        onConfigChange((e.target as HTMLSelectElement).value, "databases");
     });
 
     document.getElementById('loginButton')?.addEventListener('click', () => {
-        const profileName = document.getElementById('profileNameInput')?.value;
+        const profileName = (document.getElementById('profileNameInput')as HTMLInputElement).value;
         onLoginClicked(profileName);
     });
 
@@ -49,8 +48,8 @@
 
     if (porfileNameInput) {
         porfileNameInput.addEventListener('input', (event) => {
-            const inputValue = event.target.value;
-            const continueProfileButton = document.getElementById('continueProfileButton');
+            const inputValue = (event.target as HTMLInputElement).value;
+            const continueProfileButton = document.getElementById('continueProfileButton') as HTMLButtonElement;
 
             if (continueProfileButton) {
                 if(!inputValue.trim().length) {
@@ -70,7 +69,7 @@
 
 
     document.getElementById('continueProfileButton')?.addEventListener('click', () => {
-        const profileName = document.getElementById('profileNameInput')?.value;
+        const profileName = (document.getElementById('profileNameInput') as HTMLInputElement).value;
         onContinueProfile(profileName);
     });
 
@@ -81,53 +80,53 @@
             case 'newProfile':
                 {
                     const { profiles, profile } = message.data;
-                    const selectNode = document.getElementById("profiles");
+                    const profilesSelectElement = document.getElementById("profiles") as HTMLSelectElement;
 
-                    if (selectNode) {
-                        selectNode.innerHTML = '';
+                    if (profilesSelectElement) {
+                        profilesSelectElement.innerHTML = '';
 
-                        profiles.forEach((name) => {
+                        profiles.forEach((name: string) => {
                             const optionNode = document.createElement("vscode-option");
                             optionNode.innerText = name;
-                            selectNode.appendChild(optionNode);
+                            profilesSelectElement.appendChild(optionNode);
                         });
 
-                        selectNode.value = profile;
+                        profilesSelectElement.value = profile;
                     }
                     break;
                 }
             case "environmentChange": {
-                const profiles = document.getElementById("profiles");
+                const profiles = document.getElementById("profiles") as HTMLSelectElement;
                 profiles.disabled = true;
 
-                const clusters = document.getElementById("clusters");
+                const clusters = document.getElementById("clusters") as HTMLSelectElement;
                 clusters.disabled = true;
 
-                const databases = document.getElementById("databases");
+                const databases = document.getElementById("databases") as HTMLSelectElement;
                 databases.disabled = true;
 
-                const schemas = document.getElementById("schemas");
+                const schemas = document.getElementById("schemas") as HTMLSelectElement;
                 schemas.disabled = true;
             }
         }
     });
 
-    function onProfileChange(name) {
+    function onProfileChange(name: string) {
         vscode.postMessage({ type: "onProfileChange", data: { name } });
     }
     function onCancelAddProfile() {
         vscode.postMessage({ type: "onCancelAddProfile" });
     }
-    function onLoginClicked(name) {
+    function onLoginClicked(name: string) {
         vscode.postMessage({ type: 'onLogin', data: { name } });
     }
     function onAddProfile() {
         vscode.postMessage({ type: 'onAddProfile' });
     }
-    function onContinueProfile(name) {
+    function onContinueProfile(name: string) {
         vscode.postMessage({ type: 'onContinueProfile', data: { name } });
     }
-    function onConfigChange(name, type) {
+    function onConfigChange(name: string, type: string) {
         vscode.postMessage({ type: 'onConfigChange', data: { name, type } });
     }
 }());

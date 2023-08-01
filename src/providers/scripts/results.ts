@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 // This script will be run within the webview itself
 // It cannot access the main VS Code APIs directly.
 (function () {
@@ -11,19 +9,19 @@
     /** @type {Array<{ value: string }>} */
     let results = oldState.results;
 
-    const logInfo = (...messages) => {
+    const logInfo = (...messages: Array<string>) => {
         vscode.postMessage({ type: "logInfo", data: { messages } });
     };
     console.log = logInfo;
 
-    const logError = (error) => {
+    const logError = (error: string) => {
         vscode.postMessage({ type: "logError", data: { error } });
     };
     console.error = logError;
 
     console.log("[Results.js]","Adding listener");
 
-    const capitalizeFirstLetter = (str) => {
+    const capitalizeFirstLetter = (str: string) => {
         if (str.length === 0) {
           return str;
         }
@@ -38,6 +36,10 @@
     window.addEventListener('message', ({ data: message }) => {
         const { type } = message;
         const container = document.getElementById("container");
+
+        if (!container) {
+            return;
+        }
 
         switch (type) {
             case "newQuery": {
@@ -58,7 +60,7 @@
                 const { data: results } = message;
                 console.log("[Results.js]", "New message - Results: ", results);
 
-                const { fields, rows, error, elapsedTime } = results;
+                const { fields, rows, error } = results;
                 const tableId = "table";
                 let table = document.getElementById(tableId);
 
@@ -136,7 +138,7 @@
                     headerRow.style.backgroundColor = "#232323";
 
                     // Create and append the header cells
-                    fields.forEach(({name: field}, fi) => {
+                    fields.forEach(({name: field}: { name: string }, fi: number) => {
                         const headerCell = document.createElement("vscode-data-grid-cell");
                         headerCell.setAttribute("cell-type", "columnheader");
                         headerCell.setAttribute("grid-column", String(fi + 1));
@@ -154,10 +156,10 @@
 
                 // Create data rows
                 // Loop through the data and create rows and cells
-                rows.forEach((row, i) => {
+                rows.forEach((row: any, i: number) => {
                     const dataRow = document.createElement("vscode-data-grid-row");
 
-                    fields.forEach(({ name: field }, index) => {
+                    fields.forEach(({ name: field }: { name: string }, index: number) => {
                         const dataCell = document.createElement("vscode-data-grid-cell");
                         dataCell.setAttribute("grid-column", String(index + 1));
                         const value = row[field];
@@ -166,7 +168,7 @@
                         dataRow.appendChild(dataCell);
                     });
 
-                    table.appendChild(dataRow);
+                    table && table.appendChild(dataRow);
                 });
                 break;
             }
