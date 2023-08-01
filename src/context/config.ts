@@ -1,5 +1,5 @@
 import * as os from "os";
-import { accessSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { accessSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import * as TOML from "@iarna/toml";
 import AppPassword from "./appPassword";
 
@@ -130,11 +130,18 @@ export class Config {
 
     private createFileOrDir(path: string): void {
         try {
-            mkdirSync(path);
-            console.log("[Context]", "Directory created: ", path);
+            if (!existsSync(path)) {
+                try {
+                    mkdirSync(path, { recursive: true });
+                    console.log("[Context]", "Directory created: ", path);
+                } catch (error) {
+                    // TODO: Throw VSCode error notification.
+                    console.log("[Context]", "Error creating configuration file dir:", path, error);
+                }
+            }
         } catch (error) {
             // TODO: Throw VSCode error notification.
-            console.log("[Context]", "File created:", path);
+            console.log("[Context]", "Error checking if the configuration file exists:", path, error);
         }
     }
 

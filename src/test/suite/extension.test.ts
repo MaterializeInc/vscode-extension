@@ -38,7 +38,7 @@ suite('Extension Test Suite', () => {
 		try {
 			fs.unlinkSync(filePath);
 		} catch (err) {
-			console.log("[Test]", "Config file clean.");
+			console.log("[Test]", "Config file is clean.");
 		}
 	});
 
