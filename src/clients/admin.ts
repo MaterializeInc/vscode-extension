@@ -46,7 +46,6 @@ export default class AdminClient {
             });
 
             this.auth = (await response.json()) as AuthenticationResponse;
-            console.log("AUTH: ", this.auth);
             return this.auth.accessToken;
         } else {
             return this.auth.accessToken;

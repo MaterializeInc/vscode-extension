@@ -1,6 +1,5 @@
 import * as os from "os";
 import { accessSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import EventEmitter = require("node:events");
 import * as TOML from "@iarna/toml";
 import AppPassword from "./appPassword";
 
@@ -30,7 +29,7 @@ export interface ConfigFile {
 
 export class Config {
     private homeDir = os.homedir();
-    private configDir = `${this.homeDir}/.config/materialize`;
+    private configDir = process.env["MZ_CONFIG_PATH"] || `${this.homeDir}/.config/materialize`;
     private configName = "mz.toml";
     private configFilePath = `${this.configDir}/${this.configName}`;
     config: ConfigFile;
@@ -60,7 +59,6 @@ export class Config {
 
     private loadConfig(): ConfigFile {
         // Load configuration
-
         try {
             if (!this.checkFileOrDirExists(this.configDir)) {
                 this.createFileOrDir(this.configDir);
@@ -88,14 +86,24 @@ export class Config {
         }
     }
 
-    /// Adds a new profile to the configuration file
-    async addProfile(name: string, appPassword: AppPassword, region: string) {
+    /// Adds and saves a new profile into the configuration file
+    async addAndSaveProfile(
+        name: string,
+        appPassword: AppPassword,
+        region: string,
+        cloudEndpoint?: string,
+        adminEndpoint?: string,
+    ) {
         // Turn it into the new default profile.
         this.config.profile = name;
         const newProfile: ConfigProfile = {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             "app-password": appPassword.toString(),
             "region": region,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "cloud-endpoint": cloudEndpoint,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            "admin-endpoint": adminEndpoint,
         };
 
         if (this.config.profiles) {

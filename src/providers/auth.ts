@@ -135,7 +135,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     // TODO: Handle Err
                     loginServer().then((appPassword) => {
-                        this.context.addProfile(name, appPassword, "aws/us-east-1");
+                        this.context.addAndSaveProfile(name, appPassword, "aws/us-east-1");
                     });
                     break;
                 }
@@ -144,7 +144,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     // TODO: Handle Err
                     loginServer().then((appPassword) => {
                         this.state.isAddNewProfile = false;
-                        this.context.addProfile(name, appPassword, "aws/us-east-1");
+                        this.context.addAndSaveProfile(name, appPassword, "aws/us-east-1");
                     }).finally(() => {
                         this.state.isAddNewProfile = false;
                         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);

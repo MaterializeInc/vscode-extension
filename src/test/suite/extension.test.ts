@@ -4,6 +4,11 @@ import * as vscode from 'vscode';
 import * as assert from 'assert';
 import { Context, EventType } from '../../context';
 import { mockServer } from './server';
+import { Config } from '../../context/config';
+import * as os from "os";
+import * as fs from "fs";
+import AppPassword from '../../context/appPassword';
+import { randomUUID } from 'crypto';
 
 function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -22,13 +27,50 @@ suite('Extension Test Suite', () => {
 
 	suiteSetup(async () => {
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-
 		await mockServer();
 		console.log("[Test]","Server mocked.");
+
+		// Remove the configuration file if exists.
+		const configDir = `${os.homedir()}/.config/materialize/test`;
+		const filePath = `${configDir}/mz.toml`;
+		process.env["MZ_CONFIG_PATH"] = configDir;
+
+		try {
+			fs.unlinkSync(filePath);
+		} catch (err) {
+			console.log("[Test]", "Config file clean.");
+		}
 	});
 
 	let extension: vscode.Extension<any>;
 	let context: Context;
+
+	test('Configuration file', async () => {
+		const config = new Config();
+		const profile = config.getProfile();
+
+		assert.ok(profile === undefined);
+
+		// Main test profile
+		await config.addAndSaveProfile(
+			"test",
+			new AppPassword(randomUUID().replace("-", ""), randomUUID().replace("-", "")),
+			"aws/us-east-1",
+			"http://localhost:3000",
+			"http://localhost:3000"
+		);
+
+		// Alternative test profile
+		await config.addAndSaveProfile(
+			"test_alt",
+			new AppPassword(randomUUID().replace("-", ""), randomUUID().replace("-", "")),
+			"aws/us-east-1",
+			"http://localhost:3000",
+			"http://localhost:3000"
+		);
+
+		assert.equal(2, (config.getProfileNames() || []).length);
+	});
 
 	test('Test extension activation', async () => {
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
