@@ -200,8 +200,8 @@ export class Context extends EventEmitter {
         return this.config.getProfileName();
     }
 
-    addProfile(name: string, appPassword: AppPassword, region: string) {
-        this.config.addProfile(name, appPassword, region);
+    addAndSaveProfile(name: string, appPassword: AppPassword, region: string) {
+        this.config.addAndSaveProfile(name, appPassword, region);
         this.loadContext();
     }
 
