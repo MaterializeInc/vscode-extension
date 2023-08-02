@@ -2,6 +2,8 @@ import * as os from "os";
 import { accessSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import * as TOML from "@iarna/toml";
 import AppPassword from "./appPassword";
+import * as vscode from 'vscode';
+
 
 /// The NonStorableConfigProfile additional properties for Config
 /// That can't be stored due to compatibility issues with the CLI.
@@ -51,9 +53,11 @@ export class Config {
     }
 
     private loadDefaultProfile(): NonStorableConfigProfile | undefined {
-        // TODO: Capture error while cloning.
         if (this.config.profiles && this.config.profile) {
             return this.profileToNonStorable(this.config.profile, this.config.profiles[this.config.profile]);
+        } else {
+            console.log("[Config]", "Error loading the default user profile");
+            vscode.window.showErrorMessage("Error loading the default user profile.");
         }
     }
 
@@ -64,7 +68,7 @@ export class Config {
                 this.createFileOrDir(this.configDir);
             }
         } catch (err) {
-            // TODO: Throw VSCode error notification.
+            vscode.window.showErrorMessage('Error creating the configuration directory.');
         }
 
         if (!this.checkFileOrDirExists(this.configFilePath)) {
@@ -76,11 +80,12 @@ export class Config {
             try {
                 return TOML.parse(configInToml) as ConfigFile;
             } catch (err) {
+                vscode.window.showErrorMessage('Error parsing the configuration file.');
                 console.error("Error parsing configuration file.");
                 throw err;
             }
         } catch (err) {
-            // TODO: Throw VSCode error notification.
+            vscode.window.showErrorMessage('Error reading the configuration file.');
             console.error("Error reading the configuration file.", err);
             throw err;
         }
@@ -123,7 +128,6 @@ export class Config {
           accessSync(path);
           return true;
         } catch (error) {
-            // TODO: Throw VSCode error notification.
           return false;
         }
     }
@@ -135,13 +139,13 @@ export class Config {
                     mkdirSync(path, { recursive: true });
                     console.log("[Context]", "Directory created: ", path);
                 } catch (error) {
-                    // TODO: Throw VSCode error notification.
                     console.log("[Context]", "Error creating configuration file dir:", path, error);
+                    throw error;
                 }
             }
         } catch (error) {
-            // TODO: Throw VSCode error notification.
             console.log("[Context]", "Error checking if the configuration file exists:", path, error);
+            throw error;
         }
     }
 

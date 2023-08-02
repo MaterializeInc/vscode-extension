@@ -20,16 +20,18 @@ export interface Config {
     profiles: { [name: string] : Profile; }
 }
 
-async function loginServer(): Promise<AppPassword> {
+async function loginServer(): Promise<AppPassword | undefined> {
     const express = require('express');
     const app: Application = express();
 
     return await new Promise((resolve, reject) => {
         app.get('/', (req: Request, res: Response) => {
             const {secret, clientId } = req.query;
-            // TODO: Handle any issue or cancel here removing casting.
             res.send('You can now close the tab.');
-            resolve(new AppPassword(clientId as string, secret as string));
+
+            if (secret && clientId) {
+                resolve(new AppPassword(clientId as string, secret as string));
+            }
         });
 
         const server = app.listen(() => {
@@ -133,18 +135,30 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     const { name } = data;
 
                     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-                    // TODO: Handle Err
                     loginServer().then((appPassword) => {
-                        this.context.addAndSaveProfile(name, appPassword, "aws/us-east-1");
+                        this.state.isAddNewProfile = false;
+                        if (appPassword) {
+                            this.context.addAndSaveProfile(name, appPassword, "aws/us-east-1");
+                        } else {
+                            // Cancel login process.
+                            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                        }
+                    }).catch((err) => {
+                        console.error("Error setting up the server: ", err);
+                        vscode.window.showErrorMessage('Internal error while waiting for the credentials.');
                     });
                     break;
                 }
                 case "onContinueProfile": {
                     const { name } = data;
-                    // TODO: Handle Err
                     loginServer().then((appPassword) => {
                         this.state.isAddNewProfile = false;
-                        this.context.addAndSaveProfile(name, appPassword, "aws/us-east-1");
+                        if (appPassword) {
+                            this.context.addAndSaveProfile(name, appPassword, "aws/us-east-1");
+                        } else {
+                            // Cancel login process.
+                            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                        }
                     }).finally(() => {
                         this.state.isAddNewProfile = false;
                         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
@@ -249,7 +263,6 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     </div>`
                 );
             } else {
-                // TODO: Fill this async.
                 const database = this.context.getDatabase();
                 const schema = this.context.getSchema();
                 const cluster = this.context.getCluster();

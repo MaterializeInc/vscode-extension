@@ -50,7 +50,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                             new InternalTab("Internal", vscode.TreeItemCollapsibleState.Collapsed, schema)
                         ]);
                     } else {
-                        // TODO: Wrong state.
+                        vscode.window.showErrorMessage('Error retrieving the objects from the catalog. The schema is missing.');
                         console.error("[DatabaseTreeProvider]", "Error wrong state. Missing schema.");
                         rej(new Error("Missing schema."));
                     }
@@ -72,7 +72,6 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
             case ContextValue.database:
                 return this.getSchemas(element.props.id);
             case ContextValue.schema:
-                // TODO: Correct type; avoid casting.
                 return [
                     new SourceTab("Sources", vscode.TreeItemCollapsibleState.Collapsed, element.props as MaterializeObject),
                     new ViewTab("Views", vscode.TreeItemCollapsibleState.Collapsed, element.props as MaterializeObject),
@@ -300,7 +299,6 @@ class MaterializedViewTab extends vscode.TreeItem {
         this.tooltip = props.name.toString();
     }
 
-    // TODO: Give enum to context value.
     contextValue = ContextValue.materializedViewTab;
 }
 
@@ -315,7 +313,6 @@ class TableTab extends vscode.TreeItem {
         this.tooltip = props.name.toString();
     }
 
-    // TODO: Give enum to context value.
     contextValue = ContextValue.tableTab;
 }
 
@@ -330,7 +327,6 @@ class SinkTab extends vscode.TreeItem {
         this.tooltip = props.name.toString();
     }
 
-    // TODO: Give enum to context value.
     contextValue = ContextValue.sinkTab;
 }
 

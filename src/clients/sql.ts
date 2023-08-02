@@ -61,11 +61,12 @@ export default class SqlClient {
     }
 
     private async buildPoolConfig() {
-        // TODO: Can be done in parallel
         console.log("[Context]", "Loading host.");
-        const host = await this.cloudClient?.getHost(this.profile.region);
+        const hostPromise = this.cloudClient?.getHost(this.profile.region);
         console.log("[Context]", "Loading user email.");
-        const email = await this.adminClient?.getEmail();
+        const emailPromise = this.adminClient?.getEmail();
+
+        const [host, email] = await Promise.all([hostPromise, emailPromise]);
 
         return {
             host: host && host.substring(0, host.length - 5),
@@ -82,15 +83,15 @@ export default class SqlClient {
     }
 
     async query(statement: string, values?: Array<any>): Promise<QueryResult<any>> {
-        // TODO: Remove double await.
-        const results = await (await this.pool).query(statement, values);
+        const pool = await this.pool;
+        const results = await pool.query(statement, values);
 
         return results;
     }
 
     async* cursorQuery(statement: string): AsyncGenerator<QueryResult> {
-        // TODO: Remove doulbe await
-        const client = await (await this.pool).connect();
+        const pool = await this.pool;
+        const client = await pool.connect();
         const id = randomUUID();
 
         try {
