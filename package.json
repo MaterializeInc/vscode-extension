@@ -118,7 +118,7 @@
     "test-compile": "tsc -p ./",
     "pretest": "node esbuild.js",
     "test": "node ./out/test/runTest.js",
-    "deploy": "vsce publish --yarn"
+    "deploy": "vsce publish"
   },
   "devDependencies": {
     "@types/chai": "^4.3.5",
