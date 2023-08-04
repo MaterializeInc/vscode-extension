@@ -233,7 +233,10 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         const webviewUri = getUri(webview, this._extensionUri, ["out", "webview", "index.js"]);
         const scriptUri = getUri(webview, this._extensionUri, ["out", "scripts", "auth.js"]);
         const styleUri = getUri(webview, this._extensionUri, ["resources", "style.css"]);
-        const logoUri = getUri(webview, this._extensionUri, ["resources", "logo.svg"]);
+
+        const config = vscode.workspace.getConfiguration('workbench');
+        const currentTheme = config.get<string>('colorTheme');
+        const logoUri = getUri(webview, this._extensionUri, ["resources", currentTheme?.includes('Dark') ? "logo.png" : "logo_color.png"]);
 
 		// Use a nonce to only allow a specific script to be run.
 		const nonce = getNonce();
@@ -295,7 +298,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                             </vscode-dropdown>
                         </div>
                         <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" width="20" height="20" viewBox="0 0 24 24" stroke-width="1" stroke="#FFFFFF">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
                             </svg>
                             <vscode-dropdown id="databases">

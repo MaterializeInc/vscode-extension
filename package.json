@@ -52,7 +52,7 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "icon": "resources/logo.svg",
+          "icon": "resources/logo.png",
           "id": "materialize",
           "title": "Materialize"
         }
@@ -60,7 +60,7 @@
       "panel": [
         {
           "id": "materializePanelContainer",
-          "icon": "resources/logo.svg",
+          "icon": "resources/logo.png",
           "title": "Query Results"
         }
       ]
