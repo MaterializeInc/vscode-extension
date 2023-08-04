@@ -34,7 +34,7 @@ const watchConfig = {
 
 const webviewConfig = {
   ...baseConfig,
-  entryPoints: ["./src/webview/main.ts"],
+  entryPoints: ["./src/webview/index.ts"],
   outfile: "./out/webview.js",
 };
 
