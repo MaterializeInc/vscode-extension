@@ -6,7 +6,7 @@
   },
   "displayName": "Materialize",
   "description": "Working environment for Materialize.",
-  "version": "0.0.1-alpha",
+  "version": "0.0.1",
   "tasks": [
     {
       "problemMatcher": "$esbuild-watch"
@@ -118,7 +118,8 @@
     "test-compile": "tsc -p ./",
     "pretest": "node esbuild.js",
     "test": "node ./out/test/runTest.js",
-    "deploy": "vsce publish"
+    "deploy": "vsce publish",
+    "deploy-pre-release": "vsce publish --pre-release"
   },
   "devDependencies": {
     "@types/chai": "^4.3.5",
