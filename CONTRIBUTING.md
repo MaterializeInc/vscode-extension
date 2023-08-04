@@ -45,11 +45,26 @@ npm run test
 
 ## Cutting a release
 
-A GitHub Action will release the new version to the Visual Studio Marketplace. 
+A GitHub Action will release the new version to the Visual Studio Marketplace.
+
+Follow this instructions to trigger the action:
+```bash
+VERSION=vX.Y.Z
+git checkout -b mz-release
+git commit -am "mz: release $VERSION"
+git push --set-upstream origin mz-release
+gh pr create
+```
+
+*Merge the pull request* and push the tag:
 
 ```bash
-git tag -a vX.Y.Z -m vX.Y.Z
-git push origin vX.Y.Z
+git checkout main
+git pull
+git checkout MERGED-SHA
+git tag -am $VERSION $VERSION
+git push --tags
+gh release create $VERSION
 ```
 
 [Materialize]: https://materialize.com
