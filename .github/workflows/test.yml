@@ -1,5 +1,5 @@
 # Github Action from: https://code.visualstudio.com/api/working-with-extensions/continuous-integration#github-actions
-name: Node.js CI
+name: Extension Test
 
 on:
   push:
