@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-      - run: npm vscode:prepublish
+      - run: npm run vscode:prepublish
 
   publish-vscode:
     needs: build
