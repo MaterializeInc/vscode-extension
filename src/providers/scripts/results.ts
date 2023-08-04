@@ -4,6 +4,11 @@
     // @ts-ignore
     const vscode = acquireVsCodeApi();
 
+    // Load UX/UI from VSCode.
+    const { provideVSCodeDesignSystem, vsCodeDropdown, vsCodeTextField, vsCodeOption, vsCodeButton, vsCodeDataGrid, vsCodeDataGridCell, vsCodeDataGridRow, vsCodeLink, vsCodeProgressRing, vsCodeDivider } = require ("@vscode/webview-ui-toolkit");
+
+    provideVSCodeDesignSystem().register(vsCodeDropdown(), vsCodeOption(), vsCodeButton(), vsCodeDataGrid(), vsCodeDataGridCell(), vsCodeDataGridRow(), vsCodeLink(), vsCodeTextField(), vsCodeProgressRing(), vsCodeDivider());
+
     const oldState = vscode.getState() || { results: [] };
 
     /** @type {Array<{ value: string }>} */

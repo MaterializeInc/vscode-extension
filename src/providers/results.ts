@@ -71,8 +71,7 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
     }
 
     private _getHtmlForWebview(webview: vscode.Webview) {
-        const webviewUri = getUri(webview, this._extensionUri, ["out", "webview", "index.js"]);
-        const scriptUri = getUri(webview, this._extensionUri, ["out", "scripts", "results.js"]);
+        const scriptUri = getUri(webview, this._extensionUri, ["out", "providers", "scripts", "results.js"]);
 
 		// Use a nonce to only allow a specific script to be run.
 		const nonce = getNonce();
@@ -96,8 +95,7 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
         </head>
         <body>
             <div id="container"></div>
-            <script nonce="${nonce}" src="${scriptUri}"></script>
-            <script type="module" nonce="${nonce}" src="${webviewUri}"></script>
+            <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
         </body>
         </html>`;
     }

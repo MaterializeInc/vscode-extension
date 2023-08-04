@@ -1,8 +1,17 @@
+/*
+ * This file imports all the VSCode UX/UI guidelines.
+ */
+
 // This script will be run within the webview itself
 // It cannot access the main VS Code APIs directly.
 (function () {
     // @ts-ignore
     const vscode = acquireVsCodeApi();
+
+    // Load UX/UI from VSCode.
+    const { provideVSCodeDesignSystem, vsCodeDropdown, vsCodeTextField, vsCodeOption, vsCodeButton, vsCodeDataGrid, vsCodeDataGridCell, vsCodeDataGridRow, vsCodeLink, vsCodeProgressRing, vsCodeDivider } = require ("@vscode/webview-ui-toolkit");
+
+    provideVSCodeDesignSystem().register(vsCodeDropdown(), vsCodeOption(), vsCodeButton(), vsCodeDataGrid(), vsCodeDataGridCell(), vsCodeDataGridRow(), vsCodeLink(), vsCodeTextField(), vsCodeProgressRing(), vsCodeDivider());
 
     const oldState = vscode.getState() || { profiles: [] };
 
@@ -107,6 +116,9 @@
 
                 const schemas = document.getElementById("schemas") as HTMLSelectElement;
                 schemas.disabled = true;
+
+                const addProfileLinkButton = document.getElementById("addProfileLink") as HTMLSelectElement;
+                addProfileLinkButton.disabled = true;
             }
         }
     });
