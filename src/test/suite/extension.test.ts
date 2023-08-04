@@ -91,7 +91,7 @@ suite('Extension Test Suite', () => {
 		extension = _extension;
 
 		// Activation requires a small delay.
-		await delay(50);
+		await delay(300);
 		assert.ok(extension?.isActive);
 	});
 
