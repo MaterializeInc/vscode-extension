@@ -56,8 +56,7 @@ export class Config {
         if (this.config.profiles && this.config.profile) {
             return this.profileToNonStorable(this.config.profile, this.config.profiles[this.config.profile]);
         } else {
-            console.log("[Config]", "Error loading the default user profile");
-            vscode.window.showErrorMessage("Error loading the default user profile.");
+            console.log("[Config]", "Error loading the default user profile. Most chances are that the user is new.");
         }
     }
 

@@ -41,6 +41,10 @@ vscode-divider {
     margin-bottom: 1rem;
 }
 
+vscode-dropdown {
+    width: 150px;
+}
+
 #setup-container label, vscode-dropdown, vscode-button, svg {
     display: inline-block;
     vertical-align: middle;

@@ -32,12 +32,6 @@ const watchConfig = {
     },
   };
 
-const webviewConfig = {
-  ...baseConfig,
-  entryPoints: ["./src/webview/index.ts"],
-  outfile: "./out/webview.js",
-};
-
 const scriptsConfig = {
   ...baseConfig,
   entryPoints: ["./src/providers/scripts/results.ts", "./src/providers/scripts/auth.ts"],
@@ -67,10 +61,6 @@ const testConfig = {
         ...watchConfig,
       });
       await build({
-        ...webviewConfig,
-        ...watchConfig,
-      });
-      await build({
         ...scriptsConfig,
         ...watchConfig,
       });
@@ -82,7 +72,6 @@ const testConfig = {
     } else {
       // Build extension and webview code
       await build(extensionConfig);
-      await build(webviewConfig);
       await build(scriptsConfig);
       await build(testConfig);
       console.log("build complete");

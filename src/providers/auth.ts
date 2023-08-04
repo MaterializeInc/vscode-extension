@@ -230,8 +230,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 
     private _getHtmlForWebview(webview: vscode.Webview) {
 		// Do the same for the stylesheet.
-        const webviewUri = getUri(webview, this._extensionUri, ["out", "webview", "index.js"]);
-        const scriptUri = getUri(webview, this._extensionUri, ["out", "scripts", "auth.js"]);
+        // const webviewUri = getUri(webview, this._extensionUri, ["out", "webview", "index.js"]);
+        const scriptUri = getUri(webview, this._extensionUri, ["out", "providers", "scripts", "auth.js"]);
         const styleUri = getUri(webview, this._extensionUri, ["resources", "style.css"]);
 
         const config = vscode.workspace.getConfiguration('workbench');
@@ -342,8 +342,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 ${content}
             </div>
 
-            <script nonce="${nonce}" src="${scriptUri}"></script>
-            <script type="module" nonce="${nonce}" src="${webviewUri}"></script>
+            <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
         </body>
         </html>`;
     }
