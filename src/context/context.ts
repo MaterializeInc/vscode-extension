@@ -125,7 +125,11 @@ export class Context extends EventEmitter {
         }
     }
 
-    async isReady(): Promise<boolean> {
+    isLoading(): boolean {
+        return !this.loaded;
+    }
+
+    async waitReadyness(): Promise<boolean> {
         return await new Promise((res, rej) => {
             if (this.loaded === true) {
                 res(true);

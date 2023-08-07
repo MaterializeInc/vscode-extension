@@ -37,7 +37,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                 const asyncOp = async () => {
                     console.log("[DatabaseTreeProvider]", "Environment loaded.");
 
-                    await this.context.isReady();
+                    await this.context.waitReadyness();
                     const schema = this.context.getSchema();
                     if (schema) {
                         res([

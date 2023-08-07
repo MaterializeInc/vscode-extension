@@ -24,6 +24,7 @@
   ],
   "main": "./out/extension.js",
   "pricing": "Free",
+  "icon": "resources/icon.png",
   "contributes": {
     "languages": [{
       "id": "materialize-sql",
@@ -45,7 +46,7 @@
     "menus": {
       "editor/title": [
         {
-          "when": "resourceLangId == sql",
+          "when": "resourceLangId == 'sql' || resourceLangId == 'materialize-sql'",
           "command": "materialize.run",
           "alt": "materialize.run",
           "group": "navigation"
