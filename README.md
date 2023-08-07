@@ -2,7 +2,7 @@
 
 The Materialize extension lets you connect, explore and query your Materialize instances.
 
-![Frame](media/extension.png)
+![Extension](media/Extension.png)
 
 ## Features
 
