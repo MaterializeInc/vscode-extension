@@ -47,24 +47,26 @@ npm run test
 
 A GitHub Action will release the new version to the Visual Studio Marketplace.
 
-Follow this instructions to trigger the action:
-```bash
-VERSION=vX.Y.Z
-git checkout -b mz-release
-git commit -am "mz: release $VERSION"
-git push --set-upstream origin mz-release
-gh pr create
-```
+Follow these instructions to trigger the action:
 
-*Merge the pull request* and push the tag:
-
-```bash
-git checkout main
-git pull
-git checkout MERGED-SHA
-git tag -am $VERSION $VERSION
-git push --tags
-gh release create $VERSION
-```
+1. Update the `package.json` to the new version.
+2. Run the following commands
+    ```bash
+    VERSION=vX.Y.Z
+    git branch -D mz-release
+    git checkout -b mz-release
+    git commit -am "mz: release $VERSION"
+    git push --set-upstream origin mz-release
+    gh pr create
+    ```
+3. *Merge the pull request* and push the tag by running the following commands:
+    ```bash
+    git checkout main
+    git pull
+    git checkout MERGED-SHA
+    git tag -am $VERSION $VERSION
+    git push --tags
+    gh release create $VERSION
+    ```
 
 [Materialize]: https://materialize.com
