@@ -25,11 +25,21 @@
   "main": "./out/extension.js",
   "pricing": "Free",
   "contributes": {
-    "iconThemes": [
+    "languages": [{
+      "id": "materialize-sql",
+      "extensions": [".sql"],
+      "aliases": ["Materialize SQL"],
+      "icon": {
+        "light": "resources/file_icon_color.svg",
+        "dark": "resources/file_icon.svg"
+      },
+      "configuration": "language-configuration.json"
+    }],
+    "grammars": [
       {
-        "id": "materialize-icons",
-        "label": "Materialize Icons",
-        "path": "./icons"
+        "language": "materialize-sql",
+        "scopeName": "source.materialize-sql",
+        "path": "./syntaxes/materialize-sql.tmLanguage"
       }
     ],
     "menus": {
@@ -142,6 +152,7 @@
     "vscode-extension-tester": "^5.8.0"
   },
   "dependencies": {
+    "vscode-languageclient": "^7.0.0",
     "@iarna/toml": "^2.2.5",
     "@types/express": "^4.17.17",
     "@types/node-fetch": "^2.6.4",

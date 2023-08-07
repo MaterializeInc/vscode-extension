@@ -1,5 +1,25 @@
 {
-    "files": {
-      "*.sql": "materialize-icons"
-    }
-  }
+  "comments": {
+    "blockComment": [ "/*", "*/" ],
+    "lineComment": "--"
+  },
+  "brackets": [
+    [ "(", ")" ],
+    [ "[", "]" ],
+    [ "{", "}" ]
+  ],
+  "autoClosingPairs": [
+    { "open": "(", "close": ")" },
+    { "open": "[", "close": "]" },
+    { "open": "{", "close": "}" },
+    { "open": "\"", "close": "\"", "notIn": ["string"] },
+    { "open": "'", "close": "'", "notIn": ["string", "comment"] }
+  ],
+  "surroundingPairs": [
+    [ "(", ")" ],
+    [ "[", "]" ],
+    [ "{", "}" ],
+    [ "\"", "\"" ],
+    [ "'", "'" ]
+  ]
+}
