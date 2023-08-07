@@ -100,7 +100,7 @@ suite('Extension Test Suite', () => {
 		assert.ok(typeof _context !== null && typeof _context !== "undefined");
         context = _context;
 
-		await _context.isReady();
+		await _context.waitReadyness();
 	}).timeout(10000);
 
 	test('Test query execution', async () => {

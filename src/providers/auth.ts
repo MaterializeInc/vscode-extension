@@ -69,8 +69,17 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         this.context = context;
         this.state = {
             isAddNewProfile: false,
-            isLoading: true,
+            isLoading: this.context.isLoading(),
         };
+
+        // Await for readyness when the extension activates from the outside.
+        // E.g. Running a query without opening the extension.
+        this.context.waitReadyness().then(() => {
+            this.state = {
+                ...this.state,
+                isLoading: false,
+            };
+        });
 
         this.context.on("event", ({ type }) => {
             switch (type) {
