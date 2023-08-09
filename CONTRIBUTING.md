@@ -50,7 +50,8 @@ A GitHub Action will release the new version to the Visual Studio Marketplace.
 Follow these instructions to trigger the action:
 
 1. Update the `package.json` to the new version.
-2. Run the following commands
+2. Write the new changes to the `CHANGELOG.md`.
+3. Run the following commands
     ```bash
     VERSION=vX.Y.Z
     git branch -D mz-release
@@ -59,7 +60,7 @@ Follow these instructions to trigger the action:
     git push --set-upstream origin mz-release
     gh pr create
     ```
-3. *Merge the pull request* and push the tag by running the following commands:
+4. *Merge the pull request* and push the tag by running the following commands:
     ```bash
     git checkout main
     git pull
