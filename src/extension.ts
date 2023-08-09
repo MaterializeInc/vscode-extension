@@ -36,7 +36,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
 	);
 
     // Register the `Run SQL` command.
-    let disposable = vscode.commands.registerCommand('materialize.run', async () => {
+    let runDisposable = vscode.commands.registerCommand('materialize.run', async () => {
         console.log("[RunSQLCommand]", "Firing detected.");
         const activeEditor = vscode.window.activeTextEditor;
         if (!activeEditor) {
@@ -82,8 +82,19 @@ export function activate(vsContext: vscode.ExtensionContext) {
         }
     });
 
-    vsContext.subscriptions.push(disposable);
+    let copyDisposable = vscode.commands.registerCommand('materialize.copy', async ({ tooltip }) => {
+        // Additional context information
+        console.log("[CopyCommand]", "Copying tooltip: ", tooltip);
+        try {
+            await vscode.env.clipboard.writeText(tooltip);
+        } catch (err) {
+            console.log("[CopyCommand]", "Error copying value to the clipboard: ", err);
+            vscode.window.showErrorMessage('Error copying value to the clipboard.');
+        }
+    });
 
+    vsContext.subscriptions.push(runDisposable);
+    vsContext.subscriptions.push(copyDisposable);
     return context;
 }
 
