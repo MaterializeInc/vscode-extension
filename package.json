@@ -117,6 +117,13 @@
           "dark": "resources/play.svg"
         }
       }
+    ],
+    "keybindings": [
+      {
+        "command": "materialize.run",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter"
+      }
     ]
   },
   "scripts": {
