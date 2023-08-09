@@ -11,7 +11,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
     constructor(context: Context) {
         this.context = context;
         this.context.on("event", ({ type }) => {
-            if (type === EventType.environmentChange) {
+            if (type === EventType.environmentLoaded) {
                 console.log("[DatabaseTreeProvider]", "Environment change detected. Refreshing provider.");
                 this.refresh();
             }
@@ -31,13 +31,9 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
             console.log("[DatabaseTreeProvider]", "Getting children.");
             return Promise.resolve(this.getChildrenFromNode(element));
         } else {
-            console.log("[DatabaseTreeProvider]", "Getting databases.");
-
-            return new Promise((res, rej) => {
+            return new Promise((res) => {
                 const asyncOp = async () => {
-                    console.log("[DatabaseTreeProvider]", "Environment loaded.");
-
-                    await this.context.waitReadyness();
+                    console.log("[DatabaseTreeProvider]", "Looking up the schema.");
                     const schema = this.context.getSchema();
                     if (schema) {
                         res([
@@ -50,9 +46,8 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                             new InternalTab("Internal", vscode.TreeItemCollapsibleState.Collapsed, schema)
                         ]);
                     } else {
-                        vscode.window.showErrorMessage('Error retrieving the objects from the catalog. The schema is missing.');
-                        console.error("[DatabaseTreeProvider]", "Error wrong state. Missing schema.");
-                        rej(new Error("Missing schema."));
+                        // A missing schema indicates the the environment is not loaded yet.
+                        res ([]);
                     }
                 };
 
