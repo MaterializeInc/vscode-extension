@@ -58,6 +58,18 @@
           "command": "materialize.refresh",
           "group": "navigation"
         }
+      ],
+      "view/item/context": [
+        {
+          "command": "materialize.copy",
+          "title": "Copy",
+          "when": "view == explorer && (viewItem == table || viewItem == source || viewItem == view || viewItem == sink || viewItem == materialized_view)",
+          "icon": {
+            "light": "resources/clip_light.svg",
+            "dark": "resources/clip_dark.svg"
+          },
+          "group": "inline"
+        }
       ]
     },
     "viewsContainers": {
@@ -115,6 +127,15 @@
         "icon": {
           "light": "resources/play.svg",
           "dark": "resources/play.svg"
+        }
+      },
+      {
+        "command": "materialize.copy",
+        "title": "Copy",
+        "category": "materialize",
+        "icon": {
+          "light": "resources/clip_light.svg",
+          "dark": "resources/clip_dark.svg"
         }
       }
     ],
