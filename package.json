@@ -20,7 +20,9 @@
   ],
   "activationEvents": [
     "onWebviewPanel:sqlResults",
-    "onLanguage:sql"
+    "onLanguage:sql",
+    "onLanguage:md",
+    "onLanguage:markdown"
   ],
   "main": "./out/extension.js",
   "pricing": "Free",
@@ -46,7 +48,7 @@
     "menus": {
       "editor/title": [
         {
-          "when": "resourceLangId == 'sql' || resourceLangId == 'materialize-sql'",
+          "when": "resourceLangId == 'sql' || resourceLangId == 'materialize-sql' || resourceLangId == 'md' || resourceLangId == 'markdown'",
           "command": "materialize.run",
           "alt": "materialize.run",
           "group": "navigation"
