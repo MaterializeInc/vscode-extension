@@ -11,7 +11,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
     constructor(context: Context) {
         this.context = context;
         this.context.on("event", ({ type }) => {
-            if (type === EventType.environmentLoaded) {
+            if (type === EventType.environmentChange) {
                 console.log("[DatabaseTreeProvider]", "Environment change detected. Refreshing provider.");
                 this.refresh();
             }
@@ -31,22 +31,36 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
             console.log("[DatabaseTreeProvider]", "Getting children.");
             return Promise.resolve(this.getChildrenFromNode(element));
         } else {
-            return new Promise((res) => {
+            return new Promise((res, rej) => {
                 const asyncOp = async () => {
-                    console.log("[DatabaseTreeProvider]", "Looking up the schema.");
-                    const schema = this.context.getSchema();
-                    if (schema) {
-                        res([
-                            new SourceTab("Sources", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                            new ViewTab("Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                            new MaterializedViewTab("Materialized Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                            new TableTab("Tables", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                            new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                            new CatalogTab("Catalog", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                            new InternalTab("Internal", vscode.TreeItemCollapsibleState.Collapsed, schema)
-                        ]);
+                    const profileName = this.context.getProfileName();
+
+                    // A missing profile name means there is no profile loaded yet.
+                    // E.g.: The first time the user open the extension.
+                    if (profileName) {
+                        console.log("[DatabaseTreeProvider]", "Profile name loaded.");
+
+                        console.log("[DatabaseTreeProvider]", "Waiting context to be ready.");
+                        await this.context.waitReadyness();
+
+                        console.log("[DatabaseTreeProvider]", "Looking up the schema.");
+                        const schema = this.context.getSchema();
+                        if (schema) {
+                            res([
+                                new SourceTab("Sources", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                new ViewTab("Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                new MaterializedViewTab("Materialized Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                new TableTab("Tables", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                new CatalogTab("Catalog", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                new InternalTab("Internal", vscode.TreeItemCollapsibleState.Collapsed, schema)
+                            ]);
+                        } else {
+                            vscode.window.showErrorMessage('Error retrieving the objects from the catalog. The schema is missing.');
+                            console.error("[DatabaseTreeProvider]", "Error: Wrong state, the schema is missing.");
+                            rej(new Error("Missing schema."));
+                        }
                     } else {
-                        // A missing schema indicates the the environment is not loaded yet.
                         res ([]);
                     }
                 };
