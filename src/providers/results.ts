@@ -9,6 +9,10 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
     _doc?: vscode.TextDocument;
     private context: Context;
 
+    // Identifies the identifier of the last query run by the user.
+    // It is used to display the results and not overlap them from the results of a laggy query.
+    private lastQueryId: string | undefined;
+
     constructor(private readonly _extensionUri: vscode.Uri, context: Context) {
         this._extensionUri = _extensionUri;
         this.context = context;
@@ -16,12 +20,21 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
         this.context.on("event", ({ type, data }) => {
             if (this._view) {
                 if (type === EventType.queryResults) {
+                    const { id } = data;
                     console.log("[ResultsProvider]", "New query results.");
-                    const thenable = this._view.webview.postMessage({ type: "results", data });
-                    thenable.then((posted) => {
-                        console.log("[ResultsProvider]", "Message posted: ", posted);
-                    });
+
+                    // Check if the results are from the last issued query.
+                    if (this.lastQueryId === id) {
+                        const thenable = this._view.webview.postMessage({ type: "results", data });
+
+                        thenable.then((posted) => {
+                            console.log("[ResultsProvider]", "Message posted: ", posted);
+                        });
+                    }
                 } else if (type === EventType.newQuery) {
+                    const { id } = data;
+                    this.lastQueryId = id;
+
                     console.log("[ResultsProvider]", "New query.");
                     const thenable = this._view.webview.postMessage({ type: "newQuery", data });
                     thenable.then((posted) => {

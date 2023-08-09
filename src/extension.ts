@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { AuthProvider, ResultsProvider, DatabaseTreeProvider } from './providers';
 import { Context, EventType } from './context';
+import { randomUUID } from 'crypto';
 
 export function activate(vsContext: vscode.ExtensionContext) {
     console.log("[Extension]", "Activating Materialize extension.");
@@ -50,9 +51,16 @@ export function activate(vsContext: vscode.ExtensionContext) {
         const query = textSelected ? textSelected : document.getText();
 
         console.log("[RunSQLCommand]", "Running query: ", query);
-        context.emit("event", { type: EventType.newQuery });
+
+        // Identify the query to not overlap results.
+        // When a user press many times the run query button
+        // the results from one query can overlap the results
+        // from another. We only want to display the last results.
+        const id = randomUUID();
+        context.emit("event", { type: EventType.newQuery, data: { id } });
 
         try {
+
             // Benchmark
             const startTime = Date.now();
             const results = await context.query(query);
@@ -64,19 +72,19 @@ export function activate(vsContext: vscode.ExtensionContext) {
             console.log("[RunSQLCommand]", "Emitting results.");
 
             if (Array.isArray(results)) {
-                context.emit("event", { type: EventType.queryResults, data: { ...results[0], elapsedTime } });
+                context.emit("event", { type: EventType.queryResults, data: { ...results[0], elapsedTime, id } });
             } else {
-                context.emit("event", { type: EventType.queryResults, data: { ...results, elapsedTime } });
+                context.emit("event", { type: EventType.queryResults, data: { ...results, elapsedTime, id } });
             }
         } catch (error: any) {
             console.log("[RunSQLCommand]", error.toString());
             console.log("[RunSQLCommand]", JSON.stringify(error));
 
-            context.emit("event", { type: EventType.queryResults, data: { rows: [], fields: [], error: {
+            context.emit("event", { type: EventType.queryResults, data: { id, rows: [], fields: [], error: {
                 message: error.toString(),
                 position: error.position,
                 query,
-            } }});
+            }}});
         } finally {
             resultsProvider._view?.show();
         }
