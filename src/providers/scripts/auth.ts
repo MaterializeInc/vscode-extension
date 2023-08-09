@@ -56,6 +56,16 @@
     const porfileNameInput = document.getElementById('profileNameInput');
 
     if (porfileNameInput) {
+        // Listen when the user presses Enter.
+        // It is useful when creating a new profile.
+        // After typing the name pressing enter will trigger the `Continue` button.
+        document.addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                const profileName = (porfileNameInput as HTMLInputElement).value;
+                onContinueProfile(profileName);
+            }
+        });
+
         porfileNameInput.addEventListener('input', (event) => {
             const inputValue = (event.target as HTMLInputElement).value;
             const continueProfileButton = document.getElementById('continueProfileButton') as HTMLButtonElement;
