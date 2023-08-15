@@ -54,10 +54,10 @@ Follow these instructions to trigger the action:
 3. Run the following commands
     ```bash
     VERSION=vX.Y.Z
-    git branch -D mz-release
-    git checkout -b mz-release
-    git commit -am "mz: release $VERSION"
-    git push --set-upstream origin mz-release
+    git branch -D release
+    git checkout -b release
+    git commit -am "release $VERSION"
+    git push --set-upstream origin release
     gh pr create
     ```
 4. *Merge the pull request* and push the tag by running the following commands:
