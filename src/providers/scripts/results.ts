@@ -65,7 +65,7 @@
                 const { data: results } = message;
                 console.log("[Results.js]", "New message - Results: ", results);
 
-                const { fields, rows, error } = results;
+                const { command, fields, rows, error } = results;
                 const tableId = "table";
                 let table = document.getElementById(tableId);
 
@@ -161,20 +161,50 @@
 
                 // Create data rows
                 // Loop through the data and create rows and cells
-                rows.forEach((row: any, i: number) => {
-                    const dataRow = document.createElement("vscode-data-grid-row");
+                if (rows && rows.length > 0) {
+                    rows.forEach((row: any, i: number) => {
+                        const dataRow = document.createElement("vscode-data-grid-row");
 
-                    fields.forEach(({ name: field }: { name: string }, index: number) => {
-                        const dataCell = document.createElement("vscode-data-grid-cell");
-                        dataCell.setAttribute("grid-column", String(index + 1));
-                        const value = row[field];
-                        dataCell.innerText = typeof value === "object" ? JSON.stringify(value) : value;
+                        fields.forEach(({ name: field }: { name: string }, index: number) => {
+                            const dataCell = document.createElement("vscode-data-grid-cell");
+                            dataCell.setAttribute("grid-column", String(index + 1));
+                            const value = row[field];
+                            dataCell.innerText = typeof value === "object" ? JSON.stringify(value) : value;
 
-                        dataRow.appendChild(dataCell);
+                            dataRow.appendChild(dataCell);
+                        });
+
+                        table && table.appendChild(dataRow);
                     });
+                } else {
+                    // The command doesn't has any rows. E.g. CREATE TABLE, DROP TABLE, etc.
+                    const successCommandContainer = document.createElement("div");
+                    successCommandContainer.id = "successContainer";
+                    successCommandContainer.style.display = "flex";
+                    successCommandContainer.style.flexFlow = "row";
 
-                    table && table.appendChild(dataRow);
-                });
+                    // Success Icon
+                    const successCommandIconContainer = document.createElement("div");
+                    successCommandIconContainer.style.padding = "0.75rem";
+
+                    successCommandIconContainer.innerHTML = `
+                        <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#22c55e">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    `;
+
+                    // Message
+                    const successCommandMessageContainer = document.createElement("div");
+                    const successMessage = `Successful execution of the ${capitalizeFirstLetter(command)} statement.`;
+
+                    const successCommandTextElement = document.createElement("p");
+                    successCommandTextElement.innerHTML = successMessage;
+                    successCommandMessageContainer.appendChild(successCommandTextElement);
+
+                    successCommandContainer.appendChild(successCommandIconContainer);
+                    successCommandContainer.appendChild(successCommandTextElement);
+                    container.appendChild(successCommandContainer);
+                }
                 break;
             }
 

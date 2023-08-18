@@ -62,7 +62,10 @@
         document.addEventListener("keydown", function(event) {
             if (event.key === "Enter") {
                 const profileName = (porfileNameInput as HTMLInputElement).value;
-                onContinueProfile(profileName);
+
+                if(profileName.trim().length) {
+                    onContinueProfile(profileName);
+                }
             }
         });
 
