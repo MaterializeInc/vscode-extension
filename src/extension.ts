@@ -2,39 +2,9 @@ import * as vscode from 'vscode';
 import { AuthProvider, ResultsProvider, DatabaseTreeProvider } from './providers';
 import { Context, EventType } from './context';
 import { randomUUID } from 'crypto';
-import {
-    LanguageClient,
-    LanguageClientOptions,
-    RevealOutputChannelOn,
-    ServerOptions,
-    TransportKind
-} from 'vscode-languageclient/node';
-
-
-let client: LanguageClient;
 
 export function activate(vsContext: vscode.ExtensionContext) {
     console.log("[Extension]", "Activating Materialize extension.");
-
-    let serverOptions: ServerOptions = {
-        run: { command: '/Users/joaquincolacci/Code/Technologies/postgres_lsp/target/release/postgres_lsp', transport: TransportKind.socket },
-        debug: { command: '/Users/joaquincolacci/Code/Technologies/postgres_lsp/target/debug/postgres_lsp', transport: TransportKind.socket },
-    };
-
-    let clientOptions: LanguageClientOptions = {
-        documentSelector: [{ scheme: 'file', language: 'materialize-sql' }],
-        // TODO: Turn to never
-        revealOutputChannelOn: RevealOutputChannelOn.Info,
-    };
-
-    client = new LanguageClient(
-        'sqlClient',
-        'sql',
-        serverOptions,
-        clientOptions
-    );
-
-    client.start();
 
     // User context.
     // Contains auth information, cluster, database, schema, etc.
@@ -142,8 +112,4 @@ export function activate(vsContext: vscode.ExtensionContext) {
 
 export function deactivate() {
     console.log("[Extension]", "Deactivating Materialize extension.");
-    if (!client) {
-        return undefined;
-    }
-    return client.stop();
 }

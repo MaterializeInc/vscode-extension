@@ -2,8 +2,6 @@
 
 All notable changes to the "materialize" extension will be documented in this file.
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
-
 ## [1.1.1] - 2023-09-08
 
 ### Added
@@ -16,8 +14,4 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - Laggy queries do not overlap the results of newer queries anymore.
 - Schema explorer does not load anymore when there is no profile available.
 
-### Removed
-
-## [Unreleased]
-
-- Initial release
+Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
