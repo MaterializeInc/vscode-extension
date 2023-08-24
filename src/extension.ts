@@ -46,7 +46,8 @@ export function activate(vsContext: vscode.ExtensionContext) {
         }
 
         // Force to open the panel.
-        vscode.commands.executeCommand('workbench.view.explorer');
+        // vscode.commands.executeCommand('workbench.view.explorer');
+        vscode.commands.executeCommand('workbench.action.focusPanel');
         vscode.commands.executeCommand('workbench.action.focusView', { "id": "queryResults" });
 
         const document = activeEditor.document;
