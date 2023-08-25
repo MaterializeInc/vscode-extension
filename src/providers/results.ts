@@ -3,6 +3,7 @@ import { Context } from "../context";
 import { EventType } from "../context/context";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
+import { QueryResult } from "pg";
 
 export default class ResultsProvider implements vscode.WebviewViewProvider {
     _view?: vscode.WebviewView;
@@ -13,23 +14,40 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
     // It is used to display the results and not overlap them from the results of a laggy query.
     private lastQueryId: string | undefined;
 
+    // The provider can be invoked from `materialize.run`.
+    // When this happens, the inner rendering script will not be ready
+    // to listen changes. This variable holds the pending data to render
+    // once the script is ready to listen.
+    private pendingDataToRender: QueryResult<any> | undefined;
+
+    // This variable indicates that the inner script is ready to listen
+    // new data arriving and to render the information.
+    private isScriptReady: boolean;
+
     constructor(private readonly _extensionUri: vscode.Uri, context: Context) {
         this._extensionUri = _extensionUri;
         this.context = context;
+        this.isScriptReady = false;
 
         this.context.on("event", ({ type, data }) => {
             if (this._view) {
                 if (type === EventType.queryResults) {
                     const { id } = data;
-                    console.log("[ResultsProvider]", "New query results.");
+                    console.log("[ResultsProvider]", "New query results.", this.lastQueryId);
 
                     // Check if the results are from the last issued query.
-                    if (this.lastQueryId === id) {
-                        const thenable = this._view.webview.postMessage({ type: "results", data });
+                    if (this.lastQueryId === id || this.lastQueryId === undefined) {
+                        console.log("Is script ready : ", this.isScriptReady);
+                        if (this.isScriptReady) {
+                            const thenable = this._view.webview.postMessage({ type: "results", data });
 
-                        thenable.then((posted) => {
-                            console.log("[ResultsProvider]", "Message posted: ", posted);
-                        });
+                            thenable.then((posted) => {
+                                console.log("[ResultsProvider]", "Message posted: ", posted);
+                            });
+                        } else {
+                            console.log("[ResultsProvider]", "The script is not ready yet.");
+                            this.pendingDataToRender = data;
+                        }
                     }
                 } else if (type === EventType.newQuery) {
                     const { id } = data;
@@ -73,6 +91,22 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
                         return;
                     }
                     console.error("[ResultsProvider]", error);
+                    break;
+                }
+                case "ready": {
+                    console.log("[ResultsProvider]", "The script is now ready.");
+                    this.isScriptReady = true;
+
+                    if (this.pendingDataToRender && this._view) {
+                        console.log("[ResultsProvider]", "Sending pending data to the script.");
+                        const thenable = this._view.webview.postMessage({ type: "results", data: this.pendingDataToRender });
+
+                        thenable.then((posted) => {
+                            console.log("[ResultsProvider]", "Message posted: ", posted);
+                        });
+
+                        this.pendingDataToRender = undefined;
+                    }
                     break;
                 }
             }
