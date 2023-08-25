@@ -1,8 +1,14 @@
 # Change Log
 
-All notable changes to the "materialize" extension will be documented in this file.
+All notable changes to the Materialize extension for Visual Studio Code will be documented in this file.
 
-## [1.1.1] - 2023-09-08
+## [0.0.5] - 2023-09-25
+
+### Fixed
+- The first query now runs correctly even when the extension is not yet activated.
+- Auto-focus the panel after running a query.
+
+## [0.0.4] - 2023-09-08
 
 ### Added
 - Support for `.md` files to run SQL queries.
