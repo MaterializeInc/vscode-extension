@@ -4,8 +4,22 @@ name: Extension Test
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE'
+      - 'README.md'
+      - 'media/**'
+      - 'resources/**'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE'
+      - 'README.md'
+      - 'media/**'
+      - 'resources/**'
 
 jobs:
   build:
