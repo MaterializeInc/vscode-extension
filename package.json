@@ -145,7 +145,8 @@
       {
         "command": "materialize.run",
         "key": "ctrl+enter",
-        "mac": "cmd+enter"
+        "mac": "cmd+enter",
+        "when": "resourceLangId == 'sql' || resourceLangId == 'materialize-sql'"
       }
     ]
   },

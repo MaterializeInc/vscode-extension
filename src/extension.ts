@@ -3,12 +3,12 @@ import { AuthProvider, ResultsProvider, DatabaseTreeProvider } from './providers
 import { Context, EventType } from './context';
 import { randomUUID } from 'crypto';
 
+// User context. Contains auth information, cluster, database, schema, etc.
+let context: Context;
+
 export function activate(vsContext: vscode.ExtensionContext) {
     console.log("[Extension]", "Activating Materialize extension.");
-
-    // User context.
-    // Contains auth information, cluster, database, schema, etc.
-    const context = new Context();
+    context = new Context();
 
     // Register the database explorer
 	const databaseTreeProvider = new DatabaseTreeProvider(context);
@@ -110,4 +110,5 @@ export function activate(vsContext: vscode.ExtensionContext) {
 
 export function deactivate() {
     console.log("[Extension]", "Deactivating Materialize extension.");
+    context.stop();
 }
