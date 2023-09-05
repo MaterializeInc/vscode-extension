@@ -42,7 +42,7 @@ export class Config {
         this.profile = this.loadDefaultProfile();
     }
 
-    private profileToNonStorable(name: string, profile: ConfigProfile) {
+    private profileToNonStorable(name: string, profile: ConfigProfile | undefined) {
         return {
             ...JSON.parse(JSON.stringify(profile)),
             database: undefined,
@@ -54,7 +54,15 @@ export class Config {
 
     private loadDefaultProfile(): NonStorableConfigProfile | undefined {
         if (this.config.profiles && this.config.profile) {
-            return this.profileToNonStorable(this.config.profile, this.config.profiles[this.config.profile]);
+            const profileName = this.config.profile;
+            const profile = this.config.profiles[profileName];
+
+            if (!profile) {
+                vscode.window.showErrorMessage(`Error. The selected default profile '${profileName}' does not exist.`);
+                return;
+            }
+
+            return this.profileToNonStorable(this.config.profile, profile);
         } else {
             console.log("[Config]", "Error loading the default user profile. Most chances are that the user is new.");
         }
