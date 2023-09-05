@@ -48,7 +48,6 @@
     "menus": {
       "editor/title": [
         {
-          "when": "resourceLangId == 'sql' || resourceLangId == 'materialize-sql' || resourceLangId == 'md' || resourceLangId == 'markdown'",
           "command": "materialize.run",
           "alt": "materialize.run",
           "group": "navigation"
