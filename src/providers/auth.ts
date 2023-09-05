@@ -33,7 +33,7 @@ interface AppPasswordResponse {
  * Creates an express server to await the request from the browser.
  * @returns the app-password or nothing if the user cancels the action.
  */
-async function loginServer(): Promise<AppPasswordResponse | undefined> {
+async function loginServer(name: string): Promise<AppPasswordResponse | undefined> {
     const express = require('express');
     const app: Application = express();
 
@@ -54,7 +54,7 @@ async function loginServer(): Promise<AppPasswordResponse | undefined> {
             let serverAddress = server.address();
             if (serverAddress !== null) {
                 const serverPort = typeof serverAddress === 'string' ? serverAddress : serverAddress.port;
-                vscode.env.openExternal(vscode.Uri.parse(`https://console.materialize.com/access/cli?redirectUri=http://localhost:${serverPort}`));
+                vscode.env.openExternal(vscode.Uri.parse(`https://console.materialize.com/access/cli?redirectUri=http://localhost:${serverPort}&tokenDescription=${name}`));
             } else {
                 reject(new Error("Error assigning address to the server."));
             }
@@ -141,6 +141,27 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         });
     }
 
+    /**
+     * Checks if the app password response from the console is ok.
+     * @param appPasswordResponse App password response from the console
+     * @param name name of the profile.
+     * @param webviewView webview of the provider.
+     */
+    checkLoginServerResponse(
+        appPasswordResponse: AppPasswordResponse | undefined,
+        name: string,
+        webviewView: vscode.WebviewView
+    ) {
+        this.state.isAddNewProfile = false;
+        if (appPasswordResponse) {
+            const { appPassword, region } = appPasswordResponse;
+            this.context.addAndSaveProfile(name, appPassword, region.toString());
+        } else {
+            // Cancel login process.
+            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        }
+    }
+
     public resolveWebviewView(webviewView: vscode.WebviewView) {
         this._view = webviewView;
 
@@ -160,15 +181,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     const { name } = data;
 
                     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-                    loginServer().then((appPasswordResponse) => {
-                        this.state.isAddNewProfile = false;
-                        if (appPasswordResponse) {
-                            const { appPassword, region } = appPasswordResponse;
-                            this.context.addAndSaveProfile(name, appPassword, region.toString());
-                        } else {
-                            // Cancel login process.
-                            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-                        }
+                    loginServer(name).then((appPasswordResponse) => {
+                        this.checkLoginServerResponse(appPasswordResponse, name, webviewView);
                     }).catch((err) => {
                         console.error("Error setting up the server: ", err);
                         vscode.window.showErrorMessage('Internal error while waiting for the credentials.');
@@ -177,15 +191,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 }
                 case "onContinueProfile": {
                     const { name } = data;
-                    loginServer().then((appPasswordResponse) => {
-                        this.state.isAddNewProfile = false;
-                        if (appPasswordResponse) {
-                            const { appPassword, region } = appPasswordResponse;
-                            this.context.addAndSaveProfile(name, appPassword, region.toString());
-                        } else {
-                            // Cancel login process.
-                            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-                        }
+                    loginServer(name).then((appPasswordResponse) => {
+                        this.checkLoginServerResponse(appPasswordResponse, name, webviewView);
                     }).finally(() => {
                         this.state.isAddNewProfile = false;
                         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
