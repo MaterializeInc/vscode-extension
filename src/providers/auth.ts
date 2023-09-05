@@ -5,32 +5,48 @@ import { getUri } from "../utilities/getUri";
 import AppPassword from "../context/appPassword";
 import { getNonce } from "../utilities/getNonce";
 
-export interface Profile {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    "app-password": String,
-    region: String,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    "admin-endpoint": String,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    "cloud-endpoint": String,
+// Please update this link if the logo location changes in the future.
+const LOGO_URL: String = "https://materialize.com/svgs/brand-guide/materialize-purple-mark.svg";
+
+/**
+ * Returns a proper HTML webpage to render the response in the browser.
+ * @param output
+ * @returns
+ */
+function formatOutput(output: String): String {
+    return `
+        <body style="margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f0f0f0;">
+            <div style="text-align: center; padding: 100px; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);">
+                <img src="${LOGO_URL}" alt="logo">
+                <h2 style="padding-top: 20px; font-family: Inter, Arial, sans-serif;">${output}</h2>
+            </div>
+        </body>
+    `;
 }
 
-export interface Config {
-    profile: String;
-    profiles: { [name: string] : Profile; }
+interface AppPasswordResponse {
+    appPassword: AppPassword,
+    region: string;
 }
 
-async function loginServer(): Promise<AppPassword | undefined> {
+/**
+ * Creates an express server to await the request from the browser.
+ * @returns the app-password or nothing if the user cancels the action.
+ */
+async function loginServer(): Promise<AppPasswordResponse | undefined> {
     const express = require('express');
     const app: Application = express();
 
     return await new Promise((resolve, reject) => {
         app.get('/', (req: Request, res: Response) => {
-            const {secret, clientId } = req.query;
-            res.send('You can now close the tab.');
+            const {secret, clientId, region } = req.query;
+            res.send(formatOutput('You can now close the tab.'));
 
-            if (secret && clientId) {
-                resolve(new AppPassword(clientId as string, secret as string));
+            if (secret && clientId && region) {
+                resolve({
+                    appPassword: new AppPassword(clientId as string, secret as string),
+                    region: new String(region).toLowerCase()
+                });
             }
         });
 
@@ -144,10 +160,11 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     const { name } = data;
 
                     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-                    loginServer().then((appPassword) => {
+                    loginServer().then((appPasswordResponse) => {
                         this.state.isAddNewProfile = false;
-                        if (appPassword) {
-                            this.context.addAndSaveProfile(name, appPassword, "aws/us-east-1");
+                        if (appPasswordResponse) {
+                            const { appPassword, region } = appPasswordResponse;
+                            this.context.addAndSaveProfile(name, appPassword, region.toString());
                         } else {
                             // Cancel login process.
                             webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
@@ -160,10 +177,11 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 }
                 case "onContinueProfile": {
                     const { name } = data;
-                    loginServer().then((appPassword) => {
+                    loginServer().then((appPasswordResponse) => {
                         this.state.isAddNewProfile = false;
-                        if (appPassword) {
-                            this.context.addAndSaveProfile(name, appPassword, "aws/us-east-1");
+                        if (appPasswordResponse) {
+                            const { appPassword, region } = appPasswordResponse;
+                            this.context.addAndSaveProfile(name, appPassword, region.toString());
                         } else {
                             // Cancel login process.
                             webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);

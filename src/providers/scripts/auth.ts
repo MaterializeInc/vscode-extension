@@ -56,6 +56,9 @@
     const porfileNameInput = document.getElementById('profileNameInput');
 
     if (porfileNameInput) {
+        // Profile names must consist of only ASCII letters, ASCII digits, underscores, and dashes
+        const pattern = /^[a-zA-Z0-9_\-]+$/;
+
         // Listen when the user presses Enter.
         // It is useful when creating a new profile.
         // After typing the name pressing enter will trigger the `Continue` button.
@@ -63,7 +66,7 @@
             if (event.key === "Enter") {
                 const profileName = (porfileNameInput as HTMLInputElement).value;
 
-                if(profileName.trim().length) {
+                if(profileName.length && pattern.test(profileName)) {
                     onContinueProfile(profileName);
                 }
             }
@@ -74,7 +77,7 @@
             const continueProfileButton = document.getElementById('continueProfileButton') as HTMLButtonElement;
 
             if (continueProfileButton) {
-                if(!inputValue.trim().length) {
+                if(!inputValue.length || !pattern.test(inputValue)) {
                     // Disable continue
                     continueProfileButton.disabled = true;
                 } else {
