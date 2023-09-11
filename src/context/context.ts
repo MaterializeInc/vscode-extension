@@ -209,6 +209,11 @@ export class Context extends EventEmitter {
         this.loadContext();
     }
 
+    removeAndSaveProfile(name: string) {
+        this.config.removeAndSaveProfile(name);
+        this.loadContext();
+    }
+
     setProfile(name: string) {
         this.config.setProfile(name);
         this.loadContext();

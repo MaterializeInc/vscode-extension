@@ -1,10 +1,17 @@
 #container {
-    width: 100%;
+    width: 250px;
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    margin: auto;
+}
+
+#logoContainer {
+    width: 250px;
+    margin: auto;
+    text-align: center;
 }
 
 #logo {
@@ -18,16 +25,46 @@
 
 .profile-container {
     text-align: left;
-    width: fit-content;
+    width: 250px;
     margin: auto;
+}
+
+#options-title {
+    font-weight: 400;
+    opacity: 75%;
 }
 
 .setup-container {
     padding-top: 1rem;
+    display: flex;
+    align-items: flex-end;
+}
+
+.setup-container-actions {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.profileNameInput {
+    width: 100%;
+}
+
+.action_button {
+    display: flex;
+    align-items: center;
+    column-gap: 6px;
+    margin-left: 1rem;
+    width: 90px;
 }
 
 .invisible {
     visibility: hidden;
+}
+
+.profiles {
+    width: 100%;
 }
 
 vscode-progress-ring {
@@ -42,7 +79,11 @@ vscode-divider {
 }
 
 vscode-dropdown {
-    width: 150px;
+    width: 100%;
+}
+
+vscode-text-field {
+    width: 100%;
 }
 
 #setup-container label, vscode-dropdown, vscode-button, svg {
@@ -50,20 +91,45 @@ vscode-dropdown {
     vertical-align: middle;
 }
 
-#profile-setup-container {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-}
-
-#add-profile-actions-container {
+#actions-container {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 3rem;
     margin-top: 2rem;
     width: fit-content;
     margin: auto;
 }
 
-#cancelAddProfile {
-    background: none;
+
+.setup-actions {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+
+    .vscode-button {
+        margin-left: 8px; /* Add left margin for spacing between buttons */
+    }
+}
+
+/*
+    Extracted from the guidelines:
+    https://github.com/microsoft/vscode-webview-ui-toolkit/tree/main/src/dropdown#with-label
+*/
+.dropdown-container {
+    box-sizing: border-box;
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+}
+
+.dropdown-container label {
+    display: block;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    font-size: var(--vscode-font-size);
+    line-height: normal;
+    margin-bottom: 2px;
 }
