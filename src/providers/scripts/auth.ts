@@ -89,10 +89,19 @@
             const continueProfileButton = document.getElementById('continueProfileButton') as HTMLButtonElement;
 
             if (continueProfileButton) {
+                const invalidProfileNameErrorMessage = document.getElementById('invalidProfileNameErrorMessage') as HTMLParagraphElement;
+
                 if(!inputValue.length || !pattern.test(inputValue)) {
                     // Disable continue
                     continueProfileButton.disabled = true;
+
+                    if (!inputValue.length) {
+                        invalidProfileNameErrorMessage.style.display = "none";
+                    } else {
+                        invalidProfileNameErrorMessage.style.display = "block";
+                    }
                 } else {
+                    invalidProfileNameErrorMessage.style.display = "none";
                     // Enable continue
                     continueProfileButton.disabled = false;
                 }

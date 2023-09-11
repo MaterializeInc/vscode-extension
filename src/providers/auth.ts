@@ -308,6 +308,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         let content = (
             `
             <vscode-text-field id="profileNameInput">Profile Name</vscode-text-field>
+            <p id="invalidProfileNameErrorMessage">Profile name must contain only ASCII letters, ASCII digits, underscores, and dashes.</p>
             <div class="setup-container-actions">
                 <vscode-button appearence="primary" id="continueProfileButton" class="action_button" disabled=true>Continue</vscode-button>
             </div>
@@ -320,6 +321,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             if (this.state.isAddNewProfile) {
                 content = (
                     `<vscode-text-field id="profileNameInput">Profile Name</vscode-text-field>
+                    <p id="invalidProfileNameErrorMessage">Profile name must contain only ASCII letters, ASCII digits, underscores, and dashes.</p>
                     <div class="setup-container-actions">
                         <vscode-button class="action_button" appearance="secondary" id="cancelAddProfile">Cancel</vscode-button>
                         <vscode-button class="action_button" id="continueProfileButton"

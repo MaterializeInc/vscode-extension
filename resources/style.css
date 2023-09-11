@@ -51,6 +51,11 @@
     width: 100%;
 }
 
+#invalidProfileNameErrorMessage {
+    display: none;
+    color: rgb(220 38 38);
+}
+
 .action_button {
     display: flex;
     align-items: center;
