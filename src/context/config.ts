@@ -4,7 +4,6 @@ import * as TOML from "@iarna/toml";
 import AppPassword from "./appPassword";
 import * as vscode from 'vscode';
 
-
 /// The NonStorableConfigProfile additional properties for Config
 /// That can't be stored due to compatibility issues with the CLI.
 export interface NonStorableConfigProfile extends ConfigProfile {
@@ -128,6 +127,39 @@ export class Config {
 
         this.save();
         this.setProfile(name);
+    }
+
+    /// Adds and saves a new profile into the configuration file
+    async removeAndSaveProfile(
+        name: string,
+    ) {
+        // Turn it into the new default profile.
+        let newProfileName;
+
+        if (this.config.profiles) {
+            console.log("[Config]", "Deleting profile: ", name);
+            delete this.config.profiles[name];
+
+            if (this.config.profile === name) {
+                console.log("[Config]", "Deleted profile was the default one.");
+
+                // Assign a new profile name as default
+                const profileNames = this.getProfileNames();
+                if (profileNames && profileNames.length > 0) {
+                    newProfileName = profileNames[0].toString();
+                    this.config.profile = newProfileName;
+                } else {
+                    delete this.config.profile;
+                    delete this.config.profiles;
+                }
+            }
+        }
+
+        this.save();
+
+        if (newProfileName) {
+            this.setProfile(newProfileName);
+        }
     }
 
     private checkFileOrDirExists(path: string): boolean {
