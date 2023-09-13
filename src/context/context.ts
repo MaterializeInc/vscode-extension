@@ -221,6 +221,11 @@ export class Context extends EventEmitter {
 
     setDatabase(name: string) {
         this.config.setDatabase(name);
+
+        // Every database has different schemas.
+        // Setting an undefined schema before loading the env.
+        // Triggers a new search for a valid schema.
+        this.config.setSchema(undefined);
         this.loadEnvironment();
     }
 
