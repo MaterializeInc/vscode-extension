@@ -257,7 +257,7 @@ export class Config {
         }
     }
 
-    setSchema(name: string) {
+    setSchema(name: string | undefined) {
         if (this.profile) {
             this.profile.schema = name;
         }
