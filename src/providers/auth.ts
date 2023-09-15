@@ -162,6 +162,10 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         this.state.isAddNewProfile = false;
         if (appPasswordResponse) {
             const { appPassword, region } = appPasswordResponse;
+
+            // Set the state loading to true. After the new context is loaded
+            // loading will turn false.
+            this.state.isLoading = true;
             this.context.addAndSaveProfile(name, appPassword, region.toString());
         } else {
             // Cancel login process.
@@ -229,6 +233,13 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     break;
                 }
                 case "onContinueRemoveProfile": {
+                    this.state.isRemoveProfile = false;
+
+                    // Set the state loading to true. After the new context is loaded
+                    // loading will turn false.
+                    this.state.isLoading = true;
+                    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+
                     const name = this.context.getProfileName();
 
                     if (name) {
@@ -237,8 +248,6 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                         console.error("[Auth]", "Profile name is not available.");
                     }
 
-                    this.state.isRemoveProfile = false;
-                    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     break;
                 }
                 case "onRemoveProfile": {
@@ -352,7 +361,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                         <!--  https://github.com/microsoft/vscode-webview-ui-toolkit/tree/main/src/dropdown#with-label -->
                         <div class="dropdown-container">
                             <label for="profiles">Profile</label>
-                            <vscode-dropdown id="profiles">
+                            <vscode-dropdown id="profiles" ${this.state.isLoading ? "disabled=true" :""}>
                                 <vscode-option>${(profileName)}</vscode-option>
                                 ${profileNames.filter(name => name !== profileName).map((name) => `<vscode-option>${name}</vscode-option>`).join('')}
                             </vscode-dropdown>
