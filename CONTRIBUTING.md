@@ -1,6 +1,6 @@
 # Contributing to the Materialize Extension for Visual Studio Code
 
-## Developing the provider
+## Developing the Extension
 
 Thank you for your interest in the Materialize extension for Visual Studio Code! Contributions of many kinds are encouraged and most welcome.
 
@@ -12,7 +12,7 @@ If you have questions, please create a GitHub issue.
 * Visual Studio Code
 * Docker
 
-### Building The Provider
+### Building the Extension
 
 1. Clone the repository:
 ```bash
@@ -33,7 +33,7 @@ The extension runs in a parallel instance of Visual Studio Code. To start it, pr
 
 <img width="413" alt="Screenshot 2023-08-01 at 10 58 05" src="https://github.com/MaterializeInc/vscode-extension/assets/11491779/459dc185-6dde-422f-ab56-e3a93a8f1405">
 
-## Testing the Provider
+## Testing the Extension
 
 ### Running the tests
 
