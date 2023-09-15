@@ -170,6 +170,16 @@
                     break;
                 }
             case "environmentChange": {
+                // Disable profile interactions of any kind.
+                const addProfileButton = document.getElementById("addProfileButton") as HTMLSelectElement;
+                addProfileButton.disabled = true;
+
+                const removeProfileButton = document.getElementById("removeProfileButton") as HTMLSelectElement;
+                removeProfileButton.disabled = true;
+
+                const profiles = document.getElementById("profiles") as HTMLSelectElement;
+                profiles.disabled = true;
+
                 const clusters = document.getElementById("clusters") as HTMLSelectElement;
                 clusters.disabled = true;
 
