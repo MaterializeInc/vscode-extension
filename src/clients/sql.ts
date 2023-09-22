@@ -54,7 +54,7 @@ export default class SqlClient {
 
         const schema = this.profile.schema;
         if (schema) {
-            connectionOptions.push(`-csearch_path==${schema}`);
+            connectionOptions.push(`-csearch_path=${schema}`);
         }
 
         return connectionOptions.join(" ");
