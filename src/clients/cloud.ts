@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
 import AdminClient from "./admin";
+import * as vscode from 'vscode';
 
 const DEFAULT_API_CLOUD_ENDPOINT = 'https://api.cloud.materialize.com';
 
@@ -98,6 +99,7 @@ export default class CloudClient {
         const region: Region = (await response.json()) as Region;
         return region;
     }
+
     /**
      * Returns an environment's hostname
      * @param regionId Possible values: "aws/us-east-1", "aws/eu-west-1"
@@ -118,6 +120,7 @@ export default class CloudClient {
 
             if (!regionInfo) {
                 console.error("[CloudClient]", "Region is not enabled.");
+                vscode.window.showErrorMessage("Region is not enabled.");
             } else {
                 return regionInfo.sqlAddress;
             }
