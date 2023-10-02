@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import EventEmitter = require("node:events");
 import { AdminClient, CloudClient, SqlClient } from "../clients";
-import { Config } from "./config";
+import { Config, NonStorableConfigProfile } from "./config";
 import { MaterializeObject, MaterializeSchemaObject } from "../providers/schema";
 import AppPassword from "./appPassword";
+import * as vscode from 'vscode';
 
 export enum EventType {
     newProfiles,
@@ -46,13 +47,30 @@ export class Context extends EventEmitter {
         if (profile) {
             console.log("[Context]", "Loading context for profile.");
 
-            this.adminClient = new AdminClient(profile["app-password"], profile["admin-endpoint"]);
+            this.adminClient = new AdminClient(profile["app-password"], this.getAdminEndpoint(profile));
             this.cloudClient = new CloudClient(this.adminClient, profile["cloud-endpoint"]);
             this.loadEnvironment();
             return true;
         }
 
         return false;
+    }
+
+    private getAdminEndpoint(profile: NonStorableConfigProfile): string | undefined {
+        if (profile["admin-endpoint"]) {
+            return profile["admin-endpoint"];
+        } else if (profile["cloud-endpoint"]) {
+            const cloudUrl = new URL(profile["cloud-endpoint"]);
+            const { hostname } = cloudUrl;
+            if (hostname.startsWith("api.")) {
+                cloudUrl.hostname = "admin." + hostname.slice(4);
+                return cloudUrl.toString();
+            } else {
+                vscode.window.showErrorMessage("The admin endpoint is invalid.");
+            }
+        }
+
+        return undefined;
     }
 
     private async loadEnvironment() {

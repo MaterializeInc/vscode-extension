@@ -20,14 +20,19 @@ const DEFAULT_ADMIN_ENDPOINT = 'https://admin.cloud.materialize.com';
 export default class AdminClient {
     auth?: AuthenticationResponse;
     appPassword: AppPassword;
-    tokenEndpoint: string;
+    adminEndpoint: string;
     jwksEndpoint: string;
 
     constructor (appPassword: string, endpoint?: string) {
         this.appPassword = AppPassword.fromString(appPassword);
 
-        this.tokenEndpoint = `${endpoint || DEFAULT_ADMIN_ENDPOINT}/identity/resources/auth/v1/api-token`;
-        this.jwksEndpoint = `${endpoint || DEFAULT_ADMIN_ENDPOINT}/.well-known/jwks.json`;
+        const finalEndpoint = (endpoint || DEFAULT_ADMIN_ENDPOINT);
+        const cleanEndpoint = finalEndpoint.endsWith("/")
+            ? finalEndpoint.substring(0, finalEndpoint.length - 1)
+            : finalEndpoint;
+
+        this.adminEndpoint = `${cleanEndpoint}/identity/resources/auth/v1/api-token`;
+        this.jwksEndpoint = `${cleanEndpoint}/.well-known/jwks.json`;
     }
 
     async getToken() {
@@ -38,7 +43,7 @@ export default class AdminClient {
                 secret: this.appPassword.secretKey
             };
 
-            const response = await fetch(this.tokenEndpoint, {
+            const response = await fetch(this.adminEndpoint, {
                 method: 'post',
                 body: JSON.stringify(authRequest),
                 // eslint-disable-next-line @typescript-eslint/naming-convention

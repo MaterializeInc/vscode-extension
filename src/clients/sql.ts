@@ -4,6 +4,7 @@ import { NonStorableConfigProfile } from "../context/config";
 import { MaterializeObject } from "../providers/schema";
 import AdminClient from "./admin";
 import CloudClient from "./cloud";
+import * as vscode from 'vscode';
 
 export default class SqlClient {
     private pool: Promise<Pool>;
@@ -22,18 +23,22 @@ export default class SqlClient {
 
         this.pool = new Promise((res, rej) => {
             const asyncOp = async () => {
-                console.log("[SqlClient]", "Building config.");
-                const config = await this.buildPoolConfig();
-                const pool = new Pool(config);
-                console.log("[SqlClient]", "Connecting pool.");
+                try {
+                    console.log("[SqlClient]", "Building config.");
+                    const config = await this.buildPoolConfig();
+                    const pool = new Pool(config);
+                    console.log("[SqlClient]", "Connecting pool.");
 
-                pool.connect().then(() => {
-                    console.log("[SqlClient]", "Pool successfully connected.");
-                    res(pool);
-                }).catch((err) => {
-                    console.error(err);
-                    rej(err);
-                });
+                    pool.connect().then(() => {
+                        console.log("[SqlClient]", "Pool successfully connected.");
+                        res(pool);
+                    }).catch((err) => {
+                        console.error(err);
+                        rej(err);
+                    });
+                } catch (err) {
+                    vscode.window.showErrorMessage(`Error connecting to the region: ${err}`);
+                }
             };
 
             asyncOp();
