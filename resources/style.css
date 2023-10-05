@@ -56,6 +56,10 @@
     color: rgb(220 38 38);
 }
 
+.profileErrorMessage {
+    color: rgb(220 38 38);
+}
+
 .action_button {
     display: flex;
     align-items: center;

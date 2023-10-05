@@ -4,7 +4,7 @@ import { AdminClient, CloudClient, SqlClient } from "../clients";
 import { Config, NonStorableConfigProfile } from "./config";
 import { MaterializeObject, MaterializeSchemaObject } from "../providers/schema";
 import AppPassword from "./appPassword";
-import * as vscode from 'vscode';
+import { Errors } from "../utilities/error";
 
 export enum EventType {
     newProfiles,
@@ -13,6 +13,7 @@ export enum EventType {
     queryResults,
     environmentLoaded,
     environmentChange,
+    error
 }
 
 interface Environment {
@@ -50,6 +51,7 @@ export class Context extends EventEmitter {
             this.adminClient = new AdminClient(profile["app-password"], this.getAdminEndpoint(profile));
             this.cloudClient = new CloudClient(this.adminClient, profile["cloud-endpoint"]);
             this.loadEnvironment();
+
             return true;
         }
 
@@ -66,7 +68,8 @@ export class Context extends EventEmitter {
                 cloudUrl.hostname = "admin." + hostname.slice(4);
                 return cloudUrl.toString();
             } else {
-                vscode.window.showErrorMessage("The admin endpoint is invalid.");
+                console.error("The admin endpoint is invalid.");
+                return undefined;
             }
         }
 
@@ -79,10 +82,15 @@ export class Context extends EventEmitter {
 
         const profile = this.config.getProfile();
 
-        if (!this.adminClient || !this.cloudClient || !profile) {
-            throw new Error("Missing clients.");
+        if (!this.adminClient || !this.cloudClient) {
+            throw new Error(Errors.unconfiguredClients);
+        } else if (!profile) {
+            throw new Error(Errors.unconfiguredProfile);
         } else {
-            this.sqlClient = new SqlClient(this.adminClient, this.cloudClient, profile);
+            this.sqlClient = new SqlClient(this.adminClient, this.cloudClient, profile, this);
+            this.sqlClient.connectErr().catch((err) => {
+                this.emit("event", { type: EventType.error, data: { message: err.message } });
+            });
 
             // TODO: Do in parallel.
             if (!this.config.getCluster()) {
@@ -107,7 +115,7 @@ export class Context extends EventEmitter {
             console.log("[Context]", "Databases: ", databases, " - Database: " , this.config.getDatabase());
             if (!database) {
                 // Display error to user.
-                throw new Error("Error finding database.");
+                throw new Error(Errors.databaseIsNotAvailable);
             }
 
             const schemasPromise = this.sqlClient.getSchemas(database);
@@ -118,12 +126,12 @@ export class Context extends EventEmitter {
 
                 if (!cluster) {
                     // Display error to user.
-                    throw new Error("Error finding cluster.");
+                    throw new Error(Errors.clusterIsNotAvailable);
                 }
 
                 if (!schema) {
                     // Display error to user.
-                    throw new Error("Error finding schema.");
+                    throw new Error(Errors.schemaIsNotAvailable);
                 }
 
                 this.environment = {

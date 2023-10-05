@@ -66,6 +66,7 @@ interface State {
     isRemoveProfile: boolean;
     isAddNewProfile: boolean;
     isLoading: boolean;
+    error: undefined | string;
 }
 
 /**
@@ -88,6 +89,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             isAddNewProfile: false,
             isRemoveProfile: false,
             isLoading: this.context.isLoading(),
+            error: undefined,
         };
 
         // Await for readyness when the extension activates from the outside.
@@ -99,8 +101,20 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             };
         });
 
-        this.context.on("event", ({ type }) => {
+        this.context.on("event", (data) => {
+            const { type } = data;
             switch (type) {
+                case EventType.error: {
+                    const { message } = data;
+                    console.log("[AuthProvider]", "Error detected: ", message, data);
+                    this.state.error = message;
+                    this.state.isLoading = false;
+
+                    if (this._view) {
+                        this._view.webview.html = this._getHtmlForWebview(this._view.webview);
+                    }
+                    break;
+                }
                 case EventType.newProfiles: {
                     console.log("[AuthProvider]", "New profiles available.");
                     if (this._view) {
@@ -131,6 +145,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     console.log("[AuthProvider]", "New environment available.");
                     if (this._view) {
                         this.state.isLoading = false;
+                        this.state.error = undefined;
 
                         // Do not refresh the webview if the user is removing or adding a profile.
                         // The UI will auto update after this action ends.
@@ -160,6 +175,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         webviewView: vscode.WebviewView
     ) {
         this.state.isAddNewProfile = false;
+        this.state.error = undefined;
+
         if (appPasswordResponse) {
             const { appPassword, region } = appPasswordResponse;
 
@@ -354,6 +371,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 const schema = this.context.getSchema();
                 const cluster = this.context.getCluster();
                 const profileName = this.context.getProfileName();
+                console.log("[Auth]", this.state.error);
 
                 content = (
                     `<div class="profile-container">
@@ -375,34 +393,38 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                             </vscode-button>
                         </div>
                         <vscode-divider></vscode-divider>
-                        ${this.state.isLoading ? `<vscode-progress-ring id="loading-ring"></vscode-progress-ring>` : "<span id='options-title'>Connection Options</span>"}
-                        <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
-                            <div class="dropdown-container">
-                                <label for="clusters">Cluster</label>
-                                <vscode-dropdown id="clusters">
-                                    <vscode-option>${cluster?.name}</vscode-option>
-                                    ${(this.context.getClusters() || []).filter(x => x.name !== cluster?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
-                                </vscode-dropdown>
-                            </div>
-                        </div>
-                        <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
-                            <div class="dropdown-container">
-                                <label for="databases">Database</label>
-                                <vscode-dropdown id="databases">
-                                    <vscode-option>${database && database.name}</vscode-option>
-                                    ${(this.context.getDatabases() || []).filter(x => x.name !== database?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
-                                </vscode-dropdown>
-                            </div>
-                        </div>
-                        <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
-                            <div class="dropdown-container">
-                                <label for="schemas">Schema</label>
-                                    <vscode-dropdown id="schemas">
-                                        <vscode-option>${schema && schema.name}</vscode-option>
-                                        ${(this.context.getSchemas() || []).filter(x => x.name !== schema?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                        ${this.state.error ? `<p class="profileErrorMessage">${this.state.error}</p>`: ""}
+                        ${this.state.isLoading ? `<vscode-progress-ring id="loading-ring"></vscode-progress-ring>` : ""}
+                        ${(!this.state.isLoading && !this.state.error) ? "<span id='options-title'>Connection Options</span>": ""}
+                        ${(!this.state.isLoading && !this.state.error) ? `
+                            <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
+                                <div class="dropdown-container">
+                                    <label for="clusters">Cluster</label>
+                                    <vscode-dropdown id="clusters">
+                                        <vscode-option>${cluster?.name}</vscode-option>
+                                        ${(this.context.getClusters() || []).filter(x => x.name !== cluster?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
                                     </vscode-dropdown>
+                                </div>
                             </div>
-                        </div>
+                            <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
+                                <div class="dropdown-container">
+                                    <label for="databases">Database</label>
+                                    <vscode-dropdown id="databases">
+                                        <vscode-option>${database && database.name}</vscode-option>
+                                        ${(this.context.getDatabases() || []).filter(x => x.name !== database?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                                    </vscode-dropdown>
+                                </div>
+                            </div>
+                            <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
+                                <div class="dropdown-container">
+                                    <label for="schemas">Schema</label>
+                                        <vscode-dropdown id="schemas">
+                                            <vscode-option>${schema && schema.name}</vscode-option>
+                                            ${(this.context.getSchemas() || []).filter(x => x.name !== schema?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                                        </vscode-dropdown>
+                                </div>
+                            </div>
+                        `: ""}
                     </div>
                 `);
             }

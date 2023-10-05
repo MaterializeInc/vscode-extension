@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import AdminClient from "./admin";
 import * as vscode from 'vscode';
+import { Errors } from "../utilities/error";
 
 const DEFAULT_API_CLOUD_ENDPOINT = 'https://api.cloud.materialize.com';
 
@@ -64,7 +65,7 @@ export default class CloudClient {
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 'Content-Type': 'application/json',
                 // eslint-disable-next-line @typescript-eslint/naming-convention
-                "Authorization": `Bearer ${(await this.adminClient.getToken())}`
+                "Authorization": `Bearer ${await this.adminClient.getToken()}`
             }
         });
     }
@@ -73,31 +74,49 @@ export default class CloudClient {
         const cloudProviders = [];
         let cursor = '';
 
-        while (true) {
-            let response = await this.fetch(`${this.providersEndpoint}?limit=50&cursor=${cursor}`);
+        try {
+            while (true) {
+                let response = await this.fetch(`${this.providersEndpoint}?limit=50&cursor=${cursor}`);
 
-            console.log("[CloudClient]", `Status: ${response.status}`);
-            const cloudProviderResponse = (await response.json()) as CloudProviderResponse;
-            cloudProviders.push(...cloudProviderResponse.data);
+                console.log("[CloudClient]", `Status: ${response.status}`);
+                const cloudProviderResponse = (await response.json()) as CloudProviderResponse;
+                cloudProviders.push(...cloudProviderResponse.data);
 
-            if (cloudProviderResponse.nextCursor) {
-                cursor = cloudProviderResponse.nextCursor;
-            } else {
-                break;
+                if (cloudProviderResponse.nextCursor) {
+                    cursor = cloudProviderResponse.nextCursor;
+                } else {
+                    break;
+                }
             }
+        } catch (err) {
+            console.error("[CloudClient]", "Error listing cloud providers: ", err);
+            throw new Error(Errors.listingCloudProviders);
         }
 
         return cloudProviders;
     }
 
     async getRegion(cloudProvider: CloudProvider): Promise<Region> {
-        const regionEdnpoint = `${cloudProvider.url}/api/region`;
+        try {
+            const regionEdnpoint = `${cloudProvider.url}/api/region`;
 
-        let response = await this.fetch(regionEdnpoint);
+            let response = await this.fetch(regionEdnpoint);
 
-        console.log("[CloudClient]", `Status: ${response.status}`);
-        const region: Region = (await response.json()) as Region;
-        return region;
+            console.log("[CloudClient]", `Status: ${response.status}`);
+            if (response.status === 200) {
+                const region: Region = (await response.json()) as Region;
+                return region;
+            } else {
+                try {
+                    throw new Error((await response.json() as any).error);
+                } catch (err) {
+                    throw err;
+                }
+            }
+        } catch (err) {
+            console.error("[CloudClient]", "Error retrieving region: ", err);
+            throw new Error(Errors.retrievingRegion);
+        }
     }
 
     /**
@@ -107,11 +126,11 @@ export default class CloudClient {
      */
     async getHost(region: string) {
         console.log("[CloudClient]", "Listing cloud providers.");
-
         const cloudProviders = await this.listCloudProviders();
-        console.log("[CloudClient]", "Providers: ", cloudProviders);
 
+        console.log("[CloudClient]", "Providers: ", cloudProviders);
         const provider = cloudProviders.find(x => x.id === region);
+
         console.log("[CloudClient]", "Selected provider: ", provider);
         if (provider) {
             console.log("[CloudClient]", "Retrieving region.");
@@ -120,10 +139,12 @@ export default class CloudClient {
 
             if (!regionInfo) {
                 console.error("[CloudClient]", "Region is not enabled.");
-                vscode.window.showErrorMessage("Region is not enabled.");
+                throw new Error(Errors.disabledRegion);
             } else {
                 return regionInfo.sqlAddress;
             }
+        } else {
+            throw new Error(Errors.invalidProvider.replace("${region}", region));
         }
     }
 }
