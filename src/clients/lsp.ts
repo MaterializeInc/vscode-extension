@@ -16,6 +16,15 @@ import os from "os";
 const BINARIES_ENDPOINT = "https://binaries.materialize.com";
 const LATEST_VERSION_ENDPOINT = `${BINARIES_ENDPOINT}/mz-lsp-server-latest.version`;
 
+/// Path to the binaries dir.
+const BIN_DIR_PATH: string = path.join(__dirname, "bin");
+/// Tmp dir path to place the downloaded tarball (.tar.gz)
+const TMP_DIR_PATH: string = path.join(os.tmpdir());
+/// The server binary path after decompress
+const SERVER_DECOMPRESS_PATH: string = path.join(os.tmpdir(), "mz", "bin", "mz-lsp-server");
+/// The final server binary path.
+const SERVER_PATH: string = path.join(__dirname, "bin", "mz-lsp-server");
+
 /// This class implements the Language Server Protocol (LSP) client for Materialize.
 /// The LSP is downloaded for an endpoint an it is out of the bundle. Binaries are heavy-weight
 /// and is preferable to download on the first activation.
@@ -23,32 +32,20 @@ const LATEST_VERSION_ENDPOINT = `${BINARIES_ENDPOINT}/mz-lsp-server-latest.versi
 export default class LspClient {
     private client: LanguageClient | undefined;
 
-    /// The directory to place binaries.
-    private binDir: string = path.join(__dirname, "bin");
-
-    /// The temp. dir path to place the tarball (.tar.gz)
-    private tempPath: string = path.join(os.tmpdir());
-
-    /// The server binary path after decompress
-    private serverDecompressedPath: string = path.join(os.tmpdir(), "mz", "bin", "mz-lsp-server");
-
-    /// The final server binary path.
-    private serverPath: string = path.join(__dirname, "bin", "mz-lsp-server");
-
     constructor() {
         this.installLpsServer();
     }
 
     installLpsServer() {
         if (this.isValidOs()) {
-            if (!fs.existsSync(this.serverPath)) {
-                fs.mkdirSync(this.binDir, { recursive: true });
+            if (!fs.existsSync(SERVER_PATH)) {
+                fs.mkdirSync(BIN_DIR_PATH, { recursive: true });
                 this.fetchLsp().then((tarballArrayBuffer) => {
                     console.log("[LSP]", "Decompressing LSP.");
-                    this.decompress(tarballArrayBuffer, this.tempPath).then(() => {
+                    this.decompress(tarballArrayBuffer, TMP_DIR_PATH).then(() => {
                         console.log("[LSP]", "Starting the client.");
-                        fs.renameSync(this.serverDecompressedPath, this.serverPath);
-                        this.startClient(this.serverPath);
+                        fs.renameSync(SERVER_DECOMPRESS_PATH, SERVER_PATH);
+                        this.startClient(SERVER_PATH);
                     });
                 }).catch((err) => {
                     console.error("[LSP]", "Error fetching the LSP: ", err);
@@ -56,7 +53,7 @@ export default class LspClient {
             } else {
                 console.log("[LSP]", "The server already exists.");
                 console.log("[LSP]", "Starting the client.");
-                this.startClient(this.serverPath);
+                this.startClient(SERVER_PATH);
             }
         } else {
             console.error("[LSP]", "Invalid operating system.");
