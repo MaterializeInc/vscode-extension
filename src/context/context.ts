@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import EventEmitter = require("node:events");
 import { AdminClient, CloudClient, SqlClient } from "../clients";
 import { Config, NonStorableConfigProfile } from "./config";
