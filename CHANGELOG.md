@@ -2,6 +2,17 @@
 
 All notable changes to the Materialize extension for Visual Studio Code will be documented in this file.
 
+## [0.1.2] - 2023-10-06
+
+### Added
+ - Language Server Protocol (LSP) integration is now available.
+ - Connections errors are now available in the Profile panel.
+
+### Fixed
+ - Staging environments connections are now working.
+ - Play icon size has been corrected.
+ - Fix for expired tokens
+
 ## [0.1.1] - 2023-09-15
 
 ### Added
