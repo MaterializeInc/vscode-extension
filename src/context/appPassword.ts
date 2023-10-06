@@ -1,4 +1,5 @@
 import * as uuid from "uuid";
+import { Errors } from "../utilities/error";
 
 const PREFIX = 'mzp_';
 
@@ -50,7 +51,7 @@ export default class AppPassword {
           );
 
           if (filteredChars.length !== 64) {
-            throw new Error();
+            throw new Error(Errors.invalidLengthAppPassword);
           }
 
           // Lazy way to rebuild uuid.
@@ -58,15 +59,16 @@ export default class AppPassword {
             const clientId = AppPassword.formatDashlessUuid(filteredChars.slice(0, 32).join(''));
             const secretKey = AppPassword.formatDashlessUuid(filteredChars.slice(32).join(''));
 
-          return {
-            clientId,
-            secretKey,
-          };
+            return {
+              clientId,
+              secretKey,
+            };
           } catch (err) {
             console.log("Error parsing UUID.");
+            throw new Error(Errors.invalidAppPassword);
           }
         }
 
-        throw new Error("Invalid app-password");
+        throw new Error(Errors.invalidAppPassword);
       }
 }

@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import EventEmitter = require("node:events");
 import { AdminClient, CloudClient, SqlClient } from "../clients";
-import { Config } from "./config";
+import { Config, NonStorableConfigProfile } from "./config";
 import { MaterializeObject, MaterializeSchemaObject } from "../providers/schema";
 import AppPassword from "./appPassword";
 import LspClient from "../clients/lsp";
+import { Errors } from "../utilities/error";
 
 export enum EventType {
     newProfiles,
@@ -13,6 +14,7 @@ export enum EventType {
     queryResults,
     environmentLoaded,
     environmentChange,
+    error
 }
 
 interface Environment {
@@ -49,13 +51,32 @@ export class Context extends EventEmitter {
         if (profile) {
             console.log("[Context]", "Loading context for profile.");
 
-            this.adminClient = new AdminClient(profile["app-password"], profile["admin-endpoint"]);
+            this.adminClient = new AdminClient(profile["app-password"], this.getAdminEndpoint(profile));
             this.cloudClient = new CloudClient(this.adminClient, profile["cloud-endpoint"]);
             this.loadEnvironment();
+
             return true;
         }
 
         return false;
+    }
+
+    private getAdminEndpoint(profile: NonStorableConfigProfile): string | undefined {
+        if (profile["admin-endpoint"]) {
+            return profile["admin-endpoint"];
+        } else if (profile["cloud-endpoint"]) {
+            const cloudUrl = new URL(profile["cloud-endpoint"]);
+            const { hostname } = cloudUrl;
+            if (hostname.startsWith("api.")) {
+                cloudUrl.hostname = "admin." + hostname.slice(4);
+                return cloudUrl.toString();
+            } else {
+                console.error("The admin endpoint is invalid.");
+                return undefined;
+            }
+        }
+
+        return undefined;
     }
 
     private async loadEnvironment() {
@@ -64,10 +85,15 @@ export class Context extends EventEmitter {
 
         const profile = this.config.getProfile();
 
-        if (!this.adminClient || !this.cloudClient || !profile) {
-            throw new Error("Missing clients.");
+        if (!this.adminClient || !this.cloudClient) {
+            throw new Error(Errors.unconfiguredClients);
+        } else if (!profile) {
+            throw new Error(Errors.unconfiguredProfile);
         } else {
-            this.sqlClient = new SqlClient(this.adminClient, this.cloudClient, profile);
+            this.sqlClient = new SqlClient(this.adminClient, this.cloudClient, profile, this);
+            this.sqlClient.connectErr().catch((err) => {
+                this.emit("event", { type: EventType.error, data: { message: err.message } });
+            });
 
             // TODO: Do in parallel.
             if (!this.config.getCluster()) {
@@ -92,7 +118,7 @@ export class Context extends EventEmitter {
             console.log("[Context]", "Databases: ", databases, " - Database: " , this.config.getDatabase());
             if (!database) {
                 // Display error to user.
-                throw new Error("Error finding database.");
+                throw new Error(Errors.databaseIsNotAvailable);
             }
 
             const schemasPromise = this.sqlClient.getSchemas(database);
@@ -103,12 +129,12 @@ export class Context extends EventEmitter {
 
                 if (!cluster) {
                     // Display error to user.
-                    throw new Error("Error finding cluster.");
+                    throw new Error(Errors.clusterIsNotAvailable);
                 }
 
                 if (!schema) {
                     // Display error to user.
-                    throw new Error("Error finding schema.");
+                    throw new Error(Errors.schemaIsNotAvailable);
                 }
 
                 this.environment = {
@@ -216,6 +242,11 @@ export class Context extends EventEmitter {
         this.loadContext();
     }
 
+    removeAndSaveProfile(name: string) {
+        this.config.removeAndSaveProfile(name);
+        this.loadContext();
+    }
+
     setProfile(name: string) {
         this.config.setProfile(name);
         this.loadContext();
@@ -223,6 +254,11 @@ export class Context extends EventEmitter {
 
     setDatabase(name: string) {
         this.config.setDatabase(name);
+
+        // Every database has different schemas.
+        // Setting an undefined schema before loading the env.
+        // Triggers a new search for a valid schema.
+        this.config.setSchema(undefined);
         this.loadEnvironment();
     }
 

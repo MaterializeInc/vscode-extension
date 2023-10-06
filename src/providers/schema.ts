@@ -56,9 +56,8 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                                 new InternalTab("Internal", vscode.TreeItemCollapsibleState.Collapsed, schema)
                             ]);
                         } else {
-                            vscode.window.showErrorMessage('Error retrieving the objects from the catalog. The schema is missing.');
                             console.error("[DatabaseTreeProvider]", "Error: Wrong state, the schema is missing.");
-                            rej(new Error("Missing schema."));
+                            rej(new Error("The schema is missing."));
                         }
                     } else {
                         res ([]);

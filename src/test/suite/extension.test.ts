@@ -9,17 +9,33 @@ import * as os from "os";
 import * as fs from "fs";
 import AppPassword from '../../context/appPassword';
 import { randomUUID } from 'crypto';
+import { Errors } from '../../utilities/error';
 
+/**
+ * Simple util function to use delay.
+ * @param ms timeout
+ * @returns
+ */
 function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function waitForEvent(context: Context, eventType: EventType) {
-	return new Promise(resolve => context.on("event", ({ type }) => {
-		if (type === eventType) {
-			resolve("");
-		};
-	}));
+/**
+ * Waits for an event to happen inside the context.
+ * @param context
+ * @param eventType
+ * @returns when the event is received.
+ */
+function waitForEvent(context: Context, eventType: EventType): Promise<any> {
+	return new Promise((res) => {
+		context.on("event", (data) => {
+			const { type } = data;
+			if (type === eventType) {
+				console.log("LA DATAX: ",data);
+				res(data);
+			};
+		});
+	});
 }
 
 suite('Extension Test Suite', () => {
@@ -51,16 +67,7 @@ suite('Extension Test Suite', () => {
 
 		assert.ok(profile === undefined);
 
-		// Main test profile
-		await config.addAndSaveProfile(
-			"test",
-			new AppPassword(randomUUID().replace("-", ""), randomUUID().replace("-", "")),
-			"aws/us-east-1",
-			"http://localhost:3000",
-			"http://localhost:3000"
-		);
-
-		// Alternative test profile
+		// Alternative test profile.
 		await config.addAndSaveProfile(
 			"test_alt",
 			new AppPassword(randomUUID().replace("-", ""), randomUUID().replace("-", "")),
@@ -69,7 +76,27 @@ suite('Extension Test Suite', () => {
 			"http://localhost:3000"
 		);
 
-		assert.equal(2, (config.getProfileNames() || []).length);
+				// Alternative invalid test profile.
+		// The API should return a 401 for this userId.
+		await config.addAndSaveProfile(
+			"invalid_profile",
+			new AppPassword("52881e4b8c724ec1bcc6f9d22155821b", "52881e4b8c724ec1bcc6f9d22155821b"),
+			"aws/us-east-1",
+			"http://localhost:3000",
+			"http://localhost:3000"
+		);
+
+		// Main test profile.
+		// This will be assigned as the default one.
+		await config.addAndSaveProfile(
+			"test",
+			new AppPassword(randomUUID().replace("-", ""), randomUUID().replace("-", "")),
+			"aws/us-east-1",
+			"http://localhost:3000",
+			"http://localhost:3000"
+		);
+
+		assert.equal(3, (config.getProfileNames() || []).length);
 	});
 
 	test('Test extension activation', async () => {
@@ -141,14 +168,15 @@ suite('Extension Test Suite', () => {
 		await listenEnvironmentChange;
 	}).timeout(10000);
 
-	// test('Change schema', async () => {
-	// 	const listenEnvironmentChange = waitForEvent(context, EventType.environmentChange);
-	// 	const schemaName = context.getSchema()?.name;
-	// 	const altSchemaName = context.getSchemas()?.find(x => x.name !== schemaName);
-	// 	assert.ok(typeof altSchemaName?.name === "string");
-	// 	context.setSchema(altSchemaName.name);
-	// 	await listenEnvironmentChange;
-	// }).timeout(10000);
+	test('Detect invalid password', async () => {
+		const listenErrorPromise = waitForEvent(context, EventType.error);
+		context.setProfile("invalid_profile");
 
-	// Test explorer
+		await listenErrorPromise;
+		// TODO:
+		// const { message } = data;
+
+		// console.log("Recivido: ", data);
+		// assert.ok(message === "Invalid authentication.");
+	}).timeout(10000);
 });

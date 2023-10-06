@@ -1,5 +1,7 @@
 import fetch from "node-fetch";
 import AppPassword from "../context/appPassword";
+import { JwksError } from "jwks-rsa";
+import { Errors } from "../utilities/error";
 const jwksClient = require("jwks-rsa");
 const jwt = require("node-jsonwebtoken");
 
@@ -20,14 +22,19 @@ const DEFAULT_ADMIN_ENDPOINT = 'https://admin.cloud.materialize.com';
 export default class AdminClient {
     auth?: AuthenticationResponse;
     appPassword: AppPassword;
-    tokenEndpoint: string;
+    adminEndpoint: string;
     jwksEndpoint: string;
 
     constructor (appPassword: string, endpoint?: string) {
         this.appPassword = AppPassword.fromString(appPassword);
 
-        this.tokenEndpoint = `${endpoint || DEFAULT_ADMIN_ENDPOINT}/identity/resources/auth/v1/api-token`;
-        this.jwksEndpoint = `${endpoint || DEFAULT_ADMIN_ENDPOINT}/.well-known/jwks.json`;
+        const finalEndpoint = (endpoint || DEFAULT_ADMIN_ENDPOINT);
+        const cleanEndpoint = finalEndpoint.endsWith("/")
+            ? finalEndpoint.substring(0, finalEndpoint.length - 1)
+            : finalEndpoint;
+
+        this.adminEndpoint = `${cleanEndpoint}/identity/resources/auth/v1/api-token`;
+        this.jwksEndpoint = `${cleanEndpoint}/.well-known/jwks.json`;
     }
 
     async getToken() {
@@ -38,15 +45,23 @@ export default class AdminClient {
                 secret: this.appPassword.secretKey
             };
 
-            const response = await fetch(this.tokenEndpoint, {
+            const response = await fetch(this.adminEndpoint, {
                 method: 'post',
                 body: JSON.stringify(authRequest),
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 headers: {'Content-Type': 'application/json'}
             });
 
-            this.auth = (await response.json()) as AuthenticationResponse;
-            return this.auth.accessToken;
+            if (response.status === 200) {
+                this.auth = (await response.json()) as AuthenticationResponse;
+                return this.auth.accessToken;
+            } else {
+                const { errors } = await response.json() as any;
+                const [error] = errors;
+                console.error("[AdminClient]", "Error during getToken: ", error);
+
+                throw new Error(error);
+            }
         } else {
             return this.auth.accessToken;
         }
@@ -65,24 +80,42 @@ export default class AdminClient {
     /// Verifies the JWT signature using a JWK from the well-known endpoint and
     /// returns the user claims.
     async getClaims() {
-        const [jwk] = await this.getJwks();
-        const key = jwk.getPublicKey();
+        console.log("[AdminClient]", "Getting Token.");
         const token = await this.getToken();
 
-        // Ignore expiration during tests
-        // The extension is not in charge of manipulating any type of information in Materialize servers.
-        const authData = jwt.verify(token, key, { complete: true });
+        try {
+            console.log("[AdminClient]", "Getting JWKS.");
+            const [jwk] = await this.getJwks();
+            const key = jwk.getPublicKey();
 
-        return authData.payload;
+            // Ignore expiration during tests
+            const authData = jwt.verify(token, key, { complete: true });
+
+            return authData.payload;
+        } catch (err) {
+            console.error("[AdminClient]", "Error retrieving claims: ", err);
+            throw new Error(Errors.verifyCredential);
+        }
     }
 
     /// Returns the current user's email.
     async getEmail() {
-        const claims = await this.getClaims();
-        if (typeof claims === "string") {
-            return JSON.parse(claims).email as string;
-        } else {
-            return claims.email as string;
+        let claims = await this.getClaims();
+
+        try {
+            if (typeof claims === "string") {
+                claims = JSON.parse(claims);
+            }
+
+            console.log(claims);
+            if (!claims.email) {
+                throw new Error(Errors.emailNotPresentInClaims);
+            } else {
+                return claims.email as string;
+            }
+        } catch (err) {
+            console.error("[AdminClient]", "Error retrieving email: ", err);
+            throw new Error(Errors.retrievingEmail);
         }
     }
 }

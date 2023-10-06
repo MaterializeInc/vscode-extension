@@ -4,7 +4,6 @@ import * as TOML from "@iarna/toml";
 import AppPassword from "./appPassword";
 import * as vscode from 'vscode';
 
-
 /// The NonStorableConfigProfile additional properties for Config
 /// That can't be stored due to compatibility issues with the CLI.
 export interface NonStorableConfigProfile extends ConfigProfile {
@@ -42,7 +41,7 @@ export class Config {
         this.profile = this.loadDefaultProfile();
     }
 
-    private profileToNonStorable(name: string, profile: ConfigProfile) {
+    private profileToNonStorable(name: string, profile: ConfigProfile | undefined) {
         return {
             ...JSON.parse(JSON.stringify(profile)),
             database: undefined,
@@ -54,7 +53,16 @@ export class Config {
 
     private loadDefaultProfile(): NonStorableConfigProfile | undefined {
         if (this.config.profiles && this.config.profile) {
-            return this.profileToNonStorable(this.config.profile, this.config.profiles[this.config.profile]);
+            const profileName = this.config.profile;
+            const profile = this.config.profiles[profileName];
+
+            if (!profile) {
+                // TODO: Display in the profile section.
+                vscode.window.showErrorMessage(`Error. The selected default profile '${profileName}' does not exist.`);
+                return;
+            }
+
+            return this.profileToNonStorable(this.config.profile, profile);
         } else {
             console.log("[Config]", "Error loading the default user profile. Most chances are that the user is new.");
         }
@@ -67,6 +75,8 @@ export class Config {
                 this.createFileOrDir(this.configDir);
             }
         } catch (err) {
+            console.error("[Config]", "Error loading config: ", err);
+            // TODO: Display this in the profile config section.
             vscode.window.showErrorMessage('Error creating the configuration directory.');
         }
 
@@ -75,17 +85,11 @@ export class Config {
         }
 
         try {
+            console.log("[Config]", "Config file path: ", this.configFilePath);
             let configInToml = readFileSync(this.configFilePath, 'utf-8');
-            try {
-                return TOML.parse(configInToml) as ConfigFile;
-            } catch (err) {
-                vscode.window.showErrorMessage('Error parsing the configuration file.');
-                console.error("Error parsing configuration file.");
-                throw err;
-            }
+            return TOML.parse(configInToml) as ConfigFile;
         } catch (err) {
-            vscode.window.showErrorMessage('Error reading the configuration file.');
-            console.error("Error reading the configuration file.", err);
+            console.error("[Config]", "Error reading the configuration file.", err);
             throw err;
         }
     }
@@ -120,6 +124,39 @@ export class Config {
 
         this.save();
         this.setProfile(name);
+    }
+
+    /// Adds and saves a new profile into the configuration file
+    async removeAndSaveProfile(
+        name: string,
+    ) {
+        // Turn it into the new default profile.
+        let newProfileName;
+
+        if (this.config.profiles) {
+            console.log("[Config]", "Deleting profile: ", name);
+            delete this.config.profiles[name];
+
+            if (this.config.profile === name) {
+                console.log("[Config]", "Deleted profile was the default one.");
+
+                // Assign a new profile name as default
+                const profileNames = this.getProfileNames();
+                if (profileNames && profileNames.length > 0) {
+                    newProfileName = profileNames[0].toString();
+                    this.config.profile = newProfileName;
+                } else {
+                    delete this.config.profile;
+                    delete this.config.profiles;
+                }
+            }
+        }
+
+        this.save();
+
+        if (newProfileName) {
+            this.setProfile(newProfileName);
+        }
     }
 
     private checkFileOrDirExists(path: string): boolean {
@@ -217,7 +254,7 @@ export class Config {
         }
     }
 
-    setSchema(name: string) {
+    setSchema(name: string | undefined) {
         if (this.profile) {
             this.profile.schema = name;
         }

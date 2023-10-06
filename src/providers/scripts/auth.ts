@@ -49,7 +49,19 @@
         onLoginClicked(profileName);
     });
 
-    document.getElementById('addProfileLink')?.addEventListener('click', () => {
+    document.getElementById('cancelRemoveProfileButton')?.addEventListener('click', () => {
+        onCancelRemoveProfile();
+    });
+
+    document.getElementById('continueRemoveProfileButton')?.addEventListener('click', () => {
+        onContinueRemoveProfile();
+    });
+
+    document.getElementById('removeProfileButton')?.addEventListener('click', () => {
+        onRemoveProfile();
+    });
+
+    document.getElementById('addProfileButton')?.addEventListener('click', () => {
         onAddProfile();
     });
 
@@ -77,12 +89,49 @@
             const continueProfileButton = document.getElementById('continueProfileButton') as HTMLButtonElement;
 
             if (continueProfileButton) {
+                const invalidProfileNameErrorMessage = document.getElementById('invalidProfileNameErrorMessage') as HTMLParagraphElement;
+
                 if(!inputValue.length || !pattern.test(inputValue)) {
                     // Disable continue
                     continueProfileButton.disabled = true;
+
+                    if (!inputValue.length) {
+                        invalidProfileNameErrorMessage.style.display = "none";
+                    } else {
+                        invalidProfileNameErrorMessage.style.display = "block";
+                    }
                 } else {
+                    invalidProfileNameErrorMessage.style.display = "none";
                     // Enable continue
                     continueProfileButton.disabled = false;
+                }
+            }
+        });
+    }
+
+    const removeProfileNameInput  = document.getElementById('removeProfileNameInput');
+
+    if (removeProfileNameInput) {
+        // Listen when the user presses Enter.
+        // It is useful when removing a new profile.
+        // After typing the name pressing enter will trigger the `Remove` button.
+        document.addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                const inputValue = (event.target as HTMLInputElement).value;
+
+                if (inputValue ===  removeProfileNameInput.getAttribute("confirm-data")) {
+                    onContinueRemoveProfile();
+                }
+            }
+        });
+
+        removeProfileNameInput.addEventListener('input', (event) => {
+            const inputValue = (event.target as HTMLInputElement).value;
+            const continueRemoveProfileButton = document.getElementById('continueRemoveProfileButton') as HTMLButtonElement;
+
+            if (inputValue ===  removeProfileNameInput.getAttribute("confirm-data")) {
+                if (continueRemoveProfileButton) {
+                    continueRemoveProfileButton.disabled = false;
                 }
             }
         });
@@ -121,6 +170,13 @@
                     break;
                 }
             case "environmentChange": {
+                // Disable profile interactions of any kind.
+                const addProfileButton = document.getElementById("addProfileButton") as HTMLSelectElement;
+                addProfileButton.disabled = true;
+
+                const removeProfileButton = document.getElementById("removeProfileButton") as HTMLSelectElement;
+                removeProfileButton.disabled = true;
+
                 const profiles = document.getElementById("profiles") as HTMLSelectElement;
                 profiles.disabled = true;
 
@@ -132,9 +188,6 @@
 
                 const schemas = document.getElementById("schemas") as HTMLSelectElement;
                 schemas.disabled = true;
-
-                const addProfileLinkButton = document.getElementById("addProfileLink") as HTMLSelectElement;
-                addProfileLinkButton.disabled = true;
             }
         }
     });
@@ -156,6 +209,15 @@
     }
     function onConfigChange(name: string, type: string) {
         vscode.postMessage({ type: 'onConfigChange', data: { name, type } });
+    }
+    function onCancelRemoveProfile() {
+        vscode.postMessage({ type: 'onCancelRemoveProfile' });
+    }
+    function onContinueRemoveProfile() {
+        vscode.postMessage({ type: 'onContinueRemoveProfile' });
+    }
+    function onRemoveProfile() {
+        vscode.postMessage({ type: 'onRemoveProfile' });
     }
 }());
 
