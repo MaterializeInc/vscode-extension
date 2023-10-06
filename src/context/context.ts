@@ -4,6 +4,7 @@ import { AdminClient, CloudClient, SqlClient } from "../clients";
 import { Config, NonStorableConfigProfile } from "./config";
 import { MaterializeObject, MaterializeSchemaObject } from "../providers/schema";
 import AppPassword from "./appPassword";
+import LspClient from "../clients/lsp";
 import { Errors } from "../utilities/error";
 
 export enum EventType {
@@ -32,6 +33,7 @@ export class Context extends EventEmitter {
     private adminClient?: AdminClient;
     private cloudClient?: CloudClient;
     private sqlClient?: SqlClient;
+    private lspClient: LspClient;
 
     private environment?: Environment;
 
@@ -39,6 +41,7 @@ export class Context extends EventEmitter {
         super();
         this.config = new Config();
         this.loaded = false;
+        this.lspClient = new LspClient();
         this.loadContext();
     }
 
@@ -190,6 +193,10 @@ export class Context extends EventEmitter {
                 });
             });
         }
+    }
+
+    stop() {
+        this.lspClient.stop();
     }
 
     async query(text: string, vals?: Array<any>) {
