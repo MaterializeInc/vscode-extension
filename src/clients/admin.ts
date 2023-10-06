@@ -39,7 +39,7 @@ export default class AdminClient {
 
     async getToken() {
         // TODO: Expire should be at the half of the expiring time.
-        if (!this.auth || new Date(this.auth.expires) > new Date()) {
+        if (!this.auth || (new Date(this.auth.expires) > new Date())) {
             const authRequest: AuthenticationRequest = {
                 clientId: this.appPassword.clientId,
                 secret: this.appPassword.secretKey
