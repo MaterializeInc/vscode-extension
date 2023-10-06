@@ -57,6 +57,7 @@ export class Config {
             const profile = this.config.profiles[profileName];
 
             if (!profile) {
+                // TODO: Display in the profile section.
                 vscode.window.showErrorMessage(`Error. The selected default profile '${profileName}' does not exist.`);
                 return;
             }
@@ -74,6 +75,8 @@ export class Config {
                 this.createFileOrDir(this.configDir);
             }
         } catch (err) {
+            console.error("[Config]", "Error loading config: ", err);
+            // TODO: Display this in the profile config section.
             vscode.window.showErrorMessage('Error creating the configuration directory.');
         }
 
@@ -82,17 +85,11 @@ export class Config {
         }
 
         try {
+            console.log("[Config]", "Config file path: ", this.configFilePath);
             let configInToml = readFileSync(this.configFilePath, 'utf-8');
-            try {
-                return TOML.parse(configInToml) as ConfigFile;
-            } catch (err) {
-                vscode.window.showErrorMessage('Error parsing the configuration file.');
-                console.error("Error parsing configuration file.");
-                throw err;
-            }
+            return TOML.parse(configInToml) as ConfigFile;
         } catch (err) {
-            vscode.window.showErrorMessage('Error reading the configuration file.');
-            console.error("Error reading the configuration file.", err);
+            console.error("[Config]", "Error reading the configuration file.", err);
             throw err;
         }
     }

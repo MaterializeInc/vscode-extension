@@ -37,8 +37,12 @@ The extension runs in a parallel instance of Visual Studio Code. To start it, pr
 
 ### Running the tests
 
-To run the tests run:
+1. Run Materialize in docker:
+```bash
+docker run -v mzdata:/mzdata -p 6875:6875 -p 6876:6876 materialize/materialized
+```
 
+2. Run the VSCode tests:
 ```bash
 npm run test
 ```

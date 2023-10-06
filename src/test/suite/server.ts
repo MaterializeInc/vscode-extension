@@ -24,14 +24,31 @@ export function mockServer(): Promise<string> {
 
     const { privateKey, publicKey } = generateKeyPairSync('rsa', keyPairOptions);
 
-	var token = sign({ foo: 'bar' },
+	var token = sign({ foo: 'bar', email: "materialize" },
     {
       key: privateKey,
       passphrase
     } as any,
     { algorithm: 'RS256', expiresIn: 600, });
 
-    app.post('/identity/resources/auth/v1/api-token', (_, res) => {
+    app.post('/identity/resources/auth/v1/api-token', (req, res) => {
+        const clientId = req.body.clientId;
+        if (clientId === "52881e4b-8c72-4ec1-bcc6-f9d22155821b") {
+            res.status(401).send({ errors: ["Invalid authentication"] });
+            return;
+        }
+
+        // if (clientId === "52881e4b-8c72-4ec1-bcc6-f9d22155821b") {
+        //     // TODO: Return a token with a missing email.
+        //     res.json({
+        //         accessToken: token,
+        //         expires: "Mon, 31 Jul 2023 10:59:33 GMT",
+        //         expiresIn: 600,
+        //         refreshToken: "MOCK",
+        //     });
+        //     return;
+        // }
+
         res.json({
             accessToken: token,
             expires: "Mon, 31 Jul 2023 10:59:33 GMT",

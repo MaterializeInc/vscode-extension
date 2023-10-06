@@ -5,21 +5,25 @@ import { MaterializeObject } from "../providers/schema";
 import AdminClient from "./admin";
 import CloudClient from "./cloud";
 import * as vscode from 'vscode';
+import { Context, EventType } from "../context";
 
 export default class SqlClient {
     private pool: Promise<Pool>;
     private adminClient: AdminClient;
     private cloudClient: CloudClient;
+    private context: Context;
     private profile: NonStorableConfigProfile;
 
     constructor(
         adminClient: AdminClient,
         cloudClient: CloudClient,
         profile: NonStorableConfigProfile,
+        context: Context,
     ) {
         this.adminClient = adminClient;
         this.cloudClient = cloudClient;
         this.profile = profile;
+        this.context = context;
 
         this.pool = new Promise((res, rej) => {
             const asyncOp = async () => {
@@ -37,12 +41,17 @@ export default class SqlClient {
                         rej(err);
                     });
                 } catch (err) {
-                    vscode.window.showErrorMessage(`Error connecting to the region: ${err}`);
+                    console.error("[SqlClient]", "Error creating pool: ", err);
+                    this.context.emit("event", { type: EventType.error, message: err });
                 }
             };
 
             asyncOp();
         });
+    }
+
+    async connectErr() {
+        await this.pool;
     }
 
     /**
@@ -97,7 +106,6 @@ export default class SqlClient {
     async* cursorQuery(statement: string): AsyncGenerator<QueryResult> {
         const pool = await this.pool;
         const client = await pool.connect();
-        const id = randomUUID();
 
         try {
             const batchSize = 100; // Number of rows to fetch in each batch
