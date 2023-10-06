@@ -28,16 +28,22 @@
   "pricing": "Free",
   "icon": "resources/icon.png",
   "contributes": {
-    "languages": [{
-      "id": "materialize-sql",
-      "extensions": [".sql"],
-      "aliases": ["Materialize SQL"],
-      "icon": {
-        "light": "resources/file_icon_color.svg",
-        "dark": "resources/file_icon.svg"
-      },
-      "configuration": "language-configuration.json"
-    }],
+    "languages": [
+      {
+        "id": "materialize-sql",
+        "extensions": [
+          ".sql"
+        ],
+        "aliases": [
+          "Materialize SQL"
+        ],
+        "icon": {
+          "light": "resources/file_icon_color.svg",
+          "dark": "resources/file_icon.svg"
+        },
+        "configuration": "language-configuration.json"
+      }
+    ],
     "grammars": [
       {
         "language": "materialize-sql",
@@ -167,6 +173,7 @@
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "20.2.5",
+    "@types/tar": "^6.1.6",
     "@types/vscode": "^1.79.0",
     "@typescript-eslint/eslint-plugin": "^5.59.8",
     "@typescript-eslint/parser": "^5.59.8",
@@ -183,7 +190,6 @@
     "vscode-extension-tester": "^5.8.0"
   },
   "dependencies": {
-    "vscode-languageclient": "^7.0.0",
     "@iarna/toml": "^2.2.5",
     "@types/express": "^4.17.17",
     "@types/node-fetch": "^2.6.4",
@@ -194,6 +200,8 @@
     "node-fetch": "^3.3.1",
     "node-jsonwebtoken": "^0.0.1",
     "pg": "^8.10.0",
-    "uuid": "^9.0.0"
+    "tar": "^6.2.0",
+    "uuid": "^9.0.0",
+    "vscode-languageclient": "^7.0.0"
   }
 }

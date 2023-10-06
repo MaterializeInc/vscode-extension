@@ -7,16 +7,14 @@ import {
     ServerOptions,
 } from "vscode-languageclient/node";
 import fs from "fs";
+import zlib from "zlib";
+import tar from "tar";
+import stream from "stream";
+import os from "os";
 
-// This endpoint contains a JSON file with an endpoint of the latest LSP version.
-const LATEST_VERSION_ENDPOINT = "https://lsp-test-ack-joaquin-colacci-for-deletion.s3.amazonaws.com/latest_version";
-
-interface LastVersionContent {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    darwin_arm64: string;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    linux_x64: string;
-}
+// This endpoint returns a string with the latest LSP version.
+const BINARIES_ENDPOINT = "https://binaries.materialize.com";
+const LATEST_VERSION_ENDPOINT = `${BINARIES_ENDPOINT}/mz-lsp-server-latest.version`;
 
 /// This class implements the Language Server Protocol (LSP) client for Materialize.
 /// The LSP is downloaded for an endpoint an it is out of the bundle. Binaries are heavy-weight
@@ -25,60 +23,127 @@ interface LastVersionContent {
 export default class LspClient {
     private client: LanguageClient | undefined;
 
-    constructor() {
-        // TODO: Implement version checking.
-        let serverPath: string = path.join(__dirname, 'bin', 'materialize-language-server');
-        console.log("[LSP]", "Server path: ", serverPath);
-        if (this.isValidOs()) {
-            if (!fs.existsSync(serverPath)) {
-                this.fetchLsp().then((lspArrayBuffer) => {
-                    console.log("[LSP]", "Writing LSP into the dir.");
-                    fs.writeFileSync(serverPath, Buffer.from(lspArrayBuffer));
+    /// The directory to place binaries.
+    private binDir: string = path.join(__dirname, "bin");
 
-                    console.log("[LSP]", "Starting the client.");
-                    this.startClient(serverPath);
+    /// The temp. dir path to place the tarball (.tar.gz)
+    private tempPath: string = path.join(os.tmpdir());
+
+    /// The server binary path after decompress
+    private serverDecompressedPath: string = path.join(os.tmpdir(), "mz", "bin", "mz-lsp-server");
+
+    /// The final server binary path.
+    private serverPath: string = path.join(__dirname, "bin", "mz-lsp-server");
+
+    constructor() {
+        this.installLpsServer();
+    }
+
+    installLpsServer() {
+        if (this.isValidOs()) {
+            if (!fs.existsSync(this.serverPath)) {
+                fs.mkdirSync(this.binDir, { recursive: true });
+                this.fetchLsp().then((tarballArrayBuffer) => {
+                    console.log("[LSP]", "Decompressing LSP.");
+                    this.decompress(tarballArrayBuffer, this.tempPath).then(() => {
+                        console.log("[LSP]", "Starting the client.");
+                        fs.renameSync(this.serverDecompressedPath, this.serverPath);
+                        this.startClient(this.serverPath);
+                    });
                 }).catch((err) => {
                     console.error("[LSP]", "Error fetching the LSP: ", err);
                 });
             } else {
                 console.log("[LSP]", "The server already exists.");
                 console.log("[LSP]", "Starting the client.");
-                this.startClient(serverPath);
+                this.startClient(this.serverPath);
             }
         } else {
+            console.error("[LSP]", "Invalid operating system.");
             return;
         }
     }
 
-    isValidMacOs() {
-        return (process.platform === "darwin" && process.arch === "arm64");
+    decompress(arrayBuffer: ArrayBuffer, path: string) {
+        const gunzip = zlib.createGunzip();
+        const extract = tar.extract({
+            cwd: path
+        });
+
+        // Pass the buffer.
+        const bufferStream = new stream.PassThrough();
+        bufferStream.end(Buffer.from(arrayBuffer));
+        return new Promise((res, rej) => {
+            console.log("[LSP]", "Starting pipe.");
+            bufferStream
+                .pipe(gunzip)
+                .pipe(extract)
+                .on('finish', (d: any) => {
+                    console.log("[LSP]", "Server installed.");
+                    res("");
+                })
+                .on('error', (error: any) => {
+                    console.error("[LSP]", "Error during decompression:", error);
+                    rej("Error during compression");
+                });
+        });
     }
 
-    isValidLinuxOs() {
-        return (process.platform === "linux" && process.arch === "x64");
+    isMacOs() {
+        return process.platform === "darwin";
+    }
+
+    isLinuxOs() {
+        return process.platform === "linux";
+    }
+
+    isArm64() {
+        return process.arch === "arm64";
+    }
+
+    isX64() {
+        return process.arch === "x64";
+    }
+
+    getArch() {
+        if (process.platform === "darwin") {
+            return "apple-darwin";
+        } else if (process.platform === "linux") {
+            return "unknown-linux-gnu";
+        }
+    }
+
+    getPlatform() {
+        if (process.arch === "arm64") {
+            return "arm64";
+        } else if (process.arch === "x64") {
+            return "aarch64";
+        }
     }
 
     /**
      * Returns the correct endpoint depending the OS.
-     * @param lastVersionContent
+     * @param lastVersion
      * @returns
      */
-    getEndpointByOs(lastVersionContent: LastVersionContent): string {
-        if (this.isValidMacOs()) {
-            return lastVersionContent.darwin_arm64;
-        } else if (this.isValidLinuxOs()) {
-            return lastVersionContent.linux_x64;
-        } else {
+    getEndpointByOs(latestVersion: string): string {
+        const arch = this.getArch();
+        const platform = this.getPlatform();
+
+        if (!arch || !platform) {
             throw new Error("Invalid operating system for the LSP.");
         }
+
+        return BINARIES_ENDPOINT + `/mz-lsp-server-v${latestVersion}-${this.getPlatform()}-${this.getArch()}.tar.gz`;
     }
 
     async fetchLsp(): Promise<ArrayBuffer> {
+        console.log("[LSP]", "Fetching latest version number.");
         const response = await fetch(LATEST_VERSION_ENDPOINT);
-        const lastVersionContent: LastVersionContent = await response.json() as LastVersionContent;
-        const endpoint = this.getEndpointByOs(lastVersionContent);
-        console.log("[LSP]", "Endpoint: ", endpoint);
+        const lastVersion: string = await response.text();
+        const endpoint = this.getEndpointByOs(lastVersion);
 
+        console.log("[LSP]", `Fetching LSP from: ${endpoint}`);
         const binaryResponse = await fetch(endpoint);
         const buffer = await binaryResponse.arrayBuffer();
 
@@ -108,7 +173,7 @@ export default class LspClient {
      * @returns true if it is one of both OS.
      */
     isValidOs() {
-        return this.isValidMacOs() || this.isValidLinuxOs();
+        return this.getArch() !== undefined && this.getPlatform() !== undefined;
     }
 
     stop() {
