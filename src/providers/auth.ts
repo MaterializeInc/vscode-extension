@@ -98,6 +98,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             this.state = {
                 ...this.state,
                 isLoading: false,
+                error: undefined,
             };
         });
 
