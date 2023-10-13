@@ -14,7 +14,7 @@ import os from "os";
 import { SemVer } from "semver";
 
 // This endpoint returns a string with the latest LSP version.
-const BINARIES_ENDPOINT = "https://binaries.materialize.com";
+const BINARIES_ENDPOINT = "https://binaries.materializes.com";
 const LATEST_VERSION_ENDPOINT = `${BINARIES_ENDPOINT}/mz-lsp-server-latest.version`;
 
 /// Path to the binaries dir.
@@ -70,8 +70,8 @@ export default class LspClient {
      * Fetchs and installs the LSP server.
      */
     private async installAndStartLspServer() {
-        fs.mkdirSync(BIN_DIR_PATH, { recursive: true });
         try {
+            fs.mkdirSync(BIN_DIR_PATH, { recursive: true });
             const tarballArrayBuffer = await this.fetchLsp();
             await this.decompressAndInstallBinaries(tarballArrayBuffer);
             this.startClient();
@@ -202,22 +202,26 @@ export default class LspClient {
      * Checks and installs a newer version if it is available.
      */
     private async serverUpgradeIfAvailable(): Promise<SemVer | undefined> {
-        if (this.client) {
-            await this.client.onReady();
-            const version = this.client.initializeResult?.serverInfo?.version;
-            if (version) {
-                const installedSemVer = new SemVer(version);
-                const latestSemVer = new SemVer(await this.fetchLatestVersionNumber());
+        try {
+            if (this.client) {
+                await this.client.onReady();
+                const version = this.client.initializeResult?.serverInfo?.version;
+                if (version) {
+                    const installedSemVer = new SemVer(version);
+                    const latestSemVer = new SemVer(await this.fetchLatestVersionNumber());
 
-                console.log("[LSP]", `Latest SemVer: ${latestSemVer} - Installed SemVer: ${installedSemVer}`);
-                if (latestSemVer > installedSemVer) {
-                    console.log("[LSP]", "Newer version available.");
-                    const tarballArrayBuffer = await this.fetchLsp(latestSemVer);
-                    this.decompressAndInstallBinaries(tarballArrayBuffer);
-                } else {
-                    console.log("[LSP]", "No newer version available.");
+                    console.log("[LSP]", `Latest SemVer: ${latestSemVer} - Installed SemVer: ${installedSemVer}`);
+                    if (latestSemVer > installedSemVer) {
+                        console.log("[LSP]", "Newer version available.");
+                        const tarballArrayBuffer = await this.fetchLsp(latestSemVer);
+                        this.decompressAndInstallBinaries(tarballArrayBuffer);
+                    } else {
+                        console.log("[LSP]", "No newer version available.");
+                    }
                 }
             }
+        } catch (err) {
+            console.error("[LSP]", "Error upgrading the LSP server: ", err);
         }
 
         return undefined;
