@@ -14,7 +14,7 @@ import os from "os";
 import { SemVer } from "semver";
 
 // This endpoint returns a string with the latest LSP version.
-const BINARIES_ENDPOINT = "https://binaries.materializes.com";
+const BINARIES_ENDPOINT = "https://binaries.materialize.com";
 const LATEST_VERSION_ENDPOINT = `${BINARIES_ENDPOINT}/mz-lsp-server-latest.version`;
 
 /// Path to the binaries dir.
