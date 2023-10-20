@@ -27,14 +27,14 @@ export function activate(vsContext: vscode.ExtensionContext) {
 		)
 	);
 
-    const resultsProvider = new ResultsProvider(vsContext.extensionUri, context);
-	vsContext.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(
-			"queryResults",
-			resultsProvider,
-            { webviewOptions: { retainContextWhenHidden: true } }
-		)
-	);
+    // const resultsProvider = new ResultsProvider(vsContext.extensionUri, context);
+	// vsContext.subscriptions.push(
+	// 	vscode.window.registerWebviewViewProvider(
+	// 		"queryResults",
+	// 		resultsProvider,
+    //         { webviewOptions: { retainContextWhenHidden: true } }
+	// 	)
+	// );
 
     // Register the `Run SQL` command.
     let runDisposable = vscode.commands.registerCommand('materialize.run', async () => {
@@ -87,7 +87,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
                     query,
                 }}});
             } finally {
-                resultsProvider._view?.show();
+                // resultsProvider._view?.show();
             }
         });
     });

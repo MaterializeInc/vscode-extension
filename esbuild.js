@@ -7,6 +7,7 @@ const baseConfig = {
   minify: process.env.NODE_ENV === "production",
   sourcemap: process.env.NODE_ENV !== "production",
   format: "cjs",
+  platform: "node",
 };
 
 const extensionConfig = {
@@ -17,6 +18,7 @@ const extensionConfig = {
   outfile: "./out/extension.js",
   external: ["vscode"],
 };
+
 const watchConfig = {
     watch: {
       onRebuild(error, result) {
@@ -36,6 +38,15 @@ const scriptsConfig = {
   ...baseConfig,
   entryPoints: ["./src/providers/scripts/results.ts", "./src/providers/scripts/auth.ts"],
   outdir: "./out/scripts",
+  format: "cjs",
+};
+
+const reactScriptsConfig = {
+  entryPoints: ["./src/providers/scripts/index.tsx"],
+  outfile: './out/scripts/index.js',
+  bundle: true,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  // loader: { ".tsx": "tsx" }
 };
 
 const testConfig = {
@@ -65,6 +76,10 @@ const testConfig = {
         ...watchConfig,
       });
       await build({
+        ...reactScriptsConfig,
+        ...watchConfig,
+      });
+      await build({
         ...testConfig,
         ...watchConfig,
       });
@@ -73,6 +88,7 @@ const testConfig = {
       // Build extension and webview code
       await build(extensionConfig);
       await build(scriptsConfig);
+      await build(reactScriptsConfig);
       await build(testConfig);
       console.log("build complete");
     }

@@ -16,32 +16,6 @@
 				"isDefault": true
 			},
 			"label": "npm: esbuild-watch"
-		},
-		{
-			"type": "npm",
-			"script": "test-compile-watch",
-			"problemMatcher": "$tsc-watch",
-			"isBackground": true,
-			"presentation": {
-				"reveal": "never",
-				"group": "watchers"
-			},
-			"label": "npm: test-compile-watch",
-			"group": "test"
-		},
-		{
-			"label": "tasks: test-compile-watch",
-			"isBackground": true,
-			"dependsOn": [
-				"npm: esbuild-watch",
-				"npm: test-compile-watch"
-			],
-			"presentation": {
-				"reveal": "never",
-				"group": "watchers"
-			},
-			"problemMatcher": ["$tsc-watch"],
-			"group": "test"
 		}
 	]
 }
