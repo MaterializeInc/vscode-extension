@@ -1,3 +1,9 @@
+export class ExtensionError extends Error {
+    constructor(error: Errors) {
+        super(error);
+    }
+}
+
 export enum Errors {
     /**
      * Raises when trying to verify an invalid JWT token using JWKS.
@@ -47,6 +53,14 @@ export enum Errors {
      */
     invalidAppPassword = "App-password format is invalid.",
     /**
+     * Raises when the app-password is not available.
+     * This can happens if the user is using keychain,
+     * and the password has been removed.
+     * Or if it is using inline, and it is not present
+     * in the configuration file.
+     */
+    missingAppPassword = "App-password is not available.",
+    /**
      * Raises when loading an environment without setting up the cloud or admin client.
      */
     unconfiguredClients = "The clients are not yet setup.",
@@ -68,5 +82,14 @@ export enum Errors {
      * Raises when the user switches to a schema that does not exists
      * anymore.
      */
-    schemaIsNotAvailable = "The selected schema is not available anymore."
+    schemaIsNotAvailable = "The selected schema is not available anymore.",
+    /**
+     * Raises when an unexpected issue happens loading the context.
+     */
+    unexpectedErrorContext = "An unexpected error happened loading the context.",
+    /**
+     * Raises when an unexpected error happens connecting to a Materialize region
+     * using the Postgres client.
+     */
+    unexpectedSqlClientConnectionError = "An unexpected error happened while establishing a connection to your region environment.",
 }

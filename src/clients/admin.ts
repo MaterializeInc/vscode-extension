@@ -1,6 +1,5 @@
 import fetch from "node-fetch";
 import AppPassword from "../context/appPassword";
-import { JwksError } from "jwks-rsa";
 import { Errors } from "../utilities/error";
 const jwksClient = require("jwks-rsa");
 const jwt = require("node-jsonwebtoken");
@@ -107,7 +106,7 @@ export default class AdminClient {
                 claims = JSON.parse(claims);
             }
 
-            console.log(claims);
+            console.log("AdminClient", claims);
             if (!claims.email) {
                 throw new Error(Errors.emailNotPresentInClaims);
             } else {

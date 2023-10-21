@@ -60,37 +60,41 @@ export default class SqlClient {
      */
     private getConnectionOptions(): string {
         const connectionOptions = [];
+        const environment = this.context.getEnvironment();
 
-        const cluster = this.profile.cluster;
-        if (cluster) {
-            connectionOptions.push(`--cluster=${cluster}`);
-        };
+        if (environment) {
+            connectionOptions.push(`--cluster=${environment.cluster}`);
 
-        const schema = this.profile.schema;
-        if (schema) {
-            connectionOptions.push(`-csearch_path=${schema}`);
+            // When a user changes the database, the schema turns undefined.
+            // Each database has a different set of schemas.
+            // To avoid having an invalid `search_path`, the schema
+            // is an empty string and should be avoided its usage.
+            if (environment.schema) {
+                connectionOptions.push(`-csearch_path=${environment.schema}`);
+            }
         }
 
         return connectionOptions.join(" ");
     }
 
     private async buildPoolConfig() {
-        console.log("[Context]", "Loading host.");
+        console.log("[SqlClient]", "Loading host.");
         const hostPromise = this.cloudClient?.getHost(this.profile.region);
-        console.log("[Context]", "Loading user email.");
+        console.log("[SqlClient]", "Loading user email.");
         const emailPromise = this.adminClient?.getEmail();
 
         const [host, email] = await Promise.all([hostPromise, emailPromise]);
+        const environment = this.context.getEnvironment();
 
         return {
             host: host && host.substring(0, host.length - 5),
             // eslint-disable-next-line @typescript-eslint/naming-convention
             application_name: "mz_vscode",
-            database: (this.profile.database || "materialize").toString(),
+            database: ((environment && environment.database) || "materialize").toString(),
             port: 6875,
             user: email,
             options: this.getConnectionOptions(),
-            password: this.profile["app-password"],
+            password: await this.context.getAppPassword(this.profile),
             // Disable SSL for tests
             ssl: (host && host.startsWith("localhost")) ? false : true,
         };
@@ -134,23 +138,5 @@ export default class SqlClient {
             // Release the client and pool resources
             client.release();
         }
-    }
-
-
-    async getDatabases(): Promise<Array<MaterializeObject>> {
-        const { rows }: QueryResult<MaterializeObject> = await this.query(`SELECT id, name, owner_id as "ownerId" FROM mz_databases;`);
-        return rows;
-    }
-
-    async getSchemas(database: MaterializeObject) {
-        const { rows: schemas } = await this.query(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas WHERE database_id = $1`, [database.id]);
-
-        return schemas;
-    }
-
-    async getClusters() {
-        const { rows: clusters }: QueryResult<MaterializeObject> = await this.query(`SELECT id, name, owner_id as "ownerId" FROM mz_clusters;`);
-
-        return clusters;
     }
 }

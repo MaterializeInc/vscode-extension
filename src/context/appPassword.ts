@@ -1,6 +1,7 @@
 import * as uuid from "uuid";
 import { Errors } from "../utilities/error";
 
+/// App-password prefix.
 const PREFIX = 'mzp_';
 
 export default class AppPassword {
@@ -64,7 +65,7 @@ export default class AppPassword {
               secretKey,
             };
           } catch (err) {
-            console.log("Error parsing UUID.");
+            console.log("[AppPassword]", "Error parsing UUID.");
             throw new Error(Errors.invalidAppPassword);
           }
         }

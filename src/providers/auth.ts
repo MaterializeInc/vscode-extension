@@ -372,7 +372,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 const schema = this.context.getSchema();
                 const cluster = this.context.getCluster();
                 const profileName = this.context.getProfileName();
-                console.log("[Auth]", this.state.error);
+                console.log("[AuthProvider]", this.state.error);
 
                 content = (
                     `<div class="profile-container">
@@ -402,8 +402,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                                 <div class="dropdown-container">
                                     <label for="clusters">Cluster</label>
                                     <vscode-dropdown id="clusters">
-                                        <vscode-option>${cluster?.name}</vscode-option>
-                                        ${(this.context.getClusters() || []).filter(x => x.name !== cluster?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                                        <vscode-option>${cluster}</vscode-option>
+                                        ${(this.context.getClusters() || []).filter(x => x.name !== cluster).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
                                     </vscode-dropdown>
                                 </div>
                             </div>
@@ -411,8 +411,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                                 <div class="dropdown-container">
                                     <label for="databases">Database</label>
                                     <vscode-dropdown id="databases">
-                                        <vscode-option>${database && database.name}</vscode-option>
-                                        ${(this.context.getDatabases() || []).filter(x => x.name !== database?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                                        <vscode-option>${database}</vscode-option>
+                                        ${(this.context.getDatabases() || []).filter(x => x.name !== database).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
                                     </vscode-dropdown>
                                 </div>
                             </div>
@@ -420,8 +420,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                                 <div class="dropdown-container">
                                     <label for="schemas">Schema</label>
                                         <vscode-dropdown id="schemas">
-                                            <vscode-option>${schema && schema.name}</vscode-option>
-                                            ${(this.context.getSchemas() || []).filter(x => x.name !== schema?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
+                                            <vscode-option>${schema}</vscode-option>
+                                            ${(this.context.getSchemas() || []).filter(x => x.name !== schema).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
                                         </vscode-dropdown>
                                 </div>
                             </div>
