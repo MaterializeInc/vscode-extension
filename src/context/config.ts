@@ -24,7 +24,7 @@ export interface File {
 }
 
 /// Keychain service must be compatible with the CLI.
-const KEYCHAIN_SERVICE = "Materialize mz CLI";
+const KEYCHAIN_SERVICE = "Materialize";
 
 export class Config {
     private homeDir = os.homedir();
@@ -249,10 +249,9 @@ export class Config {
                 }
             };
 
-            // TODO: Rename service.
             keychain.getPassword({
                 account,
-                service: "Materialize mz CLI",
+                service: "Materialize",
             }, cb);
         });
     }
