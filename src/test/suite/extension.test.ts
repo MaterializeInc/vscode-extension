@@ -9,7 +9,6 @@ import * as os from "os";
 import * as fs from "fs";
 import AppPassword from '../../context/appPassword';
 import { randomUUID } from 'crypto';
-import { Errors } from '../../utilities/error';
 
 /**
  * Simple util function to use delay.
@@ -31,7 +30,6 @@ function waitForEvent(context: Context, eventType: EventType): Promise<any> {
 		context.on("event", (data) => {
 			const { type } = data;
 			if (type === eventType) {
-				console.log("LA DATAX: ",data);
 				res(data);
 			};
 		});
@@ -140,6 +138,15 @@ suite('Extension Test Suite', () => {
 		await listenQueryResultsChange;
 	},);
 
+	test('Change cluster', async () => {
+		const listenEnvironmentChange = waitForEvent(context, EventType.environmentChange);
+		const clusterName = context.getCluster();
+		const altClusterName = context.getClusters()?.find(x => x.name !== clusterName);
+		assert.ok(typeof altClusterName?.name === "string");
+		context.setCluster(altClusterName.name);
+		await listenEnvironmentChange;
+	}).timeout(10000);
+
 	/**
 	 * Profiles
 	 */
@@ -159,24 +166,10 @@ suite('Extension Test Suite', () => {
 		assert.ok(altProfileName === context.getProfileName());
 	}).timeout(15000);
 
-	test('Change cluster', async () => {
-		const listenEnvironmentChange = waitForEvent(context, EventType.environmentChange);
-		const clusterName = context.getCluster()?.name;
-		const altClusterName = context.getClusters()?.find(x => x.name !== clusterName);
-		assert.ok(typeof altClusterName?.name === "string");
-		context.setCluster(altClusterName.name);
-		await listenEnvironmentChange;
-	}).timeout(10000);
-
 	test('Detect invalid password', async () => {
 		const listenErrorPromise = waitForEvent(context, EventType.error);
 		context.setProfile("invalid_profile");
 
 		await listenErrorPromise;
-		// TODO:
-		// const { message } = data;
-
-		// console.log("Recivido: ", data);
-		// assert.ok(message === "Invalid authentication.");
 	}).timeout(10000);
 });

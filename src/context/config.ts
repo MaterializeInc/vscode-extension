@@ -82,14 +82,6 @@ export class Config {
         try {
             console.log("[Config]", "Config file path: ", this.configFilePath);
             let configInToml = readFileSync(this.configFilePath, 'utf-8');
-            const parsedFile = TOML.parse(configInToml);
-
-            // Map names
-            const { profiles } = parsedFile;
-            for (const [name, profile] of Object.entries(profiles)) {
-                profile.name = name;
-            }
-
             return TOML.parse(configInToml) as File;
         } catch (err) {
             console.error("[Config]", "Error reading the configuration file.", err);
