@@ -1,6 +1,6 @@
 import EventEmitter = require("node:events");
 import { AdminClient, CloudClient, SqlClient } from "../clients";
-import { Config, Profile } from "./config";
+import { Config } from "./config";
 import { MaterializeObject, MaterializeSchemaObject } from "../providers/schema";
 import AppPassword from "./appPassword";
 import LspClient from "../clients/lsp";
