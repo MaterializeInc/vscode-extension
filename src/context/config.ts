@@ -23,7 +23,8 @@ export interface File {
     profiles?: { [name: string] : Profile; }
 }
 
-/// Keychain service must be compatible with the CLI.
+/// Make sure if you ever change this value,
+/// to be compatible with the mz CLI keychain service.
 const KEYCHAIN_SERVICE = "Materialize";
 
 export class Config {
@@ -37,6 +38,7 @@ export class Config {
 
     constructor() {
         this.config = this.loadConfig();
+        this.applyMigration();
         const profileInfo = this.loadDefaultProfile();
 
         if (profileInfo) {
@@ -44,6 +46,36 @@ export class Config {
             this.profile = profile;
             this.profileName = profileName;
         }
+    }
+
+    private applyMigration() {
+        const profiles = this.config.profiles;
+        const updateKeychainPromises = [];
+
+        for (const profileName in profiles) {
+            const profile = profiles[profileName];
+
+            // macOS and using keychain
+            if (process.platform === "darwin"
+                && (!profile.vault || profile.vault === "keychain")
+                && (!this.config.vault || this.config.vault === "keychain")
+            ) {
+                const appPassword = profile["app-password"];
+                if (appPassword) {
+                    updateKeychainPromises.push(new Promise<void>((res) => {
+                        this.setKeychainPassword(profileName, appPassword).then(() => {
+                            delete profile["app-password"];
+                        }).finally(() => {
+                            res();
+                        });
+                    }));
+                }
+            }
+        }
+
+        Promise.all(updateKeychainPromises).then(() => {
+            this.save();
+        });
     }
 
     private loadDefaultProfile(): { profile: Profile, profileName: string } | undefined {
@@ -228,7 +260,6 @@ export class Config {
                 }
             };
 
-            // TODO: Rename service.
             keychain.setPassword({
                 account,
                 password: appPassword,

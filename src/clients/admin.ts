@@ -106,7 +106,6 @@ export default class AdminClient {
                 claims = JSON.parse(claims);
             }
 
-            console.log("AdminClient", claims);
             if (!claims.email) {
                 throw new Error(Errors.emailNotPresentInClaims);
             } else {

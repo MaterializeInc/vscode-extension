@@ -1,23 +1,20 @@
 import { Pool, QueryResult } from "pg";
-import { randomUUID } from "crypto";
-import { NonStorableConfigProfile } from "../context/config";
-import { MaterializeObject } from "../providers/schema";
 import AdminClient from "./admin";
 import CloudClient from "./cloud";
-import * as vscode from 'vscode';
 import { Context, EventType } from "../context";
+import { Profile } from "../context/config";
 
 export default class SqlClient {
     private pool: Promise<Pool>;
     private adminClient: AdminClient;
     private cloudClient: CloudClient;
     private context: Context;
-    private profile: NonStorableConfigProfile;
+    private profile: Profile;
 
     constructor(
         adminClient: AdminClient,
         cloudClient: CloudClient,
-        profile: NonStorableConfigProfile,
+        profile: Profile,
         context: Context,
     ) {
         this.adminClient = adminClient;
@@ -94,7 +91,7 @@ export default class SqlClient {
             port: 6875,
             user: email,
             options: this.getConnectionOptions(),
-            password: await this.context.getAppPassword(this.profile),
+            password: await this.context.getAppPassword(),
             // Disable SSL for tests
             ssl: (host && host.startsWith("localhost")) ? false : true,
         };

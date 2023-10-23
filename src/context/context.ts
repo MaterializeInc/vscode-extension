@@ -72,6 +72,13 @@ export class Context extends EventEmitter {
         }
     }
 
+    /**
+     * @returns the current user app-password.
+     */
+    async getAppPassword() {
+        return this.config.getAppPassword();
+    }
+
     private async loadEnvironment(reloadSchema?: boolean) {
         this.loaded = false;
         this.emit("event", { type: EventType.environmentChange });
