@@ -48,6 +48,11 @@ export class Config {
         }
     }
 
+    /**
+     * Migrates all the profiles to the keychain if the user is using macOS.
+     * The keychain is more secure than having the passwords in plain text.
+     * TODO: Remove after 0.3.0
+     */
     private applyMigration() {
         const profiles = this.config.profiles;
         const updateKeychainPromises = [];
@@ -56,19 +61,20 @@ export class Config {
             const profile = profiles[profileName];
 
             // macOS and using keychain
-            if (process.platform === "darwin"
-                && (!profile.vault || profile.vault === "keychain")
-                && (!this.config.vault || this.config.vault === "keychain")
-            ) {
-                const appPassword = profile["app-password"];
-                if (appPassword) {
-                    updateKeychainPromises.push(new Promise<void>((res) => {
-                        this.setKeychainPassword(profileName, appPassword).then(() => {
-                            delete profile["app-password"];
-                        }).finally(() => {
-                            res();
-                        });
-                    }));
+            if (process.platform === "darwin") {
+                if  (profile.vault === "keychain" ||
+                    (!profile.vault &&
+                        (!this.config.vault || this.config.vault === "keychain"))) {
+                    const appPassword = profile["app-password"];
+                    if (appPassword) {
+                        updateKeychainPromises.push(new Promise<void>((res) => {
+                            this.setKeychainPassword(profileName, appPassword).then(() => {
+                                delete profile["app-password"];
+                            }).finally(() => {
+                                res();
+                            });
+                        }));
+                    }
                 }
             }
         }
