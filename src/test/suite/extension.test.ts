@@ -62,6 +62,16 @@ suite('Extension Test Suite', () => {
 	// TODO: Remove after 0.3.0
 	test('Migration', async () => {
 		const configDir = `${os.homedir()}/.config/materialize/test`;
+		if (!fs.existsSync(configDir)) {
+			try {
+				fs.mkdirSync(configDir, { recursive: true });
+				console.log("[Context]", "Directory created: ", configDir);
+			} catch (error) {
+				console.log("[Context]", "Error creating configuration file dir:", configDir, error);
+				throw error;
+			}
+		}
+
 		const filePath = `${configDir}/mz.toml`;
 		process.env["MZ_CONFIG_PATH"] = configDir;
 
@@ -83,6 +93,7 @@ suite('Extension Test Suite', () => {
 		await delay(500);
 		let content = fs.readFileSync(filePath, 'utf-8');
 		console.log("Content: ", content);
+
 		if (process.platform === "darwin") {
 			// Assert the migration is done.
 			assert.ok(content === `profile = "default"\n\n[profiles.default]\nregion = "aws/us-east-1"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\nvault = "inline"\n`);
