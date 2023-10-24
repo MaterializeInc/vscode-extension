@@ -36,6 +36,10 @@ function waitForEvent(context: Context, eventType: EventType): Promise<any> {
 	});
 }
 
+// Remove the configuration file if exists.
+const configDir = `${os.homedir()}/.config/materialize/test`;
+const filePath = `${configDir}/mz.toml`;
+
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
 
@@ -45,8 +49,6 @@ suite('Extension Test Suite', () => {
 		console.log("[Test]","Server mocked.");
 
 		// Remove the configuration file if exists.
-		const configDir = `${os.homedir()}/.config/materialize/test`;
-		const filePath = `${configDir}/mz.toml`;
 		process.env["MZ_CONFIG_PATH"] = configDir;
 
 		try {
@@ -151,11 +153,10 @@ suite('Extension Test Suite', () => {
 		} else {
 			assert.ok(content === `profile = "default"\nvault = "inline"\n\n[profiles.default]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n`);
 		}
-
-		fs.unlinkSync(filePath);
 	});
 
 	test('Configuration file', async () => {
+		fs.unlinkSync(filePath);
 		const config = new Config();
 		const profile = config.getProfile();
 
