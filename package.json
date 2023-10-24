@@ -168,6 +168,7 @@
   "devDependencies": {
     "@types/chai": "^4.3.5",
     "@types/glob": "^8.1.0",
+    "@types/keychain": "^1.4.3",
     "@types/mocha": "^10.0.1",
     "@types/node": "20.2.5",
     "@types/tar": "^6.1.6",
@@ -196,11 +197,11 @@
     "@types/uuid": "^9.0.2",
     "@vscode/webview-ui-toolkit": "^1.2.2",
     "jwks-rsa": "^3.0.1",
+    "keychain": "^1.5.0",
     "node-fetch": "^3.3.1",
     "node-jsonwebtoken": "^0.0.1",
     "pg": "^8.10.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "semver": "^7.5.4",
     "tar": "^6.2.0",
     "uuid": "^9.0.0",
     "vscode-languageclient": "^7.0.0"

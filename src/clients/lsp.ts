@@ -11,6 +11,7 @@ import zlib from "zlib";
 import tar from "tar";
 import stream from "stream";
 import os from "os";
+import { SemVer } from "semver";
 
 // This endpoint returns a string with the latest LSP version.
 const BINARIES_ENDPOINT = "https://binaries.materialize.com";
@@ -33,27 +34,13 @@ export default class LspClient {
     private client: LanguageClient | undefined;
 
     constructor() {
-        this.installLpsServer();
-    }
-
-    installLpsServer() {
         if (this.isValidOs()) {
-            if (!fs.existsSync(SERVER_PATH)) {
-                fs.mkdirSync(BIN_DIR_PATH, { recursive: true });
-                this.fetchLsp().then((tarballArrayBuffer) => {
-                    console.log("[LSP]", "Decompressing LSP.");
-                    this.decompress(tarballArrayBuffer, TMP_DIR_PATH).then(() => {
-                        console.log("[LSP]", "Starting the client.");
-                        fs.renameSync(SERVER_DECOMPRESS_PATH, SERVER_PATH);
-                        this.startClient(SERVER_PATH);
-                    });
-                }).catch((err) => {
-                    console.error("[LSP]", "Error fetching the LSP: ", err);
-                });
+            if (!this.isInstalled()) {
+                this.installAndStartLspServer();
             } else {
                 console.log("[LSP]", "The server already exists.");
-                console.log("[LSP]", "Starting the client.");
-                this.startClient(SERVER_PATH);
+                this.startClient();
+                this.serverUpgradeIfAvailable();
             }
         } else {
             console.error("[LSP]", "Invalid operating system.");
@@ -61,13 +48,50 @@ export default class LspClient {
         }
     }
 
-    decompress(arrayBuffer: ArrayBuffer, path: string) {
+    /**
+     *
+     * @returns true if the LSP Server is installed.
+     */
+    private isInstalled() {
+        return fs.existsSync(SERVER_PATH);
+    }
+
+    /**
+     * Decompress the tarball and rename the file to the end path.
+     * @param tarballArrayBuffer LSP server binary
+     */
+    private async decompressAndInstallBinaries(tarballArrayBuffer: ArrayBuffer) {
+        console.log("[LSP]", "Decompressing LSP.");
+        await this.decompress(tarballArrayBuffer, TMP_DIR_PATH);
+        fs.renameSync(SERVER_DECOMPRESS_PATH, SERVER_PATH);
+    }
+
+    /**
+     * Fetchs and installs the LSP server.
+     */
+    private async installAndStartLspServer() {
+        try {
+            fs.mkdirSync(BIN_DIR_PATH, { recursive: true });
+            const tarballArrayBuffer = await this.fetchLsp();
+            await this.decompressAndInstallBinaries(tarballArrayBuffer);
+            this.startClient();
+        } catch (err) {
+            console.error("[LSP]", "Error fetching the LSP: ", err);
+        }
+    }
+
+    /**
+     * Decompress a `.tar.gz` file as an ArrayBuffer.
+     * @param arrayBuffer
+     * @param path
+     * @returns -
+     */
+    private decompress(arrayBuffer: ArrayBuffer, path: string) {
         const gunzip = zlib.createGunzip();
         const extract = tar.extract({
             cwd: path
         });
 
-        // Pass the buffer.
         const bufferStream = new stream.PassThrough();
         bufferStream.end(Buffer.from(arrayBuffer));
         return new Promise((res, rej) => {
@@ -86,23 +110,10 @@ export default class LspClient {
         });
     }
 
-    isMacOs() {
-        return process.platform === "darwin";
-    }
-
-    isLinuxOs() {
-        return process.platform === "linux";
-    }
-
-    isArm64() {
-        return process.arch === "arm64";
-    }
-
-    isX64() {
-        return process.arch === "x64";
-    }
-
-    getArch() {
+    /**
+     * @returns host architecture
+     */
+    private getArch() {
         if (process.platform === "darwin") {
             return "apple-darwin";
         } else if (process.platform === "linux") {
@@ -110,7 +121,10 @@ export default class LspClient {
         }
     }
 
-    getPlatform() {
+    /**
+     * @returns host platform
+     */
+    private getPlatform() {
         if (process.arch === "arm64") {
             return "arm64";
         } else if (process.arch === "x64") {
@@ -123,7 +137,7 @@ export default class LspClient {
      * @param lastVersion
      * @returns
      */
-    getEndpointByOs(latestVersion: string): string {
+    private getEndpointByOs(latestVersion: SemVer): string {
         const arch = this.getArch();
         const platform = this.getPlatform();
 
@@ -131,14 +145,27 @@ export default class LspClient {
             throw new Error("Invalid operating system for the LSP.");
         }
 
-        return BINARIES_ENDPOINT + `/mz-lsp-server-v${latestVersion}-${this.getPlatform()}-${this.getArch()}.tar.gz`;
+        return BINARIES_ENDPOINT + `/mz-lsp-server-v${latestVersion.format()}-${this.getPlatform()}-${this.getArch()}.tar.gz`;
     }
 
-    async fetchLsp(): Promise<ArrayBuffer> {
+    /**
+     * Returns the latest version number released.
+     */
+    private async fetchLatestVersionNumber() {
         console.log("[LSP]", "Fetching latest version number.");
         const response = await fetch(LATEST_VERSION_ENDPOINT);
-        const lastVersion: string = await response.text();
-        const endpoint = this.getEndpointByOs(lastVersion);
+        const latestVersion: string = await response.text();
+
+        return new SemVer(latestVersion);
+    }
+
+    /**
+     * Fetches the latest version of the LSP Server.
+     * @returns the binary as an ArrayBuffer
+     */
+    private async fetchLsp(semVer?: SemVer): Promise<ArrayBuffer> {
+        const latestVersion = semVer || await this.fetchLatestVersionNumber();
+        const endpoint = this.getEndpointByOs(latestVersion);
 
         console.log("[LSP]", `Fetching LSP from: ${endpoint}`);
         const binaryResponse = await fetch(endpoint);
@@ -147,10 +174,16 @@ export default class LspClient {
         return buffer;
     }
 
-    startClient(serverPath: string) {
+    /**
+     * Starts the LSP Client and checks for upgrades.
+     * @param serverPath
+     */
+    private startClient() {
+        console.log("[LSP]", "Starting the client.");
+
         // Build the options
         const run: Executable = {
-            command: serverPath,
+            command: SERVER_PATH,
         };
         const serverOptions: ServerOptions = {
             run,
@@ -166,13 +199,46 @@ export default class LspClient {
     }
 
     /**
+     * Checks and installs a newer version if it is available.
+     */
+    private async serverUpgradeIfAvailable(): Promise<SemVer | undefined> {
+        try {
+            if (this.client) {
+                await this.client.onReady();
+                const version = this.client.initializeResult?.serverInfo?.version;
+                if (version) {
+                    const installedSemVer = new SemVer(version);
+                    const latestSemVer = new SemVer(await this.fetchLatestVersionNumber());
+
+                    console.log("[LSP]", `Latest SemVer: ${latestSemVer} - Installed SemVer: ${installedSemVer}`);
+                    if (latestSemVer > installedSemVer) {
+                        console.log("[LSP]", "Newer version available.");
+                        const tarballArrayBuffer = await this.fetchLsp(latestSemVer);
+                        this.decompressAndInstallBinaries(tarballArrayBuffer);
+                    } else {
+                        console.log("[LSP]", "No newer version available.");
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("[LSP]", "Error upgrading the LSP server: ", err);
+        }
+
+        return undefined;
+    }
+
+    /**
      * The valid operating systems so far are MacOS (Darwin) ARM64 and Linux x64.
      * @returns true if it is one of both OS.
      */
-    isValidOs() {
+    private isValidOs() {
         return this.getArch() !== undefined && this.getPlatform() !== undefined;
     }
 
+    /**
+     * Stops the LSP server client.
+     * This is useful before installing an upgrade.
+     */
     stop() {
         this.client && this.client.stop();
     }

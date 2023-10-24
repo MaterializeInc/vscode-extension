@@ -37,7 +37,7 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
 
                     // Check if the results are from the last issued query.
                     if (this.lastQueryId === id || this.lastQueryId === undefined) {
-                        console.log("Is script ready : ", this.isScriptReady);
+                        console.log("[ResultsProvider]", "Is script ready : ", this.isScriptReady);
                         if (this.isScriptReady) {
                             const thenable = this._view.webview.postMessage({ type: "results", data });
 
