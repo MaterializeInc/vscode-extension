@@ -49,6 +49,22 @@ export class Config {
     }
 
     /**
+     * Checks if a profile should use the macOS keychain or not.
+     * @param profile profile requesting the keychain.
+     * @returns true if should use macOS keychain.
+     */
+    private shouldUseKeychain(profile: Profile): boolean {
+        if (process.platform === "darwin") {
+            let vault = profile.vault || this.config.vault;
+            if (!vault || vault === "keychain") {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Migrates all the profiles to the keychain if the user is using macOS.
      * The keychain is more secure than having the passwords in plain text.
      * TODO: Remove after 0.3.0
@@ -60,21 +76,16 @@ export class Config {
         for (const profileName in profiles) {
             const profile = profiles[profileName];
 
-            // macOS and using keychain
-            if (process.platform === "darwin") {
-                if  (profile.vault === "keychain" ||
-                    (!profile.vault &&
-                        (!this.config.vault || this.config.vault === "keychain"))) {
-                    const appPassword = profile["app-password"];
-                    if (appPassword) {
-                        updateKeychainPromises.push(new Promise<void>((res) => {
-                            this.setKeychainPassword(profileName, appPassword).then(() => {
-                                delete profile["app-password"];
-                            }).finally(() => {
-                                res();
-                            });
-                        }));
-                    }
+            if  (this.shouldUseKeychain(profile)) {
+                const appPassword = profile["app-password"];
+                if (appPassword) {
+                    updateKeychainPromises.push(new Promise<void>((res) => {
+                        this.setKeychainPassword(profileName, appPassword).then(() => {
+                            delete profile["app-password"];
+                        }).finally(() => {
+                            res();
+                        });
+                    }));
                 }
             }
         }
@@ -151,7 +162,7 @@ export class Config {
             "vault": vault || this.config.vault
         };
 
-        if ((vault || this.config.vault) !== "keychain") {
+        if (this.shouldUseKeychain(newProfile)) {
             newProfile["app-password"] = undefined;
             await this.setKeychainPassword(name, appPasswordAsString);
         }
@@ -322,10 +333,8 @@ export class Config {
         };
 
         // TODO: Handle cases when keychain is enable but host is not macOS.
-        if ((vault === "keychain" || vault === undefined) && process.platform === "darwin") {
-            if (this.profileName) {
-                return await this.getKeychainPassword(this.profileName);
-            }
+        if (this.profile && this.profileName && this.shouldUseKeychain(this.profile)) {
+            return await this.getKeychainPassword(this.profileName);
         } else {
             return appPassword;
         }

@@ -62,101 +62,105 @@ suite('Extension Test Suite', () => {
 	let context: Context;
 
 	// TODO: Remove after 0.3.0
-	// test('Migration', async () => {
-	// 	const configDir = `${os.homedir()}/.config/materialize/test`;
-	// 	if (!fs.existsSync(configDir)) {
-	// 		try {
-	// 			fs.mkdirSync(configDir, { recursive: true });
-	// 			console.log("[Context]", "Directory created: ", configDir);
-	// 		} catch (error) {
-	// 			console.log("[Context]", "Error creating configuration file dir:", configDir, error);
-	// 			throw error;
-	// 		}
-	// 	}
+	test('Migration', async () => {
+		const configDir = `${os.homedir()}/.config/materialize/test`;
+		if (!fs.existsSync(configDir)) {
+			try {
+				fs.mkdirSync(configDir, { recursive: true });
+				console.log("[Context]", "Directory created: ", configDir);
+			} catch (error) {
+				console.log("[Context]", "Error creating configuration file dir:", configDir, error);
+				throw error;
+			}
+		}
 
-	// 	const filePath = `${configDir}/mz.toml`;
-	// 	process.env["MZ_CONFIG_PATH"] = configDir;
+		const filePath = `${configDir}/mz.toml`;
+		process.env["MZ_CONFIG_PATH"] = configDir;
 
-	// 	fs.writeFileSync(filePath, `
-	// 	profile = "default"
+		fs.writeFileSync(filePath, `
+		profile = "default"
 
-	// 	[profiles.default]
-	// 	app-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"
-	// 	region = "aws/us-east-1"
+		[profiles.default]
+		app-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"
+		region = "aws/us-east-1"
 
-	// 	[profiles.alternative]
-	// 	app-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"
-	// 	region = "aws/us-east-1"
-	// 	vault = "inline"
-	// 	`, 'utf-8');
+		[profiles.alternative]
+		app-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"
+		region = "aws/us-east-1"
+		vault = "inline"
+		`, 'utf-8');
 
-	// 	new Config();
-	// 	// Wait migration to save the update.
-	// 	await delay(500);
-	// 	let content = fs.readFileSync(filePath, 'utf-8');
-	// 	console.log("Content: ", content);
+		new Config();
+		// Wait migration to save the update.
+		await delay(500);
+		let content = fs.readFileSync(filePath, 'utf-8');
+		console.log("Content: ", content);
 
-	// 	if (process.platform === "darwin") {
-	// 		// Assert the migration is done.
-	// 		assert.ok(content === `profile = "default"\n\n[profiles.default]\nregion = "aws/us-east-1"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\nvault = "inline"\n`);
-	// 	} else {
-	// 		assert.ok(content === `profile = "default"\n\n[profiles.default]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\nvault = "inline"\n`);
-	// 	}
+		if (process.platform === "darwin") {
+			// Assert the migration is done.
+			assert.ok(content === `profile = "default"\n\n[profiles.default]\nregion = "aws/us-east-1"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\nvault = "inline"\n`);
+		} else {
+			assert.ok(content === `profile = "default"\n\n[profiles.default]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\nvault = "inline"\n`);
+		}
 
-	// 	// Second case:
-	// 	fs.writeFileSync(filePath, `
-	// 	profile = "default"
-	// 	vault = "inline"
+		// Second case:
+		fs.writeFileSync(filePath, `
+		profile = "default"
+		vault = "inline"
 
-	// 	[profiles.default]
-	// 	app-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"
-	// 	region = "aws/us-east-1"
+		[profiles.default]
+		app-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"
+		region = "aws/us-east-1"
 
-	// 	[profiles.alternative]
-	// 	app-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"
-	// 	region = "aws/us-east-1"
-	// 	`, 'utf-8');
+		[profiles.alternative]
+		app-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"
+		region = "aws/us-east-1"
+		`, 'utf-8');
 
-	// 	// Trigger migration again
-	// 	new Config();
-	// 	await delay(500);
+		// Trigger migration again
+		new Config();
+		await delay(500);
 
-	// 	// Check content
-	// 	content = fs.readFileSync(filePath, 'utf-8');
-	// 	assert.ok(content === `profile = "default"\nvault = "inline"\n\n[profiles.default]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n`);
+		// Check content
+		content = fs.readFileSync(filePath, 'utf-8');
+		assert.ok(content === `profile = "default"\nvault = "inline"\n\n[profiles.default]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n`);
 
 
-	// 	// Third case:
-	// 	fs.writeFileSync(filePath, `
-	// 	profile = "default"
-	// 	vault = "inline"
+		// Third case:
+		fs.writeFileSync(filePath, `
+		profile = "default"
+		vault = "inline"
 
-	// 	[profiles.default]
-	// 	app-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"
-	// 	region = "aws/us-east-1"
-	// 	vault = "keychain"
+		[profiles.default]
+		app-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"
+		region = "aws/us-east-1"
+		vault = "keychain"
 
-	// 	[profiles.alternative]
-	// 	app-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"
-	// 	region = "aws/us-east-1"
-	// 	`, 'utf-8');
+		[profiles.alternative]
+		app-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"
+		region = "aws/us-east-1"
+		`, 'utf-8');
 
-	// 	// Trigger migration again
-	// 	new Config();
-	// 	await delay(500);
+		// Trigger migration again
+		new Config();
+		await delay(500);
 
-	// 	// Check content
-	// 	content = fs.readFileSync(filePath, 'utf-8');
-	// 	if (process.platform === "darwin") {
-	// 		// Assert the migration is done.
-	// 		assert.ok(content === `profile = "default"\nvault = "inline"\n\n[profiles.default]\nregion = "aws/us-east-1"\nvault = "keychain"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n`);
-	// 	} else {
-	// 		assert.ok(content === `profile = "default"\nvault = "inline"\n\n[profiles.default]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n`);
-	// 	}
-	// });
+		// Check content
+		content = fs.readFileSync(filePath, 'utf-8');
+		if (process.platform === "darwin") {
+			// Assert the migration is done.
+			assert.ok(content === `profile = "default"\nvault = "inline"\n\n[profiles.default]\nregion = "aws/us-east-1"\nvault = "keychain"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n`);
+		} else {
+			assert.ok(content === `profile = "default"\nvault = "inline"\n\n[profiles.default]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n`);
+		}
+	});
 
 	test('Configuration file', async () => {
-		// fs.unlinkSync(filePath);
+		try {
+			fs.unlinkSync(filePath);
+		} catch (err) {
+			console.error("Err unlinking: ", err);
+		}
 		const config = new Config();
 		const profile = config.getProfile();
 
