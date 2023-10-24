@@ -44,20 +44,30 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                         await this.context.waitReadyness();
 
                         console.log("[DatabaseTreeProvider]", "Looking up the schema.");
-                        const schema = this.context.getSchema();
-                        if (schema) {
-                            res([
-                                new SourceTab("Sources", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                new ViewTab("Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                new MaterializedViewTab("Materialized Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                new TableTab("Tables", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                new CatalogTab("Catalog", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                new InternalTab("Internal", vscode.TreeItemCollapsibleState.Collapsed, schema)
-                            ]);
+                        const environment = this.context.getEnvironment();
+                        if (environment) {
+                            const { schema: schemaName } = environment;
+                            const { schemas } = environment;
+                            const schema = schemas.find(x => x.name === schemaName);
+                            console.log("SchemaReader: ", schema, schemas, schemaName);
+
+                            if (schema) {
+                                res([
+                                    new SourceTab("Sources", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new ViewTab("Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new MaterializedViewTab("Materialized Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new TableTab("Tables", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new CatalogTab("Catalog", vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new InternalTab("Internal", vscode.TreeItemCollapsibleState.Collapsed, schema)
+                                ]);
+                            } else {
+                                console.error("[DatabaseTreeProvider]", "Error: Wrong state, the schema is missing.");
+                                rej(new Error("The schema is missing."));
+                            }
                         } else {
-                            console.error("[DatabaseTreeProvider]", "Error: Wrong state, the schema is missing.");
-                            rej(new Error("The schema is missing."));
+                            console.error("[DatabaseTreeProvider]", "Error: Wrong state, the environment is missing.");
+                            rej(new Error("The environment is missing."));
                         }
                     } else {
                         res ([]);

@@ -239,7 +239,7 @@ export default class LspClient {
      * Stops the LSP server client.
      * This is useful before installing an upgrade.
      */
-    private stop() {
+    stop() {
         this.client && this.client.stop();
     }
 }
