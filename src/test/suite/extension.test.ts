@@ -151,7 +151,7 @@ suite('Extension Test Suite', () => {
 			// Assert the migration is done.
 			assert.ok(content === `profile = "default"\nvault = "inline"\n\n[profiles.default]\nregion = "aws/us-east-1"\nvault = "keychain"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n`);
 		} else {
-			assert.ok(content === `profile = "default"\nvault = "inline"\n\n[profiles.default]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n`);
+			assert.ok(content === `profile = "default"\nvault = "inline"\n\n[profiles.default]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\nvault = "keychain"\n\n[profiles.alternative]\napp-password = "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af"\nregion = "aws/us-east-1"\n`);
 		}
 	});
 
