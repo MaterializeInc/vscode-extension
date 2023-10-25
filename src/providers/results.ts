@@ -142,6 +142,7 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
         </head>
         <body>
             <div id="container"></div>
+            <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
         </body>
         </html>`;
     }

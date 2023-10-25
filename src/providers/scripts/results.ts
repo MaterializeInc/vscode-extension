@@ -216,4 +216,3 @@
     // Communicate to the provider that the script is ready to render data.
     vscode.postMessage({ type: "ready" });
 }());
-

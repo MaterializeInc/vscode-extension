@@ -4,8 +4,6 @@ import { Context, EventType } from "../context";
 import { getUri } from "../utilities/getUri";
 import AppPassword from "../context/appPassword";
 import { getNonce } from "../utilities/getNonce";
-import ReactDOM from "react-dom/server";
-import React from "react";
 
 // Please update this link if the logo location changes in the future.
 const LOGO_URL: String = "https://materialize.com/svgs/brand-guide/materialize-purple-mark.svg";
@@ -113,19 +111,19 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     this.state.error = message;
                     this.state.isLoading = false;
 
-                    if (this._view) {
-                        this._view.webview.html = this._getHtmlForWebview(this._view.webview);
-                    }
+                    // if (this._view) {
+                    //     this._view.webview.html = this._getHtmlForWebview(this._view.webview);
+                    // }
                     break;
                 }
                 case EventType.newProfiles: {
                     console.log("[AuthProvider]", "New profiles available.");
                     if (this._view) {
                         console.log("[AuthProvider]", "Posting new profiles.");
-                        const profiles = this.context.getProfileNames();
-                        const profile = this.context.getProfileName();
+                        const profilesNames = this.context.getProfileNames();
+                        const profileName = this.context.getProfileName();
 
-                        const thenable = this._view.webview.postMessage({ type: "newProfile", data: { profiles, profile } });
+                        const thenable = this._view.webview.postMessage({ type: "newProfile", data: { profilesNames, profileName } });
                         thenable.then((posted) => {
                             console.log("[AuthProvider]", "Profiles message posted: ", posted);
                         });
@@ -156,7 +154,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                             return;
                         }
                         console.log("[AuthProvider]", "Triggering configuration webview.");
-                        this._view.webview.html = this._getHtmlForWebview(this._view.webview);
+                        const thenable = this._view.webview.postMessage("hey");
+                        // this._view.webview.html = this._getHtmlForWebview(this._view.webview);
                     }
                     break;
                 }
@@ -189,7 +188,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             this.context.addAndSaveProfile(name, appPassword, region.toString());
         } else {
             // Cancel login process.
-            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+            // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
         }
     }
 
@@ -202,16 +201,32 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, 'out'), this._extensionUri]
         };
 
+        console.log("[Auth]", "resolveWebviewView()");
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        webviewView.webview.postMessage("Hello");
 
         // Listen for messages from the Sidebar component and execute action
         webviewView.webview.onDidReceiveMessage(async ({ data, type }) => {
-            console.log("[AuthProvider]", type);
+            console.log("[AuthProvider]", "onDidReceiveMessage", type);
             switch (type) {
+                case "requestContextState": {
+                    console.log("[AuthProvider]", "Context state request.", );
+                    if (this._view) {
+                        console.log("[AuthProvider]", "Posting context state.");
+                        const profilesNames = this.context.getProfileNames();
+                        const profileName = this.context.getProfileName();
+
+                        const thenable = this._view.webview.postMessage({ type: "contextState", data: { profilesNames, profileName } });
+                        thenable.then((posted) => {
+                            console.log("[AuthProvider]", "Context state message posted: ", posted);
+                        });
+                    }
+                    break;
+                }
                 case "onLogin": {
                     const { name } = data;
 
-                    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                    // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     loginServer(name).then((appPasswordResponse) => {
                         this.checkLoginServerResponse(appPasswordResponse, name, webviewView);
                     }).catch((err) => {
@@ -226,18 +241,18 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                         this.checkLoginServerResponse(appPasswordResponse, name, webviewView);
                     }).finally(() => {
                         this.state.isAddNewProfile = false;
-                        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                        // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     });
                     break;
                 }
                 case "onCancelAddProfile": {
                     this.state.isAddNewProfile = false;
-                    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                    // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     break;
                 }
                 case "onAddProfile": {
                     this.state.isAddNewProfile = true;
-                    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                    // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     break;
                 }
                 case "onProfileChange": {
@@ -249,7 +264,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 // Remove Profile:
                 case "onCancelRemoveProfile": {
                     this.state.isRemoveProfile = false;
-                    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                    // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     break;
                 }
                 case "onContinueRemoveProfile": {
@@ -258,7 +273,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     // Set the state loading to true. After the new context is loaded
                     // loading will turn false.
                     this.state.isLoading = true;
-                    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                    // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
                     const name = this.context.getProfileName();
 
@@ -272,7 +287,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 }
                 case "onRemoveProfile": {
                     this.state.isRemoveProfile = true;
-                    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                    // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     break;
                 }
                 case "logInfo": {
@@ -280,7 +295,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     if (!messages) {
                         return;
                     }
-                    console.log("[AuthProvider]", messages);
+                    this._view?.webview.postMessage("JA");
+                    console.log("[Auth/React]", messages);
                     break;
                 }
                 case "logError": {
@@ -288,7 +304,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     if (!error) {
                         return;
                     }
-                    console.error("[AuthProvider]", error);
+                    console.error("[Auth/React]", error);
                     break;
                 }
                 case "onConfigChange": {
@@ -325,168 +341,19 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 		// Do the same for the stylesheet.
         const scriptUri = getUri(webview, this._extensionUri, ["out", "scripts", "index.js"]);
         const nonce = getNonce();
+        console.log("[Auth]", "_getHtmlForWebview", webview.cspSource);
 
         return `<!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
-
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
         </head>
         <body>
             <div id="root">This is a comment!</div>
             <script nonce="${nonce}" src="${scriptUri}"></script>
-            <script>
-                const vscode = acquireVsCodeApi();
-                window.onload = function() {
-                    console.log('Ready to accept data.');
-                };
-            </script>
         </body>
         </html>`;
     }
-
-    // private _getHtmlForWebview(webview: vscode.Webview) {
-	// 	// Do the same for the stylesheet.
-    //     // const webviewUri = getUri(webview, this._extensionUri, ["out", "webview", "index.js"]);
-    //     const scriptUri = getUri(webview, this._extensionUri, ["out", "providers", "scripts", "app.js"]);
-    //     const styleUri = getUri(webview, this._extensionUri, ["resources", "style.css"]);
-
-    //     const config = vscode.workspace.getConfiguration('workbench');
-    //     const currentTheme = config.get<string>('colorTheme');
-    //     const logoUri = getUri(webview, this._extensionUri, ["resources", currentTheme?.includes('Dark') ? "logo.png" : "logo_color.png"]);
-
-	// 	// Use a nonce to only allow a specific script to be run.
-	// 	const nonce = getNonce();
-
-    //     let content = (
-    //         `
-    //         <vscode-text-field id="profileNameInput">Profile Name</vscode-text-field>
-    //         <p id="invalidProfileNameErrorMessage">Profile name must contain only ASCII letters, ASCII digits, underscores, and dashes.</p>
-    //         <div class="setup-container-actions">
-    //             <vscode-button appearence="primary" id="continueProfileButton" class="action_button" disabled=true>Continue</vscode-button>
-    //         </div>
-    //         `
-    //     );
-    //     const profileNames = this.context.getProfileNames();
-
-    //     console.log("[AuthProvider]", this.state, profileNames);
-
-    //     if (profileNames) {
-    //         if (this.state.isAddNewProfile) {
-    //             content = (
-    //                 `<vscode-text-field id="profileNameInput">Profile Name</vscode-text-field>
-    //                 <p id="invalidProfileNameErrorMessage">Profile name must contain only ASCII letters, ASCII digits, underscores, and dashes.</p>
-    //                 <div class="setup-container-actions">
-    //                     <vscode-button class="action_button" appearance="secondary" id="cancelAddProfile">Cancel</vscode-button>
-    //                     <vscode-button class="action_button" id="continueProfileButton"
-    //                     disabled=true>Continue</vscode-button>
-    //                 </div>`
-    //             );
-    //         } else if (this.state.isRemoveProfile) {
-    //             content = (
-    //                 `<div>
-    //                     <p>You are about to remove a profile from your configuration.</p>
-    //                     <p>Please type <b>${this.context.getProfileName()}</b> to confirm: </p>
-    //                     <vscode-text-field id="removeProfileNameInput" confirm-data="${this.context.getProfileName()}"></vscode-text-field>
-    //                     <div class="setup-container-actions">
-    //                         <vscode-button class='action_button' appearance="secondary" id="cancelRemoveProfileButton">Cancel</vscode-button>
-    //                         <vscode-button class='action_button' appearance="primary" id="continueRemoveProfileButton" disabled=true>Remove</vscode-button>
-    //                     </div>
-    //                 </div>`
-    //             );
-    //         } else {
-    //             const database = this.context.getDatabase();
-    //             const schema = this.context.getSchema();
-    //             const cluster = this.context.getCluster();
-    //             const profileName = this.context.getProfileName();
-    //             console.log("[Auth]", this.state.error);
-
-    //             content = (
-    //                 `<div class="profile-container">
-    //                     <!--  The following container is an extract from the guidelines: -->
-    //                     <!--  https://github.com/microsoft/vscode-webview-ui-toolkit/tree/main/src/dropdown#with-label -->
-    //                     <div class="dropdown-container">
-    //                         <label for="profiles">Profile</label>
-    //                         <vscode-dropdown id="profiles" ${this.state.isLoading ? "disabled=true" :""}>
-    //                             <vscode-option>${(profileName)}</vscode-option>
-    //                             ${profileNames.filter(name => name !== profileName).map((name) => `<vscode-option>${name}</vscode-option>`).join('')}
-    //                         </vscode-dropdown>
-    //                     </div>
-    //                     <div class="setup-container-actions">
-    //                         <vscode-button class='action_button' appearance="secondary" id="removeProfileButton" aria-label="Remove Profile">
-    //                             Remove
-    //                         </vscode-button>
-    //                         <vscode-button class='action_button' id="addProfileButton" appearance="primary" aria-label="Add Profile">
-    //                             Add
-    //                         </vscode-button>
-    //                     </div>
-    //                     <vscode-divider></vscode-divider>
-    //                     ${this.state.error ? `<p class="profileErrorMessage">${this.state.error}</p>`: ""}
-    //                     ${this.state.isLoading ? `<vscode-progress-ring id="loading-ring"></vscode-progress-ring>` : ""}
-    //                     ${(!this.state.isLoading && !this.state.error) ? "<span id='options-title'>Connection Options</span>": ""}
-    //                     ${(!this.state.isLoading && !this.state.error) ? `
-    //                         <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
-    //                             <div class="dropdown-container">
-    //                                 <label for="clusters">Cluster</label>
-    //                                 <vscode-dropdown id="clusters">
-    //                                     <vscode-option>${cluster?.name}</vscode-option>
-    //                                     ${(this.context.getClusters() || []).filter(x => x.name !== cluster?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
-    //                                 </vscode-dropdown>
-    //                             </div>
-    //                         </div>
-    //                         <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
-    //                             <div class="dropdown-container">
-    //                                 <label for="databases">Database</label>
-    //                                 <vscode-dropdown id="databases">
-    //                                     <vscode-option>${database && database.name}</vscode-option>
-    //                                     ${(this.context.getDatabases() || []).filter(x => x.name !== database?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
-    //                                 </vscode-dropdown>
-    //                             </div>
-    //                         </div>
-    //                         <div class="setup-container ${this.state.isLoading ? "invisible" :""}">
-    //                             <div class="dropdown-container">
-    //                                 <label for="schemas">Schema</label>
-    //                                     <vscode-dropdown id="schemas">
-    //                                         <vscode-option>${schema && schema.name}</vscode-option>
-    //                                         ${(this.context.getSchemas() || []).filter(x => x.name !== schema?.name).map(({name}) => `<vscode-option>${name}</vscode-option>`).join('')}
-    //                                     </vscode-dropdown>
-    //                             </div>
-    //                         </div>
-    //                     `: ""}
-    //                 </div>
-    //             `);
-    //         }
-    //     };
-
-    //     return `<!DOCTYPE html>
-    //     <html lang="en">
-    //     <head>
-    //         <meta charset="UTF-8">
-
-    //         <!--
-    //             Use a content security policy to only allow loading styles from our extension directory,
-    //             and only allow scripts that have a specific nonce.
-    //             (See the 'webview-sample' extension sample for img-src content secsurity policy examples)
-    //         -->
-    //         <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https:; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
-    //         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    //         <link href="${styleUri}" rel="stylesheet">
-
-    //         <title>Materialize Profile</title>
-    //     </head>
-    //     <body>
-    //         <div id="container">
-    //             <div id="logoContainer">
-    //                 <img id="logo" src="${logoUri}" alt="Materialize Logo" />
-    //             </div>
-    //             ${content}
-    //         </div>
-
-    //         <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
-    //     </body>
-    //     </html>`;
-    // }
-}
+};

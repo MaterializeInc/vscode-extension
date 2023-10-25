@@ -27,7 +27,6 @@ window.addEventListener("message", (data) => {
 const elm = document.querySelector("#root");
 
 if (elm) {
-  elm.innerHTML = "<div>Hi</div>";
-  vscode.postMessage({ type: "requestContextState" });
-  // elm.innerHTML = Server.renderToString(<ContextProvider><Profile /></ContextProvider>);
+    elm.innerHTML = "<div>Hello</div>";
+//   elm.innerHTML = Server.renderToString(<ContextProvider><Profile /></ContextProvider>);
 }
