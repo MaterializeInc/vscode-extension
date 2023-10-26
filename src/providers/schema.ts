@@ -52,14 +52,21 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                             console.log("SchemaReader: ", schema, schemas, schemaName);
 
                             if (schema) {
+                                const sourceCount = await this.getSources(schema.id).then(s => s.length);
+                                const viewCount = await this.getViews(schema.id).then(v => v.length);
+                                const materializedViewCount = await this.getMaterializedViews(schema.id).then(mv => mv.length);
+                                const tableCount = await this.getTables(schema.id).then(t => t.length);
+                                const sinkCount = await this.getSinks(schema.id).then(s => s.length);
+                                const catalogCount = await this.getCatalog().then(c => c.length);
+                                const internalCount = await this.getInternal().then(i => i.length);
                                 res([
-                                    new SourceTab("Sources", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new ViewTab("Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new MaterializedViewTab("Materialized Views", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new TableTab("Tables", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new SinkTab("Sinks", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new CatalogTab("Catalog", vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new InternalTab("Internal", vscode.TreeItemCollapsibleState.Collapsed, schema)
+                                    new SourceTab(`Sources (${sourceCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new ViewTab(`Views (${viewCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new MaterializedViewTab(`Materialized Views (${materializedViewCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new TableTab(`Tables (${tableCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new SinkTab(`Sinks (${sinkCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new CatalogTab(`Catalog (${catalogCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                    new InternalTab(`Internal (${internalCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema)
                                 ]);
                             } else {
                                 console.error("[DatabaseTreeProvider]", "Error: Wrong state, the schema is missing.");
@@ -145,29 +152,29 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
     }
 
     private async getSources(schema: String): Promise<Array<Node>> {
-        const views: Promise<Array<Node>> = new Promise((res, rej) => {
-            this.query("SELECT id, name, owner_id FROM mz_sinks WHERE schema_id = $1", [schema]).then((results) => {
-                let views = results.map(({ id, name, owner_id: ownerId }) => {
+        const sources: Promise<Array<Node>> = new Promise((res, rej) => {
+            this.query("SELECT id, name, owner_id FROM mz_sources WHERE schema_id = $1", [schema]).then((results) => {
+                let sources = results.map(({ id, name, owner_id: ownerId }) => {
                     return new View(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
                 });
-                res(views);
+                res(sources);
             }).catch(rej);
         });
 
-        return views;
+        return sources;
     }
 
     private async getSinks(schema: String): Promise<Array<Node>> {
-        const views: Promise<Array<Node>> = new Promise((res, rej) => {
+        const sinks: Promise<Array<Node>> = new Promise((res, rej) => {
             this.query("SELECT id, name, owner_id FROM mz_sinks WHERE schema_id = $1", [schema]).then((results) => {
-                let views = results.map(({ id, name, owner_id: ownerId }) => {
+                let sinks = results.map(({ id, name, owner_id: ownerId }) => {
                     return new View(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
                 });
-                res(views);
+                res(sinks);
             }).catch(rej);
         });
 
-        return views;
+        return sinks;
     }
 
     private async getViews(schema: String): Promise<Array<Node>> {
