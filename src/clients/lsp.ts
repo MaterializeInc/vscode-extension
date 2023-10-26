@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
 import path from "path";
+import * as vscode from "vscode";
 import {
     Executable,
     LanguageClient,
@@ -175,6 +176,29 @@ export default class LspClient {
     }
 
     /**
+     * Listens to configuration changes in VS Code.
+     * If it is related to the formatting width,
+     * it will restart the LSP to use the new value.
+     */
+    private listenConfigurationChanges() {
+        vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('materialize.formattingWidth')) {
+                console.log("[LSP]", "Formatting width has changed.");
+
+                // Restart client.
+                if (this.client) {
+                    this.client.onReady().then(() => {
+                        this.stop();
+                        this.startClient();
+                    }).catch(() => {
+
+                    });
+                }
+            }
+        });
+    }
+
+    /**
      * Starts the LSP Client and checks for upgrades.
      * @param serverPath
      */
@@ -189,13 +213,26 @@ export default class LspClient {
             run,
             debug: run,
         };
+        const configuration = vscode.workspace.getConfiguration('materialize');
+        const formattingWidth = configuration.get('formattingWidth');
+        console.log("[LSP]", "Formatting width: ", formattingWidth);
         let clientOptions: LanguageClientOptions = {
-            documentSelector: [{ scheme: "file", language: "materialize-sql"}]
+            documentSelector: [{ scheme: "file", language: "materialize-sql"}],
+            initializationOptions: {
+                formattingWidth,
+            }
         };
 
         // Create the language client and start the client.
         this.client = new LanguageClient("materialize-language-server", "Materialize language server", serverOptions, clientOptions);
         this.client.start();
+
+        this.client.onReady()
+            .then(() => {
+                console.log("[LSP]", "Client ready.");
+                this.listenConfigurationChanges();
+            })
+            .catch(err => console.error("[LSP]", "Error waiting onReady(): ", err));
     }
 
     /**
@@ -206,6 +243,7 @@ export default class LspClient {
             if (this.client) {
                 await this.client.onReady();
                 const version = this.client.initializeResult?.serverInfo?.version;
+                console.log("[LSP]", "Initialize result: ", this.client.initializeResult);
                 if (version) {
                     const installedSemVer = new SemVer(version);
                     const latestSemVer = new SemVer(await this.fetchLatestVersionNumber());
