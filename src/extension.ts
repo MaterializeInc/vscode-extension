@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { AuthProvider, ResultsProvider, DatabaseTreeProvider } from './providers';
+import { AuthProvider, ResultsProvider, DatabaseTreeProvider, ActivityLogTreeProvider } from './providers';
 import { Context, EventType } from './context';
 import { randomUUID } from 'crypto';
 
@@ -9,6 +9,10 @@ let context: Context;
 export function activate(vsContext: vscode.ExtensionContext) {
     console.log("[Extension]", "Activating Materialize extension.");
     context = new Context();
+
+    // Register the activity log
+    const activityLogProvider = new ActivityLogTreeProvider();
+    vscode.window.registerTreeDataProvider('activityLog', activityLogProvider);
 
     // Register the database explorer
 	const databaseTreeProvider = new DatabaseTreeProvider(context);
@@ -76,11 +80,22 @@ export function activate(vsContext: vscode.ExtensionContext) {
                 } else {
                     context.emit("event", { type: EventType.queryResults, data: { ...results, elapsedTime, id } });
                 }
+                activityLogProvider.addLog({
+                    status: "success",
+                    latency: elapsedTime, // assuming elapsedTime holds the time taken for the query to execute
+                    sql: query
+                });
             } catch (error: any) {
                 console.log("[RunSQLCommand]", error.toString());
                 console.log("[RunSQLCommand]", JSON.stringify(error));
                 const endTime = Date.now();
                 const elapsedTime = endTime - startTime;
+
+                activityLogProvider.addLog({
+                    status: "failure",
+                    latency: elapsedTime, // assuming elapsedTime holds the time taken before the error was caught
+                    sql: query
+                });
 
                 context.emit("event", { type: EventType.queryResults, data: { id, rows: [], fields: [], error: {
                     message: error.toString(),
@@ -106,6 +121,17 @@ export function activate(vsContext: vscode.ExtensionContext) {
 
     vsContext.subscriptions.push(runDisposable);
     vsContext.subscriptions.push(copyDisposable);
+
+    let copySQLDisposable = vscode.commands.registerCommand('extension.copySQL', (sql: string) => {
+        vscode.env.clipboard.writeText(sql).then(() => {
+            vscode.window.showInformationMessage('SQL copied to clipboard!');
+        }, err => {
+            vscode.window.showErrorMessage('Failed to copy SQL to clipboard.');
+        });
+    });
+
+    vsContext.subscriptions.push(copySQLDisposable);
+
     return context;
 }
 

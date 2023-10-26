@@ -119,6 +119,12 @@
           "name": "Explorer",
           "icon": "",
           "contextualTitle": "Explorer"
+        },
+        {
+          "id": "activityLog",
+          "name": "Activity Log",
+          "icon": "",
+          "contextualTitle": "Activity Log"
         }
       ],
       "materializePanelContainer": [
@@ -149,6 +155,15 @@
       {
         "command": "materialize.copy",
         "title": "Copy",
+        "category": "materialize",
+        "icon": {
+          "light": "resources/clip_light.svg",
+          "dark": "resources/clip_dark.svg"
+        }
+      },
+      {
+        "command": "extension.copySQL",
+        "title": "Copy SQL",
         "category": "materialize",
         "icon": {
           "light": "resources/clip_light.svg",
