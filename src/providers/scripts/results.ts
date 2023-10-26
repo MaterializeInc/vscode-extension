@@ -65,9 +65,19 @@
                 const { data: results } = message;
                 console.log("[Results.js]", "New message - Results: ", results);
 
-                const { command, fields, rows, error } = results;
+                const { command, fields, rows, error, elapsedTime } = results;
                 const tableId = "table";
                 let table = document.getElementById(tableId);
+
+                // Elapsed time message
+                const elapsedTimeCommandMessageContainer = document.createElement("div");
+                const elapsedMessage = `Time elapsed: ${elapsedTime}ms`;
+
+                const elapsedTimeCommandTextElement = document.createElement("p");
+                elapsedTimeCommandTextElement.style.fontWeight = "300";
+                elapsedTimeCommandTextElement.style.fontSize = "12px";
+                elapsedTimeCommandTextElement.innerHTML = elapsedMessage;
+                elapsedTimeCommandMessageContainer.appendChild(elapsedTimeCommandTextElement);
 
                 if (error) {
                     const errorContainer = document.createElement("div");
@@ -159,6 +169,11 @@
                     container.appendChild(table);
                 }
 
+                if (typeof elapsedTime === "number" || typeof elapsedTime === "string") {
+                    // Append the elapsed time to the container.
+                    container.appendChild(elapsedTimeCommandMessageContainer);
+                }
+
                 // Create data rows
                 // Loop through the data and create rows and cells
                 if (rows && rows.length > 0) {
@@ -193,7 +208,7 @@
                         </svg>
                     `;
 
-                    // Message
+                    // Success message
                     const successCommandMessageContainer = document.createElement("div");
                     const successMessage = `Successful execution of the ${capitalizeFirstLetter(command)} statement.`;
 

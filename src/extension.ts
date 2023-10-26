@@ -61,12 +61,11 @@ export function activate(vsContext: vscode.ExtensionContext) {
             const id = randomUUID();
             context.emit("event", { type: EventType.newQuery, data: { id } });
 
+            // Benchmark
+            const startTime = Date.now();
             try {
-                // Benchmark
-                const startTime = Date.now();
                 const results = await context.query(query);
                 const endTime = Date.now();
-
                 const elapsedTime = endTime - startTime;
 
                 console.log("[RunSQLCommand]", "Results: ", results);
@@ -80,12 +79,14 @@ export function activate(vsContext: vscode.ExtensionContext) {
             } catch (error: any) {
                 console.log("[RunSQLCommand]", error.toString());
                 console.log("[RunSQLCommand]", JSON.stringify(error));
+                const endTime = Date.now();
+                const elapsedTime = endTime - startTime;
 
                 context.emit("event", { type: EventType.queryResults, data: { id, rows: [], fields: [], error: {
                     message: error.toString(),
                     position: error.position,
                     query,
-                }}});
+                }, elapsedTime }});
             } finally {
                 resultsProvider._view?.show();
             }
