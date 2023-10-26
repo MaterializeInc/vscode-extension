@@ -20,7 +20,8 @@ export default class ActivityLogTreeProvider implements vscode.TreeDataProvider<
 
     getChildren(element?: ActivityLogNode): Thenable<ActivityLogNode[]> {
         if (!element) {
-            return Promise.resolve(this.logs.map(log => new ActivityLogNode(log)));
+            // Revert the logs to show the newest ones at the top
+            return Promise.resolve(this.logs.slice().reverse().map(log => new ActivityLogNode(log)));
         }
         return Promise.resolve([]);
     }
@@ -34,9 +35,14 @@ interface ActivityLog {
 
 class ActivityLogItem extends vscode.TreeItem {
     constructor(public readonly log: ActivityLog) {
-        super(log.sql, vscode.TreeItemCollapsibleState.None);
-        this.description = `${log.status === "success" ? "✅" : "❌"} | Latency: ${log.latency}ms`;
-        this.tooltip = log.sql;
+        // Shorten the displayed query if it's too long
+        const shortSQL = log.sql.length > 50 ? log.sql.substring(0, 50) + "..." : log.sql;
+        super(`${log.status === "success" ? "✅" : "❌"} ${shortSQL}`, vscode.TreeItemCollapsibleState.None);
+
+        // Update the description to display latency with a stopwatch emoji.
+        this.description = `⏱️ ${log.latency}ms`;
+
+        this.tooltip = `${log.sql} | Latency: ${log.latency}ms`;
         this.contextValue = 'activityLogItem';
 
         // Copy SQL command to clipboard
