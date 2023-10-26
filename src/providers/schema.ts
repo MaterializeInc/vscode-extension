@@ -52,13 +52,26 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                             console.log("SchemaReader: ", schema, schemas, schemaName);
 
                             if (schema) {
-                                const sourceCount = await this.getSources(schema.id).then(s => s.length);
-                                const viewCount = await this.getViews(schema.id).then(v => v.length);
-                                const materializedViewCount = await this.getMaterializedViews(schema.id).then(mv => mv.length);
-                                const tableCount = await this.getTables(schema.id).then(t => t.length);
-                                const sinkCount = await this.getSinks(schema.id).then(s => s.length);
-                                const catalogCount = await this.getCatalog().then(c => c.length);
-                                const internalCount = await this.getInternal().then(i => i.length);
+                                const promises = [
+                                    this.getSources(schema.id).then(s => s.length),
+                                    this.getViews(schema.id).then(v => v.length),
+                                    this.getMaterializedViews(schema.id).then(mv => mv.length),
+                                    this.getTables(schema.id).then(t => t.length),
+                                    this.getSinks(schema.id).then(s => s.length),
+                                    this.getCatalog().then(c => c.length),
+                                    this.getInternal().then(i => i.length)
+                                ];
+
+                                const [
+                                    sourceCount,
+                                    viewCount,
+                                    materializedViewCount,
+                                    tableCount,
+                                    sinkCount,
+                                    catalogCount,
+                                    internalCount
+                                ] = await Promise.all(promises);
+
                                 res([
                                     new SourceTab(`Sources (${sourceCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
                                     new ViewTab(`Views (${viewCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
