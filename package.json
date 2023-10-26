@@ -28,6 +28,16 @@
   "pricing": "Free",
   "icon": "resources/icon.png",
   "contributes": {
+    "configuration": {
+      "title": "Materialize",
+      "properties": {
+        "materialize.formattingWidth": {
+          "type": "number",
+          "default": 60,
+          "description": "Maximum width for formatting code."
+        }
+      }
+    },
     "languages": [
       {
         "id": "materialize-sql",
