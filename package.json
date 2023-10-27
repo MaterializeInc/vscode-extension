@@ -33,7 +33,7 @@
       "properties": {
         "materialize.formattingWidth": {
           "type": "number",
-          "default": 60,
+          "default": 100,
           "description": "Maximum width for formatting code."
         }
       }
