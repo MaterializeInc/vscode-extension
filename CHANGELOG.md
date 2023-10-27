@@ -2,6 +2,20 @@
 
 All notable changes to the Materialize extension for Visual Studio Code will be documented in this file.
 
+## [0.2.0] - 2023-10-27
+
+### Added
+ - MacOS support for Keychain.
+ - Queries activity log.
+ - Elapsed time available in the queries panel.
+ - Schema explorer object counts per each object type.
+
+### Fixed
+ - Staging environments connections are now working.
+ - Play icon size has been corrected.
+ - Fix for expired tokens
+ - Notifies the user when no profile is available
+
 ## [0.1.2] - 2023-10-06
 
 ### Added
