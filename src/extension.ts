@@ -43,6 +43,13 @@ export function activate(vsContext: vscode.ExtensionContext) {
     // Register the `Run SQL` command.
     let runDisposable = vscode.commands.registerCommand('materialize.run', async () => {
         console.log("[RunSQLCommand]", "Firing detected.");
+
+        // Check for available profile before proceeding.
+        if (!context.getProfileName()) {
+            vscode.window.showErrorMessage('No available profile to run the query.');
+            return;
+        }
+
         const activeEditor = vscode.window.activeTextEditor;
         if (!activeEditor) {
             vscode.window.showErrorMessage('No active editor.');
