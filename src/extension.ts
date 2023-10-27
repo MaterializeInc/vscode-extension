@@ -11,7 +11,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
     context = new Context();
 
     // Register the activity log
-    const activityLogProvider = new ActivityLogTreeProvider();
+    const activityLogProvider = new ActivityLogTreeProvider(vsContext);
     vscode.window.registerTreeDataProvider('activityLog', activityLogProvider);
 
     // Register the database explorer
@@ -123,11 +123,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
     vsContext.subscriptions.push(copyDisposable);
 
     let copySQLDisposable = vscode.commands.registerCommand('extension.copySQL', (sql: string) => {
-        vscode.env.clipboard.writeText(sql).then(() => {
-            vscode.window.showInformationMessage('SQL copied to clipboard!');
-        }, err => {
-            vscode.window.showErrorMessage('Failed to copy SQL to clipboard.');
-        });
+        vscode.env.clipboard.writeText(sql);
     });
 
     vsContext.subscriptions.push(copySQLDisposable);

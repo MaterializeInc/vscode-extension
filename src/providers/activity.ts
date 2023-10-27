@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import Context, { EventType } from '../context/context';
-import path = require('path');
 
 export default class ActivityLogTreeProvider implements vscode.TreeDataProvider<ActivityLogNode> {
 
@@ -9,8 +7,19 @@ export default class ActivityLogTreeProvider implements vscode.TreeDataProvider<
 
     private logs: ActivityLog[] = [];
 
+    constructor(private context: vscode.ExtensionContext) {
+        this.logs = this.context.globalState.get('activityLogs') || [];
+    }
+
     addLog(log: ActivityLog) {
         this.logs.push(log);
+
+        // Remove the oldest log if we have more than 100
+        if (this.logs.length > 100) {
+            this.logs.shift();
+        }
+
+        this.context.globalState.update('activityLogs', this.logs);
         this._onDidChangeTreeData.fire();
     }
 
