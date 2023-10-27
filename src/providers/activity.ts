@@ -54,8 +54,8 @@ class ActivityLogItem extends vscode.TreeItem {
         const iconName = log.status === "success" ? "success_icon.svg" : "error_icon.svg";
         this.iconPath = vscode.Uri.file(path.join(__dirname, '..', 'resources', iconName));
 
-        // Update the description to display latency with a stopwatch emoji.
-        this.description = `⏱️ ${log.latency}ms`;
+        // Set the description to the query latency
+        this.description = `${log.latency}ms`;
 
         this.tooltip = `${log.sql} | Latency: ${log.latency}ms`;
         this.contextValue = 'activityLogItem';
