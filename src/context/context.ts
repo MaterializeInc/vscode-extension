@@ -50,6 +50,7 @@ export class Context extends EventEmitter {
 
         // If there is no profile loaded skip, do not load a context.
         if (!profile) {
+            this.loaded = true;
             return;
         }
 
@@ -242,20 +243,20 @@ export class Context extends EventEmitter {
         return this.config.getProfileName();
     }
 
-    addAndSaveProfile(name: string, appPassword: AppPassword, region: string) {
-        this.config.addAndSaveProfile(name, appPassword, region);
-        this.loadContext();
+    async addAndSaveProfile(name: string, appPassword: AppPassword, region: string) {
+        await this.config.addAndSaveProfile(name, appPassword, region);
+        await this.loadContext();
     }
 
-    removeAndSaveProfile(name: string) {
+    async removeAndSaveProfile(name: string) {
         this.config.removeAndSaveProfile(name);
-        this.loadContext();
+        await this.loadContext();
     }
 
-    setProfile(name: string) {
+    async setProfile(name: string) {
         this.config.setProfile(name);
         this.environment = undefined;
-        this.loadContext();
+        await this.loadContext();
     }
 
     handleErr(err: Error) {
