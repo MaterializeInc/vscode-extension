@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 
 export default class ActivityLogTreeProvider implements vscode.TreeDataProvider<ActivityLogNode> {
 
@@ -46,7 +47,12 @@ class ActivityLogItem extends vscode.TreeItem {
     constructor(public readonly log: ActivityLog) {
         // Shorten the displayed query if it's too long
         const shortSQL = log.sql.length > 50 ? log.sql.substring(0, 50) + "..." : log.sql;
-        super(`${log.status === "success" ? "✅" : "❌"} ${shortSQL}`, vscode.TreeItemCollapsibleState.None);
+
+        super(shortSQL, vscode.TreeItemCollapsibleState.None);
+
+        // Set iconPath based on the status
+        const iconName = log.status === "success" ? "success_icon.svg" : "error_icon.svg";
+        this.iconPath = vscode.Uri.file(path.join(__dirname, '..', 'resources', iconName));
 
         // Update the description to display latency with a stopwatch emoji.
         this.description = `⏱️ ${log.latency}ms`;
