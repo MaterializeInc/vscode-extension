@@ -170,7 +170,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
      * @param name name of the profile.
      * @param webviewView webview of the provider.
      */
-    checkLoginServerResponse(
+    async checkLoginServerResponse(
         appPasswordResponse: AppPasswordResponse | undefined,
         name: string,
         webviewView: vscode.WebviewView
@@ -184,7 +184,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             // Set the state loading to true. After the new context is loaded
             // loading will turn false.
             this.state.isLoading = true;
-            this.context.addAndSaveProfile(name, appPassword, region.toString());
+            await this.context.addAndSaveProfile(name, appPassword, region.toString());
         } else {
             // Cancel login process.
             webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
@@ -211,10 +211,14 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 
                     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     loginServer(name).then((appPasswordResponse) => {
-                        this.checkLoginServerResponse(appPasswordResponse, name, webviewView);
+                        this.checkLoginServerResponse(appPasswordResponse, name, webviewView).then(() => {
+                            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                        });
                     }).catch((err) => {
                         console.error("Error setting up the server: ", err);
                         vscode.window.showErrorMessage('Internal error while waiting for the credentials.');
+                        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+
                     });
                     break;
                 }
@@ -261,7 +265,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     const name = this.context.getProfileName();
 
                     if (name) {
-                        this.context.removeAndSaveProfile(name);
+                        await this.context.removeAndSaveProfile(name);
                     } else {
                         console.error("[Auth]", "Profile name is not available.");
                     }
@@ -332,9 +336,10 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 		// Use a nonce to only allow a specific script to be run.
 		const nonce = getNonce();
 
+        console.log("Is loading: ", this.state.isLoading);
         let content = (
             `
-            <vscode-text-field id="profileNameInput">Profile Name</vscode-text-field>
+            <vscode-text-field id="profileNameInput" ${this.state.isLoading ? "disabled": ""}>Profile Name</vscode-text-field>
             <p id="invalidProfileNameErrorMessage">Profile name must contain only ASCII letters, ASCII digits, underscores, and dashes.</p>
             <div class="setup-container-actions">
                 <vscode-button appearence="primary" id="continueProfileButton" class="action_button" disabled=true>Continue</vscode-button>
