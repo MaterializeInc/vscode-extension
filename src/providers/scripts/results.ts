@@ -40,6 +40,10 @@
         return capitalized;
     };
 
+    let timer: any;
+    let elapsedTime: number = 0;
+    let timerElement: HTMLElement | null = null;
+
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', ({ data: message }) => {
         const { type } = message;
@@ -57,6 +61,29 @@
                     const progressRing = document.createElement("vscode-progress-ring");
                     progressRing.id = "progress-ring";
                     container.appendChild(progressRing);
+
+                    elapsedTime = 0;
+                    // Dynamically create the timer div if it doesn't exist
+                    if (!timerElement) {
+                        timerElement = document.createElement('div');
+                        timerElement.id = 'timer';
+                        timerElement.style.fontWeight = "300";
+                        timerElement.style.fontSize = "12px";
+                        timerElement.style.paddingTop = "0.5rem";
+                        document.body.appendChild(timerElement);
+                    }
+                    // Reset and show the timer content
+                    timerElement.textContent = 'Time elapsed: 00:00';
+                    timerElement.style.display = 'block';
+                    clearInterval(timer);
+                    timer = setInterval(() => {
+                        elapsedTime++;
+                        const minutes = Math.floor(elapsedTime / 60);
+                        const seconds = elapsedTime % 60;
+                        if (timerElement) {
+                            timerElement.textContent = `Time elapsed: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                        }
+                    }, 1000);
                     break;
                 }
 
@@ -74,6 +101,10 @@
                     let table = document.getElementById(tableId);
 
                     // Elapsed time message
+                    clearInterval(timer);
+                    if (timerElement) {
+                        timerElement.style.display = 'none';
+                    }
                     console.log("[Results]", "Elapsed time: ", elapsedTime);
                     const elapsedTimeCommandMessageContainer = document.createElement("div");
                     const elapsedMessage = `Time elapsed: ${elapsedTime}ms`;
@@ -246,4 +277,3 @@
     // Communicate to the provider that the script is ready to render data.
     vscode.postMessage({ type: "ready" });
 }());
-
