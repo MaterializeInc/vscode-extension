@@ -3,8 +3,9 @@ import { AdminClient, CloudClient, SqlClient } from "../clients";
 import { Config } from "./config";
 import { MaterializeObject, MaterializeSchemaObject } from "../providers/schema";
 import AppPassword from "./appPassword";
-import LspClient from "../clients/lsp";
+import LspClient, { ExecuteCommandParseStatement } from "../clients/lsp";
 import { Errors, ExtensionError } from "../utilities/error";
+import { PoolClient } from "pg";
 
 export enum EventType {
     newProfiles,
@@ -211,6 +212,16 @@ export class Context extends EventEmitter {
         return await client.query(text, vals);
     }
 
+    /**
+     * This method is NOT recommended to use.
+     * Make sure to understand clients from the pool lifecycle.
+     * @returns a client from the pool.
+     */
+    async poolClient(): Promise<PoolClient> {
+        const client = await this.getSqlClient();
+        return await client.poolClient();
+    }
+
     getClusters(): MaterializeObject[] | undefined {
         return this.environment?.clusters;
     }
@@ -257,6 +268,10 @@ export class Context extends EventEmitter {
         this.config.setProfile(name);
         this.environment = undefined;
         await this.loadContext();
+    }
+
+    async parseSql(sql: string): Promise<Array<ExecuteCommandParseStatement>> {
+        return this.lspClient.parseSql(sql);
     }
 
     handleErr(err: Error) {

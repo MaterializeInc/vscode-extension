@@ -97,6 +97,17 @@ export default class SqlClient {
         };
     }
 
+    /**
+     * Returns a client from the pool.
+     * The request must call `done()` to free the client after using it..
+     */
+    async poolClient() {
+        const pool = await this.pool;
+        const client = await pool.connect();
+
+        return client;
+    }
+
     async query(statement: string, values?: Array<any>): Promise<QueryResult<any>> {
         const pool = await this.pool;
         const results = await pool.query(statement, values);
