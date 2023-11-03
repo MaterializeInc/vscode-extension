@@ -100,7 +100,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
     }
 
     private async query(text: string, vals?: Array<any>): Promise<Array<any>> {
-        const { rows } =  await this.context.query(text, vals);
+        const { rows } =  await this.context.internalQuery(text, vals);
 
         return rows;
     }

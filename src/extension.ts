@@ -62,6 +62,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
             const selection = activeEditor.selection;
             const textSelected = activeEditor.document.getText(selection).trim();
             const query = textSelected ? textSelected : document.getText();
+            const fileName = document.fileName;
 
             // Identify the query to not overlap results.
             // When a user press many times the run query button
@@ -73,7 +74,6 @@ export function activate(vsContext: vscode.ExtensionContext) {
                 // Clean the results by emitting a newQuery event.
                 context.emit("event", { type: EventType.newQuery, data: { id } });
 
-                const poolClient = await context.poolClient();
                 try {
                     const statements = await context.parseSql(query);
 
@@ -86,7 +86,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
                         // Benchmark
                         const startTime = Date.now();
                         try {
-                            const results = await poolClient.query(statement.sql);
+                            const results = await context.privateQuery(statement.sql);
                             const endTime = Date.now();
                             const elapsedTime = endTime - startTime;
 
@@ -136,7 +136,6 @@ export function activate(vsContext: vscode.ExtensionContext) {
                     }, elapsedTime: undefined }});
 
                     console.error("[RunSQLCommand]", "Error running statement: ", err);
-                    poolClient.release();
                 }
             } catch (err) {
                 context.emit("event", { type: EventType.queryResults, data: { id, rows: [], fields: [], error: {

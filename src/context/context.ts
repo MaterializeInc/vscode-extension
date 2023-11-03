@@ -5,7 +5,6 @@ import { MaterializeObject, MaterializeSchemaObject } from "../providers/schema"
 import AppPassword from "./appPassword";
 import LspClient, { ExecuteCommandParseStatement } from "../clients/lsp";
 import { Errors, ExtensionError } from "../utilities/error";
-import { PoolClient } from "pg";
 
 export enum EventType {
     newProfiles,
@@ -92,6 +91,10 @@ export class Context extends EventEmitter {
         } else if (!profile) {
             throw new Error(Errors.unconfiguredProfile);
         } else {
+            // Clean the previous [SqlClient] connection.
+            if (this.sqlClient) {
+                this.sqlClient.end();
+            }
             this.sqlClient = new SqlClient(this.adminClient, this.cloudClient, profile, this);
             this.sqlClient.connectErr().catch((err) => {
                 console.error("[Context]", "Sql Client connect err: ", err);
@@ -101,12 +104,12 @@ export class Context extends EventEmitter {
             // Set environment
             if (!this.environment) {
                 const environmentPromises = [
-                    this.query("SHOW CLUSTER;"),
-                    this.query("SHOW DATABASE;"),
-                    this.query("SHOW SCHEMA;"),
-                    this.query(`SELECT id, name, owner_id as "ownerId" FROM mz_clusters;`),
-                    this.query(`SELECT id, name, owner_id as "ownerId" FROM mz_databases;`),
-                    this.query(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas`),
+                    this.internalQuery("SHOW CLUSTER;"),
+                    this.internalQuery("SHOW DATABASE;"),
+                    this.internalQuery("SHOW SCHEMA;"),
+                    this.internalQuery(`SELECT id, name, owner_id as "ownerId" FROM mz_clusters;`),
+                    this.internalQuery(`SELECT id, name, owner_id as "ownerId" FROM mz_databases;`),
+                    this.internalQuery(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas`),
                 ];
 
                 try {
@@ -141,8 +144,8 @@ export class Context extends EventEmitter {
                 // TODO: Improve this code.
                 console.log("[Context]", "Reloading schema.");
                 const schemaPromises = [
-                    this.query("SHOW SCHEMA;"),
-                    this.query(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas`)
+                    this.internalQuery("SHOW SCHEMA;"),
+                    this.internalQuery(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas`)
                 ];
                 const [
                     { rows: [{ schema }] },
@@ -206,20 +209,16 @@ export class Context extends EventEmitter {
         this.lspClient.stop();
     }
 
-    async query(text: string, vals?: Array<any>) {
+    async internalQuery(text: string, vals?: Array<any>) {
         const client = await this.getSqlClient();
 
-        return await client.query(text, vals);
+        return await client.internalQuery(text, vals);
     }
 
-    /**
-     * This method is NOT recommended to use.
-     * Make sure to understand clients from the pool lifecycle.
-     * @returns a client from the pool.
-     */
-    async poolClient(): Promise<PoolClient> {
+    async privateQuery(text: string, vals?: Array<any>) {
         const client = await this.getSqlClient();
-        return await client.poolClient();
+
+        return await client.privateQuery(text, vals);
     }
 
     getClusters(): MaterializeObject[] | undefined {
