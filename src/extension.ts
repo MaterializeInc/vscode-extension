@@ -130,7 +130,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
                     }
                 } catch (err) {
                     context.emit("event", { type: EventType.queryResults, data: { id, rows: [], fields: [], error: {
-                        message: "Syntax errors are present in your code. For more information, please check the \"Problems\" tab.",
+                        message: "Syntax errors are present. For more information, please refer to the \"Problems\" tab.",
                         position: undefined,
                         query,
                     }, elapsedTime: undefined }});
