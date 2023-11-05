@@ -99,7 +99,14 @@ export default class SqlClient {
 
     async query(statement: string, values?: Array<any>): Promise<QueryResult<any>> {
         const pool = await this.pool;
-        const results = await pool.query(statement, values);
+        // Row mode is a must.
+        // Otherwise when two columns have the same name, one is dropped
+        // Issue: https://github.com/brianc/node-postgres/issues/280
+        const results = await pool.query({
+            rowMode: "array",
+            text: statement,
+            values
+        });
 
         return results;
     }
