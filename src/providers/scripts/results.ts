@@ -177,6 +177,9 @@
                         // Append the header row to the table
                         table.appendChild(headerRow);
 
+                        // Fix for: https://github.com/microsoft/vscode-webview-ui-toolkit/issues/473
+                        table.style.display = "grid";
+
                         // Append the table to the document body or a container element
                         container.appendChild(table);
                     }
