@@ -62,6 +62,9 @@
                     progressRing.id = "progress-ring";
                     container.appendChild(progressRing);
 
+                    // Record the start time of the query
+                    let startTime = Date.now();
+
                     elapsedTime = 0;
                     // Dynamically create the timer div if it doesn't exist
                     if (!timerElement) {
@@ -77,13 +80,38 @@
                     timerElement.style.display = 'block';
                     clearInterval(timer);
                     timer = setInterval(() => {
-                        elapsedTime++;
-                        const minutes = Math.floor(elapsedTime / 60);
-                        const seconds = elapsedTime % 60;
-                        if (timerElement) {
-                            timerElement.textContent = `Time elapsed: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                        elapsedTime = Date.now() - startTime;
+                        let displayTime;
+
+                        // If less than 1000 ms, show ms, otherwise show seconds
+                        if (elapsedTime < 1000) {
+                            displayTime = `${elapsedTime}ms`;
+                        } else {
+                            // Convert to seconds after 1000 ms
+                            const seconds = Math.floor(elapsedTime / 1000);
+                            const minutes = Math.floor(seconds / 60);
+                            const remainingSeconds = seconds % 60;
+                            displayTime = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
                         }
-                    }, 1000);
+
+                        if (timerElement) {
+                            timerElement.textContent = `Time elapsed: ${displayTime}`;
+                        }
+
+                        // If a second has passed, we can update the timer every second instead
+                        if (elapsedTime >= 1000 && timer) {
+                            clearInterval(timer);
+                            timer = setInterval(() => {
+                                elapsedTime = Date.now() - startTime;
+                                const seconds = Math.floor(elapsedTime / 1000);
+                                const minutes = Math.floor(seconds / 60);
+                                const remainingSeconds = seconds % 60;
+                                if (timerElement) {
+                                    timerElement.textContent = `Time elapsed: ${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+                                }
+                            }, 1000);
+                        }
+                    }, elapsedTime < 1000 ? 120 : 1000);
                     break;
                 }
 
