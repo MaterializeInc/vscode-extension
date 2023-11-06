@@ -374,8 +374,13 @@ export class Config {
 
         if (this.config.profiles) {
             const profile = this.config.profiles[name];
-            this.profile = profile;
-            this.profileName = name;
+
+            if (!profile) {
+                throw new Error("Profile does not exists.");
+            } else {
+                this.profile = profile;
+                this.profileName = name;
+            }
         } else {
             console.error("Error loading profile. The profile is missing.");
         }

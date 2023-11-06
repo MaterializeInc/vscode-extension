@@ -38,17 +38,6 @@ export function mockServer(): Promise<string> {
             return;
         }
 
-        // if (clientId === "52881e4b-8c72-4ec1-bcc6-f9d22155821b") {
-        //     // TODO: Return a token with a missing email.
-        //     res.json({
-        //         accessToken: token,
-        //         expires: "Mon, 31 Jul 2023 10:59:33 GMT",
-        //         expiresIn: 600,
-        //         refreshToken: "MOCK",
-        //     });
-        //     return;
-        // }
-
         res.json({
             accessToken: token,
             expires: "Mon, 31 Jul 2023 10:59:33 GMT",

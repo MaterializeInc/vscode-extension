@@ -9,6 +9,7 @@ import * as os from "os";
 import * as fs from "fs";
 import AppPassword from '../../context/appPassword';
 import { randomUUID } from 'crypto';
+import AsyncContext from '../../context/asyncContext';
 
 /**
  * Simple util function to use delay.
@@ -19,29 +20,14 @@ function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/**
- * Waits for an event to happen inside the context.
- * @param context
- * @param eventType
- * @returns when the event is received.
- */
-function waitForEvent(context: Context, eventType: EventType): Promise<any> {
-	return new Promise((res) => {
-		context.on("event", (data) => {
-			const { type } = data;
-			if (type === eventType) {
-				res(data);
-			};
-		});
-	});
-}
-
 // Remove the configuration file if exists.
 const configDir = `${os.homedir()}/.config/materialize/test`;
 const filePath = `${configDir}/mz.toml`;
 
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
+
+	let extension: vscode.Extension<any>;
 
 	suiteSetup(async () => {
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
@@ -57,9 +43,6 @@ suite('Extension Test Suite', () => {
 			console.log("[Test]", "Config file is clean.");
 		}
 	});
-
-	let extension: vscode.Extension<any>;
-	let context: Context;
 
 	// TODO: Remove after 0.3.0
 	test('Migration', async () => {
@@ -222,55 +205,63 @@ suite('Extension Test Suite', () => {
 	});
 
 	test('Test context readiness', async () => {
-        const _context: Context = await extension.activate();
+        const _context: AsyncContext = await extension.activate();
 		assert.ok(typeof _context !== null && typeof _context !== "undefined");
-        context = _context;
 
-		await _context.waitReadyness();
+		await _context.isReady();
 	}).timeout(10000);
 
 	test('Test query execution', async () => {
-		const listenNewQueryChange = waitForEvent(context, EventType.newQuery);
-		const listenQueryResultsChange = waitForEvent(context, EventType.queryResults);
-		await vscode.commands.executeCommand("materialize.run");
+		const _context: AsyncContext = await extension.activate();
+		const rows = _context.query("SELECT 100");
 
-		// TODO: Verify the rows are ok.
-		await listenNewQueryChange;
-		await listenQueryResultsChange;
+		assert.ok((await rows).rowCount > 0);
 	},);
 
 	test('Change cluster', async () => {
-		const listenEnvironmentChange = waitForEvent(context, EventType.environmentChange);
+        const context: AsyncContext = await extension.activate();
 		const clusterName = context.getCluster();
 		const altClusterName = context.getClusters()?.find(x => x.name !== clusterName);
 		assert.ok(typeof altClusterName?.name === "string");
 		context.setCluster(altClusterName.name);
-		await listenEnvironmentChange;
+		const rows = await context.query("SHOW CLUSTER;");
+
+		assert.ok(rows.rows[0].cluster === altClusterName.name);
 	}).timeout(10000);
 
 	/**
 	 * Profiles
 	 */
 	test('Test profiles are loaded', async () => {
+        const context: AsyncContext = await extension.activate();
 		const profileNames = context.getProfileNames();
 		assert.ok(profileNames && profileNames.length > 0);
 	});
 
 	test('Change profile', async () => {
-		const listenProfileChange = waitForEvent(context, EventType.environmentChange);
+        const context: AsyncContext = await extension.activate();
 		const profileName = context.getProfileName();
 		const altProfileName = context.getProfileNames()?.find(x => x !== profileName);
+
 		console.log("Alt Profile name: ", altProfileName);
 		assert.ok(typeof altProfileName === "string");
-		context.setProfile(altProfileName);
-		await listenProfileChange;
+
+		await context.setProfile(altProfileName);
 		assert.ok(altProfileName === context.getProfileName());
 	}).timeout(15000);
 
 	test('Detect invalid password', async () => {
-		const listenErrorPromise = waitForEvent(context, EventType.error);
-		context.setProfile("invalid_profile");
+        const context: AsyncContext = await extension.activate();
+		let err = false;
 
-		await listenErrorPromise;
+		try {
+			await context.setProfile("invalid_profile");
+			await context.getAppPassword();
+		} catch (error) {
+			err = true;
+		}
+
+		assert.ok(err);
+
 	}).timeout(10000);
 });

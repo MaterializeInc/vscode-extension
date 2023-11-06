@@ -1,21 +1,14 @@
 import * as vscode from 'vscode';
-import Context, { EventType } from '../context/context';
-import path = require('path');
+import AsyncContext from '../context/asyncContext';
 
 export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Node> {
 
     private _onDidChangeTreeData: vscode.EventEmitter<Node | undefined | null | void> = new vscode.EventEmitter<Node | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<Node | undefined | null | void> = this._onDidChangeTreeData.event;
-    private context: Context;
+    private context: AsyncContext;
 
-    constructor(context: Context) {
+    constructor(context: AsyncContext) {
         this.context = context;
-        this.context.on("event", ({ type }) => {
-            if (type === EventType.environmentChange) {
-                console.log("[DatabaseTreeProvider]", "Environment change detected. Refreshing provider.");
-                this.refresh();
-            }
-        });
     }
 
     refresh(): void {
@@ -41,7 +34,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                         console.log("[DatabaseTreeProvider]", "Profile name loaded.");
 
                         console.log("[DatabaseTreeProvider]", "Waiting context to be ready.");
-                        await this.context.waitReadyness();
+                        await this.context.isReady();
 
                         console.log("[DatabaseTreeProvider]", "Looking up the schema.");
                         const environment = this.context.getEnvironment();
@@ -83,11 +76,11 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                                 ]);
                             } else {
                                 console.error("[DatabaseTreeProvider]", "Error: Wrong state, the schema is missing.");
-                                rej(new Error("The schema is missing."));
+                                res([]);
                             }
                         } else {
                             console.error("[DatabaseTreeProvider]", "Error: Wrong state, the environment is missing.");
-                            rej(new Error("The environment is missing."));
+                            res([]);
                         }
                     } else {
                         res ([]);
@@ -100,9 +93,13 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
     }
 
     private async query(text: string, vals?: Array<any>): Promise<Array<any>> {
-        const { rows } =  await this.context.query(text, vals);
+        try {
+            const { rows } =  await this.context.query(text, vals);
 
-        return rows;
+            return rows;
+        } catch (err) {
+            return [];
+        }
     }
 
     private async getChildrenFromNode(element: Node): Promise<Array<Node>> {
