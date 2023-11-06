@@ -76,42 +76,58 @@
                         document.body.appendChild(timerElement);
                     }
                     // Reset and show the timer content
-                    timerElement.textContent = 'Time elapsed: 00:00';
+                    timerElement.textContent = 'Time elapsed:';
                     timerElement.style.display = 'block';
                     clearInterval(timer);
                     timer = setInterval(() => {
                         elapsedTime = Date.now() - startTime;
                         let displayTime;
 
-                        // If less than 1000 ms, show ms, otherwise show seconds
+                        // If less than 1000 ms, show full milliseconds
                         if (elapsedTime < 1000) {
                             displayTime = `${elapsedTime}ms`;
                         } else {
-                            // Convert to seconds after 1000 ms
-                            const seconds = Math.floor(elapsedTime / 1000);
-                            const minutes = Math.floor(seconds / 60);
-                            const remainingSeconds = seconds % 60;
-                            displayTime = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+                            // After 1000 ms, display seconds with one decimal place
+                            const seconds = (elapsedTime / 1000).toFixed(1);
+                            const totalSeconds = Math.floor(elapsedTime / 1000);
+                            const minutes = Math.floor(totalSeconds / 60);
+                            const remainingSeconds = totalSeconds % 60;
+
+                            if (minutes > 0) {
+                                // Display minutes with one decimal place for the seconds
+                                displayTime = `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
+                            } else {
+                                // Display only seconds with one decimal place
+                                displayTime = `${seconds}s`;
+                            }
                         }
 
                         if (timerElement) {
                             timerElement.textContent = `Time elapsed: ${displayTime}`;
                         }
 
-                        // If a second has passed, we can update the timer every second instead
+                        // Update the timer every 100ms before 1 second, and every 500ms after 1 second
                         if (elapsedTime >= 1000 && timer) {
                             clearInterval(timer);
                             timer = setInterval(() => {
                                 elapsedTime = Date.now() - startTime;
-                                const seconds = Math.floor(elapsedTime / 1000);
-                                const minutes = Math.floor(seconds / 60);
-                                const remainingSeconds = seconds % 60;
-                                if (timerElement) {
-                                    timerElement.textContent = `Time elapsed: ${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+                                const seconds = (elapsedTime / 1000).toFixed(1);
+                                const totalSeconds = Math.floor(elapsedTime / 1000);
+                                const minutes = Math.floor(totalSeconds / 60);
+                                const remainingSeconds = totalSeconds % 60;
+
+                                if (minutes > 0) {
+                                    displayTime = `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
+                                } else {
+                                    displayTime = `${seconds}s`;
                                 }
-                            }, 1000);
+
+                                if (timerElement) {
+                                    timerElement.textContent = `Time elapsed: ${displayTime}`;
+                                }
+                            }, 500);
                         }
-                    }, elapsedTime < 1000 ? 120 : 1000);
+                    }, elapsedTime < 1000 ? 100 : 500);
                     break;
                 }
 
