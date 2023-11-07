@@ -251,16 +251,9 @@ suite('Extension Test Suite', () => {
 
 	test('Detect invalid password', async () => {
         const context: AsyncContext = await extension.activate();
-		let err = false;
+		const success = await context.setProfile("invalid_profile");
 
-		try {
-			await context.setProfile("invalid_profile");
-			await context.getAppPassword();
-		} catch (error) {
-			err = true;
-		}
-
-		assert.ok(err);
+		assert.ok(success === false);
 
 	}).timeout(10000);
 });

@@ -22,8 +22,9 @@ interface Providers {
  * asynchronous calls and distributing errors.
  *
  * All asynchronous methods should be declared in this class
- * and must handle errors using try/catch, returning an error
- * without using throw new Error().
+ * and must handle errors using try/catch.
+ * Public methods should never reject a Promise (`rej(..)`)
+ * or throw errors (`throw new Error()`).
  *
  * Unhandled rejections in VS Code may result in undesired
  * notifications to the user.
@@ -256,12 +257,10 @@ export default class AsyncContext extends Context {
         try {
             await this.config.addAndSaveProfile(name, appPassword, region);
             try {
-
+                await this.reloadContext();
             } catch (err) {
-
+                this.handleErr(err, "Error reloading context.");
             }
-            await this.reloadContext();
-
             return true;
         } catch (err) {
             this.handleErr(err, "Error saving profile.");
@@ -296,13 +295,17 @@ export default class AsyncContext extends Context {
             this.environment = undefined;
             try {
                 await this.reloadContext();
+                return true;
             } catch (err) {
+                this.handleErr(err, "Error reloading context.");
                 console.error("[AsyncContext]", "Error reloading context: ", err);
             }
         } catch (err) {
             this.handleErr(err, "Error setting profile.");
             console.error("[AsyncContext]", "Error setting profile: ", err);
         }
+
+        return false;
     }
 
     /**
@@ -346,7 +349,7 @@ export default class AsyncContext extends Context {
      * @param reloadSchema only true when the database changes.
      */
     private async reloadEnvironment(reloadSchema?: boolean) {
-        this.isReadyPromise = new Promise((res, rej) => {
+        this.isReadyPromise = new Promise((res) => {
             const asyncOp = async () => {
                 try {
                     await this.loadEnvironment(false, reloadSchema);
@@ -412,8 +415,10 @@ export default class AsyncContext extends Context {
 
         try {
             await this.reloadEnvironment(true);
+            return true;
         } catch (err) {
             this.handleErr(err as Error, "Error reloading environment.");
+            return false;
         }
     }
 
@@ -432,8 +437,10 @@ export default class AsyncContext extends Context {
 
         try {
             await this.reloadEnvironment();
+            return true;
         } catch (err) {
             this.handleErr(err as Error, "Error reloading environment.");
+            return false;
         }
     }
 
@@ -452,8 +459,10 @@ export default class AsyncContext extends Context {
 
         try {
             await this.reloadEnvironment();
+            return true;
         } catch (err) {
             this.handleErr(err as Error, "Error reloading environment.");
+            return false;
         }
     }
 
