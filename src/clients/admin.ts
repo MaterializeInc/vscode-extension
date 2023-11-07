@@ -38,7 +38,7 @@ export default class AdminClient {
 
     async getToken() {
         // TODO: Expire should be at the half of the expiring time.
-        if (!this.auth || (new Date(this.auth.expires) > new Date())) {
+        if (!this.auth || (new Date(this.auth.expires) < new Date())) {
             const authRequest: AuthenticationRequest = {
                 clientId: this.appPassword.clientId,
                 secret: this.appPassword.secretKey
@@ -67,7 +67,7 @@ export default class AdminClient {
     }
 
     /// Returns the JSON Web Key Set (JWKS) from the well known endpoint: `/.well-known/jwks.json`
-    async getJwks() {
+    private async getJwks() {
         const client = jwksClient({
             jwksUri: this.jwksEndpoint
         });
@@ -78,7 +78,7 @@ export default class AdminClient {
 
     /// Verifies the JWT signature using a JWK from the well-known endpoint and
     /// returns the user claims.
-    async getClaims() {
+    private async getClaims() {
         console.log("[AdminClient]", "Getting Token.");
         const token = await this.getToken();
 
