@@ -257,7 +257,8 @@ export default class AsyncContext extends Context {
         try {
             await this.config.addAndSaveProfile(name, appPassword, region);
             try {
-                await this.reloadContext();
+                const success = await this.reloadContext();
+                return success;
             } catch (err) {
                 this.handleErr(err, "Error reloading context.");
             }
@@ -277,9 +278,11 @@ export default class AsyncContext extends Context {
     async removeAndSaveProfile(name: string) {
         try {
             this.config.removeAndSaveProfile(name);
-            await this.reloadContext();
+            const success = await this.reloadContext();
+            return success;
         } catch (err) {
             this.handleErr(err, "Error reloading context.");
+            return false;
         }
     }
 
@@ -414,8 +417,8 @@ export default class AsyncContext extends Context {
         }
 
         try {
-            await this.reloadEnvironment(true);
-            return true;
+            const success = await this.reloadEnvironment(true);
+            return success;
         } catch (err) {
             this.handleErr(err as Error, "Error reloading environment.");
             return false;
@@ -436,8 +439,8 @@ export default class AsyncContext extends Context {
         }
 
         try {
-            await this.reloadEnvironment();
-            return true;
+            const success = await this.reloadEnvironment();
+            return success;
         } catch (err) {
             this.handleErr(err as Error, "Error reloading environment.");
             return false;
@@ -458,8 +461,8 @@ export default class AsyncContext extends Context {
         }
 
         try {
-            await this.reloadEnvironment();
-            return true;
+            const success = await this.reloadEnvironment();
+            return success;
         } catch (err) {
             this.handleErr(err as Error, "Error reloading environment.");
             return false;
