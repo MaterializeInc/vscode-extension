@@ -95,13 +95,13 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 
         // Await for readyness when the extension activates from the outside.
         // E.g. Running a query without opening the extension.
-        // this.context.isReady().then(() => {
-        //     this.state = {
-        //         ...this.state,
-        //         isLoading: false,
-        //         error: undefined,
-        //     };
-        // });
+        this.context.isReady().then(() => {
+            this.state = {
+                ...this.state,
+                isLoading: false,
+                error: undefined,
+            };
+        });
     }
 
     private capitalizeFirstLetter(str: string) {
