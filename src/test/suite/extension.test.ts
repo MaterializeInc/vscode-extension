@@ -253,7 +253,7 @@ suite('Extension Test Suite', () => {
         const context: AsyncContext = await extension.activate();
 		const success = await context.setProfile("invalid_profile");
 
-		assert.ok(success === false);
+		assert.ok(!success);
 
 	}).timeout(10000);
 });

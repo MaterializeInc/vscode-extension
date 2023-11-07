@@ -294,8 +294,8 @@ export default class AsyncContext extends Context {
             this.config.setProfile(name);
             this.environment = undefined;
             try {
-                await this.reloadContext();
-                return true;
+                const success = await this.reloadContext();
+                return success;
             } catch (err) {
                 this.handleErr(err, "Error reloading context.");
                 console.error("[AsyncContext]", "Error reloading context: ", err);
@@ -327,7 +327,7 @@ export default class AsyncContext extends Context {
      * Reloads the whole context.
      */
     private async reloadContext() {
-        this.isReadyPromise = new Promise((res, rej) => {
+        this.isReadyPromise = new Promise((res) => {
             const asyncOp = async () => {
                 try {
                     await this.loadContext();
