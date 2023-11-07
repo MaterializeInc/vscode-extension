@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { Context } from './context';
 import { buildRunSQLCommand } from './providers/query';
 import AsyncContext from './context/asyncContext';
 

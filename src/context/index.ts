@@ -1,6 +1,5 @@
-import Context, { EventType } from "./context";
+import Context from "./context";
 
 export {
     Context,
-    EventType,
 };

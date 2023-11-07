@@ -1,9 +1,7 @@
 import * as vscode from "vscode";
-import { Context } from "../context";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
 import { QueryResult } from "pg";
-import AsyncContext from "../context/asyncContext";
 
 interface Results extends QueryResult {
     id: string,

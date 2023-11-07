@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { Request, Response, Application } from 'express';
-import { Context, EventType } from "../context";
 import { getUri } from "../utilities/getUri";
 import AppPassword from "../context/appPassword";
 import { getNonce } from "../utilities/getNonce";

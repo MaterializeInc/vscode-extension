@@ -2,7 +2,6 @@
 // as well as import your extension to test it
 import * as vscode from 'vscode';
 import * as assert from 'assert';
-import { Context, EventType } from '../../context';
 import { mockServer } from './server';
 import { Config } from '../../context/config';
 import * as os from "os";
