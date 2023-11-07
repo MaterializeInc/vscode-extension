@@ -108,15 +108,14 @@ export default class AsyncContext extends Context {
         // If there is no profile loaded skip, do not load a context.
         if (!profile) {
             this.loaded = true;
-            return;
+            throw new Error(Errors.profileDoesNotExist);
         }
 
         console.log("[AsyncContext]", "Loading context for profile.");
         const adminEndpoint = this.config.getAdminEndpoint();
         const appPassword = await this.config.getAppPassword();
         if (!appPassword) {
-            this.handleErr(Errors.missingAppPassword, "Error retrieving app-password.");
-            return;
+            throw new Error(Errors.missingAppPassword);
         }
 
         const adminClient = new AdminClient(appPassword, adminEndpoint);
@@ -125,14 +124,16 @@ export default class AsyncContext extends Context {
             admin: adminClient,
             cloud: new CloudClient(adminClient, profile["cloud-endpoint"])
         };
+
         await this.loadEnvironment(init);
+        return true;
     }
 
     /**
      * Loads all the environment information.
      * @param reloadSchema
      */
-    private async loadEnvironment(init?: boolean, reloadSchema?: boolean) {
+    private async loadEnvironment(init?: boolean, reloadSchema?: boolean): Promise<boolean> {
         this.loaded = false;
 
         if (!init) {
@@ -148,10 +149,13 @@ export default class AsyncContext extends Context {
             throw new Error(Errors.unconfiguredProfile);
         } else {
             this.clients.sql = new SqlClient(this.clients.admin, this.clients.cloud, profile, this);
-            this.clients.sql.connectErr().catch((err) => {
+
+            try {
+                await this.clients.sql.connectErr();
+            } catch (err) {
                 console.error("[AsyncContext]", "Sql Client connect err: ", err);
-                this.handleErr(Errors.unexpectedSqlClientConnectionError, "Error connecting the SQL client.");
-            });
+                throw err;
+            }
 
             // Set environment
             if (!this.environment) {
@@ -187,7 +191,8 @@ export default class AsyncContext extends Context {
 
                     console.log("[AsyncContext]", "Environment:", this.environment);
                 } catch (err) {
-                    this.handleErr(err, "Erro querying the schema.");
+                    console.error("[AsyncContext]", "Error querying evnrionment information.");
+                    throw err;
                 }
             }
 
@@ -211,6 +216,7 @@ export default class AsyncContext extends Context {
             console.log("[AsyncContext]", "Environment loaded.");
             this.loaded = true;
             this.providers.auth.environmentLoaded();
+            return true;
         }
     }
 
@@ -333,8 +339,8 @@ export default class AsyncContext extends Context {
         this.isReadyPromise = new Promise((res) => {
             const asyncOp = async () => {
                 try {
-                    await this.loadContext();
-                    res(true);
+                    const success = await this.loadContext();
+                    res(success);
                 } catch (err) {
                     this.handleErr(err, "Error reloading context.");
                     res(false);

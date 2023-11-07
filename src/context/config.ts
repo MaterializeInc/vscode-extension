@@ -322,13 +322,10 @@ export class Config {
      */
     async getAppPassword(): Promise<string | undefined> {
         const {
-            vault,
             appPassword
         } = this.profile ? {
-            vault: this.profile.vault,
             appPassword: this.profile["app-password"]
         } : {
-            vault: this.config.vault,
             appPassword: undefined
         };
 
