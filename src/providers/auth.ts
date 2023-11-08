@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import { Request, Response, Application } from 'express';
-import { Context, EventType } from "../context";
 import { getUri } from "../utilities/getUri";
 import AppPassword from "../context/appPassword";
 import { getNonce } from "../utilities/getNonce";
+import AsyncContext from "../context/asyncContext";
 
 // Please update this link if the logo location changes in the future.
 const LOGO_URL: String = "https://materialize.com/svgs/brand-guide/materialize-purple-mark.svg";
@@ -79,10 +79,10 @@ interface State {
 export default class AuthProvider implements vscode.WebviewViewProvider {
     _view?: vscode.WebviewView;
     _doc?: vscode.TextDocument;
-    context: Context;
+    context: AsyncContext;
     state: State;
 
-    constructor(private readonly _extensionUri: vscode.Uri, context: Context) {
+    constructor(private readonly _extensionUri: vscode.Uri, context: AsyncContext) {
         this._extensionUri = _extensionUri;
         this.context = context;
         this.state = {
@@ -94,75 +94,65 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 
         // Await for readyness when the extension activates from the outside.
         // E.g. Running a query without opening the extension.
-        this.context.waitReadyness().then(() => {
+        this.context.isReady().then(() => {
             this.state = {
                 ...this.state,
                 isLoading: false,
                 error: undefined,
             };
         });
+    }
 
-        this.context.on("event", (data) => {
-            const { type } = data;
-            switch (type) {
-                case EventType.error: {
-                    const { message } = data;
-                    console.log("[AuthProvider]", "Error detected: ", message, data);
-                    this.state.error = message;
-                    this.state.isLoading = false;
+    private capitalizeFirstLetter(str: string) {
+        if (typeof str !== "string") {
+            return;
+        }
+        if (str.length === 0) {
+          return str;
+        }
 
-                    // if (this._view) {
-                    //     this._view.webview.html = this._getHtmlForWebview(this._view.webview);
-                    // }
-                    break;
-                }
-                case EventType.newProfiles: {
-                    console.log("[AuthProvider]", "New profiles available.");
-                    if (this._view) {
-                        console.log("[AuthProvider]", "Posting new profiles.");
-                        const profilesNames = this.context.getProfileNames();
-                        const profileName = this.context.getProfileName();
+        const firstChar = str.charAt(0);
+        const capitalized = firstChar.toUpperCase() + str.slice(1);
 
-                        const thenable = this._view.webview.postMessage({ type: "newProfile", data: { profilesNames, profileName } });
-                        thenable.then((posted) => {
-                            console.log("[AuthProvider]", "Profiles message posted: ", posted);
-                        });
-                    }
-                    break;
-                }
+        return capitalized;
+    };
 
-                case EventType.environmentChange: {
-                    console.log("[AuthProvider]", "Environment change.");
-                    if (this._view) {
-                        const thenable = this._view.webview.postMessage({ type: "environmentChange" });
-                        thenable.then((posted) => {
-                            console.log("[AuthProvider]", "Environment change message posted: ", posted);
-                        });
-                    }
-                    break;
-                }
+    async displayError(message: string) {
+        console.log("[AuthProvider]", "Error detected: ", message);
+        this.state.error = this.capitalizeFirstLetter(message);
+        this.state.isLoading = false;
 
-                case EventType.environmentLoaded: {
-                    console.log("[AuthProvider]", "New environment available.");
-                    if (this._view) {
-                        this.state.isLoading = false;
-                        this.state.error = undefined;
+        if (this._view) {
+            this._view.webview.html = this._getHtmlForWebview(this._view.webview);
+        }
+    }
 
-                        // Do not refresh the webview if the user is removing or adding a profile.
-                        // The UI will auto update after this action ends.
-                        if (this.state.isRemoveProfile || this.state.isAddNewProfile) {
-                            return;
-                        }
-                        console.log("[AuthProvider]", "Triggering configuration webview.");
-                        const thenable = this._view.webview.postMessage("hey");
-                        // this._view.webview.html = this._getHtmlForWebview(this._view.webview);
-                    }
-                    break;
-                }
-                default:
-                    break;
+    async environmentChange() {
+        console.log("[AuthProvider]", "Environment change.");
+        this.state.isLoading = true;
+        this.state.error = undefined;
+
+        if (this._view) {
+            const thenable = this._view.webview.postMessage({ type: "environmentChange" });
+            thenable.then((posted) => {
+                console.log("[AuthProvider]", "Environment change message posted: ", posted);
+            });
+        }
+    }
+
+    async environmentLoaded() {
+        console.log("[AuthProvider]", "New environment available.");
+        if (this._view) {
+            this.state.isLoading = false;
+
+            // Do not refresh the webview if the user is removing or adding a profile.
+            // The UI will auto update after this action ends.
+            if (this.state.isRemoveProfile || this.state.isAddNewProfile) {
+                return;
             }
-        });
+            console.log("[AuthProvider]", "Triggering configuration webview.");
+            this._view.webview.html = this._getHtmlForWebview(this._view.webview);
+        }
     }
 
     /**
@@ -171,7 +161,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
      * @param name name of the profile.
      * @param webviewView webview of the provider.
      */
-    checkLoginServerResponse(
+    async checkLoginServerResponse(
         appPasswordResponse: AppPasswordResponse | undefined,
         name: string,
         webviewView: vscode.WebviewView
@@ -185,7 +175,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             // Set the state loading to true. After the new context is loaded
             // loading will turn false.
             this.state.isLoading = true;
-            this.context.addAndSaveProfile(name, appPassword, region.toString());
+            await this.context.addAndSaveProfile(name, appPassword, region.toString());
         } else {
             // Cancel login process.
             // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
@@ -207,7 +197,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 
         // Listen for messages from the Sidebar component and execute action
         webviewView.webview.onDidReceiveMessage(async ({ data, type }) => {
-            console.log("[AuthProvider]", "onDidReceiveMessage", type);
+            console.log("[AuthProvider]", "Receive message: ", type);
             switch (type) {
                 case "requestContextState": {
                     console.log("[AuthProvider]", "Context state request.", );
@@ -228,10 +218,14 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 
                     // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     loginServer(name).then((appPasswordResponse) => {
-                        this.checkLoginServerResponse(appPasswordResponse, name, webviewView);
+                        this.checkLoginServerResponse(appPasswordResponse, name, webviewView).then(() => {
+                            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                        });
                     }).catch((err) => {
                         console.error("Error setting up the server: ", err);
                         vscode.window.showErrorMessage('Internal error while waiting for the credentials.');
+                        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+
                     });
                     break;
                 }
@@ -278,7 +272,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     const name = this.context.getProfileName();
 
                     if (name) {
-                        this.context.removeAndSaveProfile(name);
+                        await this.context.removeAndSaveProfile(name);
                     } else {
                         console.error("[Auth]", "Profile name is not available.");
                     }
@@ -295,8 +289,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     if (!messages) {
                         return;
                     }
-                    this._view?.webview.postMessage("JA");
-                    console.log("[Auth/React]", messages);
+                    console.log("[AuthProvider]", "logInfo: ", messages);
                     break;
                 }
                 case "logError": {
@@ -304,7 +297,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     if (!error) {
                         return;
                     }
-                    console.error("[Auth/React]", error);
+                    console.error("[AuthProvider]", "logError: ", error);
                     break;
                 }
                 case "onConfigChange": {

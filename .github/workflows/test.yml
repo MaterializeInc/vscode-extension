@@ -49,5 +49,8 @@ jobs:
         sudo apt-get install -y libnss3-dev libasound2 libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev libatk1.0-0
 
     - run: npm install
-    - run: xvfb-run -a npm test
+    - name: Run Tests on Linux
       if: runner.os == 'Linux'
+      run: |
+        export MZ_CONFIG_PATH=$HOME/.config/materialize/test
+        xvfb-run -a npm test

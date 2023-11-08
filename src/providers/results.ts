@@ -1,14 +1,22 @@
 import * as vscode from "vscode";
-import { Context } from "../context";
-import { EventType } from "../context/context";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
 import { QueryResult } from "pg";
 
+interface Results extends QueryResult {
+    id: string,
+    elapsedTime: number,
+}
+
+interface ResultsError {
+    message: string,
+    position: number,
+    query: string,
+}
+
 export default class ResultsProvider implements vscode.WebviewViewProvider {
     _view?: vscode.WebviewView;
     _doc?: vscode.TextDocument;
-    private context: Context;
 
     // Identifies the identifier of the last query run by the user.
     // It is used to display the results and not overlap them from the results of a laggy query.
@@ -24,43 +32,56 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
     // new data arriving and to render the information.
     private isScriptReady: boolean;
 
-    constructor(private readonly _extensionUri: vscode.Uri, context: Context) {
+    constructor(private readonly _extensionUri: vscode.Uri) {
         this._extensionUri = _extensionUri;
-        this.context = context;
         this.isScriptReady = false;
+    }
 
-        this.context.on("event", ({ type, data }) => {
-            if (this._view) {
-                if (type === EventType.queryResults) {
-                    const { id } = data;
-                    console.log("[ResultsProvider]", "New query results.", this.lastQueryId);
+    /**
+     * Cleans the results and sets a latest query id.
+     * @param id
+     */
+    public setQueryId(id: string) {
+        this.lastQueryId = id;
 
-                    // Check if the results are from the last issued query.
-                    if (this.lastQueryId === id || this.lastQueryId === undefined) {
-                        console.log("[ResultsProvider]", "Is script ready : ", this.isScriptReady);
-                        if (this.isScriptReady) {
-                            const thenable = this._view.webview.postMessage({ type: "results", data });
+        if (this._view) {
+            console.log("[ResultsProvider]", "New query.");
+            const thenable = this._view.webview.postMessage({ type: "newQuery" });
+            thenable.then((posted) => {
+                console.log("[ResultsProvider]", "Message posted: ", posted);
+            });
+        }
+    }
 
-                            thenable.then((posted) => {
-                                console.log("[ResultsProvider]", "Message posted: ", posted);
-                            });
-                        } else {
-                            console.log("[ResultsProvider]", "The script is not ready yet.");
-                            this.pendingDataToRender = data;
-                        }
-                    }
-                } else if (type === EventType.newQuery) {
-                    const { id } = data;
-                    this.lastQueryId = id;
+    /**
+     * Displays the results from the latest query.
+     * @param id
+     * @param queryResults
+     */
+    public setResults(id: string, results?: Results, error?: ResultsError) {
+        console.log("[ResultsProvider]", "New query results.", this.lastQueryId);
 
-                    console.log("[ResultsProvider]", "New query.");
-                    const thenable = this._view.webview.postMessage({ type: "newQuery", data });
+        // Check if the results are from the last issued query.
+        if (this._view && (this.lastQueryId === id || this.lastQueryId === undefined)) {
+            console.log("[ResultsProvider]", "Is script ready : ", this.isScriptReady);
+            if (this.isScriptReady) {
+
+                if (results) {
+                    const thenable = this._view.webview.postMessage({ type: "results", data: results });
+                    thenable.then((posted) => {
+                        console.log("[ResultsProvider]", "Message posted: ", posted);
+                    });
+                } else if (error) {
+                    const thenable = this._view.webview.postMessage({ type: "results", data: { error } });
                     thenable.then((posted) => {
                         console.log("[ResultsProvider]", "Message posted: ", posted);
                     });
                 }
+            } else {
+                console.log("[ResultsProvider]", "The script is not ready yet.");
+                this.pendingDataToRender = results;
             }
-        });
+        }
     }
 
     public resolveWebviewView(webviewView: vscode.WebviewView) {

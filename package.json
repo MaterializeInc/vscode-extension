@@ -6,7 +6,7 @@
   },
   "displayName": "Materialize",
   "description": "Working environment for Materialize.",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "tasks": [
     {
       "problemMatcher": "$esbuild-watch"
@@ -28,6 +28,16 @@
   "pricing": "Free",
   "icon": "resources/icon.png",
   "contributes": {
+    "configuration": {
+      "title": "Materialize",
+      "properties": {
+        "materialize.formattingWidth": {
+          "type": "number",
+          "default": 100,
+          "description": "Maximum width for formatting code."
+        }
+      }
+    },
     "languages": [
       {
         "id": "materialize-sql",
@@ -76,6 +86,16 @@
             "dark": "resources/clip_dark.svg"
           },
           "group": "inline"
+        },
+        {
+          "command": "materialize.copy",
+          "title": "Copy",
+          "when": "view == activityLog && viewItem == activityLogItem",
+          "icon": {
+            "light": "resources/clip_light.svg",
+            "dark": "resources/clip_dark.svg"
+          },
+          "group": "inline"
         }
       ]
     },
@@ -109,6 +129,12 @@
           "name": "Explorer",
           "icon": "",
           "contextualTitle": "Explorer"
+        },
+        {
+          "id": "activityLog",
+          "name": "Activity Log",
+          "icon": "",
+          "contextualTitle": "Activity Log"
         }
       ],
       "materializePanelContainer": [
@@ -139,6 +165,15 @@
       {
         "command": "materialize.copy",
         "title": "Copy",
+        "category": "materialize",
+        "icon": {
+          "light": "resources/clip_light.svg",
+          "dark": "resources/clip_dark.svg"
+        }
+      },
+      {
+        "command": "extension.copySQL",
+        "title": "Copy SQL",
         "category": "materialize",
         "icon": {
           "light": "resources/clip_light.svg",
