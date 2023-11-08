@@ -22,7 +22,9 @@ const context = {
 const Profile = () => {
     const {
         profileName,
-        profileNames
+        profileNames,
+        environment,
+        isLoading,
     } = useContext(Context);
     const [state, setState] = useState({
         isAddNewProfile: false,
@@ -83,18 +85,15 @@ const Profile = () => {
                 </div>
             );
         } else {
-            // Similar logic to produce JSX content for other cases
-            // Omitted for brevity...
         }
     }
 
     return (
         <div id="container">
             <div id="logoContainer">
-                <img id="logo" src={context.getLogoUri()} alt="Materialize Logo" /> {/* Assuming `logoUri` is available in this context */}
+                <img id="logo" src={context.getLogoUri()} alt="Materialize Logo" />
             </div>
             {content}
-            {/* ... */}
         </div>
     );
 };

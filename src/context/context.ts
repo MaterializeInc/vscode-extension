@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 /**
  * Contains Materialize environment info.
  */
-interface Environment {
+export interface Environment {
     clusters: Array<MaterializeObject>;
     schemas: Array<MaterializeSchemaObject>;
     databases: Array<MaterializeObject>;

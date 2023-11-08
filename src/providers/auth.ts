@@ -333,6 +333,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
     private _getHtmlForWebview(webview: vscode.Webview) {
 		// Do the same for the stylesheet.
         const scriptUri = getUri(webview, this._extensionUri, ["out", "scripts", "index.js"]);
+        const styleUri = getUri(webview, this._extensionUri, ["resources", "style.css"]);
         const nonce = getNonce();
         console.log("[Auth]", "_getHtmlForWebview", webview.cspSource);
 
@@ -342,9 +343,10 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             <meta charset="UTF-8">
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link href="${styleUri}" rel="stylesheet">
         </head>
         <body>
-            <div id="root">This is a comment!</div>
+            <div id="root"></div>
             <script nonce="${nonce}" src="${scriptUri}"></script>
         </body>
         </html>`;

@@ -1,19 +1,19 @@
 import { createContext, useEffect, useState } from "react";
 import * as React from "react";
 import { vscode } from "./index";
+import { Environment } from "../../context/context";
 
 interface ContextState {
-    profileName: string | undefined;
-    profileNames: Array<string> | undefined;
     isLoading: boolean;
+    profileName?: string;
+    profileNames?: Array<string>;
     error?: string;
+    environment?: Environment
 };
 
 const baseState: ContextState = {
     isLoading: false,
-    profileName: undefined,
-    profileNames: undefined,
-}
+};
 
 export const Context = createContext<ContextState>({ ...baseState });
 
