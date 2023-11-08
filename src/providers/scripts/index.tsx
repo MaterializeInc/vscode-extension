@@ -1,7 +1,7 @@
-// import * as React from "react";
-// import * as Server from 'react-dom/server';
-// import { ContextProvider } from "./context";
-// import Profile from "./profile";
+import * as React from "react";
+import * as Server from 'react-dom/server';
+import { ContextProvider } from "./context";
+import Profile from "./profile";
 
 // @ts-ignore
 export const vscode = acquireVsCodeApi();
@@ -10,12 +10,12 @@ export const vscode = acquireVsCodeApi();
  * Log utils. To send logs back to VSCode debug console.
  */
 export const logInfo = (...messages: Array<any>) => {
-    vscode.postMessage({ type: "logInfo", data: { messages } });
+    vscode.postMessage(JSON.stringify({ type: "logInfo", data: { messages } }));
 };
 console.log = logInfo;
 
 export const logError = (error: any) => {
-vscode.postMessage({ type: "logError", data: { error } });
+vscode.postMessage(JSON.stringify({ type: "logError", data: { error } }));
 };
 console.error = logError;
 
@@ -28,6 +28,5 @@ const elm = document.querySelector("#root");
 
 if (elm) {
   elm.innerHTML = "<div>Hi</div>";
-  vscode.postMessage({ type: "requestContextState" });
-  // elm.innerHTML = Server.renderToString(<ContextProvider><Profile /></ContextProvider>);
+  elm.innerHTML = Server.renderToString(<ContextProvider><Profile /></ContextProvider>);
 }
