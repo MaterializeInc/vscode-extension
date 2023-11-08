@@ -86,6 +86,16 @@
             "dark": "resources/clip_dark.svg"
           },
           "group": "inline"
+        },
+        {
+          "command": "materialize.copy",
+          "title": "Copy",
+          "when": "view == activityLog && viewItem == activityLogItem",
+          "icon": {
+            "light": "resources/clip_light.svg",
+            "dark": "resources/clip_dark.svg"
+          },
+          "group": "inline"
         }
       ]
     },

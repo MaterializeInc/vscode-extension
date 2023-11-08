@@ -57,15 +57,8 @@ class ActivityLogItem extends vscode.TreeItem {
         // Set the description to the query latency
         this.description = `${log.latency}ms`;
 
-        this.tooltip = `${log.sql} | Latency: ${log.latency}ms`;
+        this.tooltip = `${log.sql}`;
         this.contextValue = 'activityLogItem';
-
-        // Copy SQL command to clipboard
-        this.command = {
-            command: 'extension.copySQL',
-            title: 'Copy SQL',
-            arguments: [log.sql]
-        };
     }
 }
 
