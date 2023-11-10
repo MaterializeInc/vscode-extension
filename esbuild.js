@@ -36,7 +36,7 @@ const watchConfig = {
 
 const scriptsConfig = {
   ...baseConfig,
-  entryPoints: ["./src/providers/scripts/results.ts", "./src/providers/scripts/auth.ts"],
+  entryPoints: ["./src/providers/scripts/results.ts"],
   outdir: "./out/scripts",
   format: "cjs",
 };

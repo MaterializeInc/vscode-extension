@@ -26,10 +26,16 @@ const Profile = () => {
         error: undefined,
     });
 
+    console.log("Profile names: ", profileNames);
+
     const handleAddProfile = useCallback(async (name: string) => {
-        setState({...state, isLoading: true, });
-        await request({ type: "onAddProfile", data: { name } });
-        setState({...state, isAddNewProfile: false, });
+        try {
+            setState({...state, isLoading: true, });
+            await request({ type: "onAddProfile", data: { name } });
+            setState({...state, isAddNewProfile: false, });
+        } catch (err) {
+            // TODO: Set error.
+        }
     }, []);
 
     const handleOnCancelAddProfile = useCallback(() => {
@@ -72,7 +78,7 @@ const Profile = () => {
     return (
         <div id="container">
             <div id="logoContainer">
-                <img id="logo" src={context.getLogoUri()} alt="Materialize Logo" />
+                {/* <img id="logo" src={context.getLogoUri()} alt="Materialize Logo" /> */}
             </div>
             {content}
         </div>

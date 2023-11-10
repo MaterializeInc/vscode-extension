@@ -12,7 +12,7 @@ interface ContextState {
 };
 
 const baseState: ContextState = {
-    isLoading: false,
+    isLoading: true,
 };
 
 export const Context = createContext<ContextState>({ ...baseState });
@@ -33,13 +33,13 @@ export const ContextProvider = (props: ContextProviderProps): React.JSX.Element 
                 isLoading: true,
             });
 
-            const { environment, profileName, profileNames, error } = await request({
+            const { environment, error, profileNames, profileName, } = await request<ContextState>({
                 type: "contextState"
             });
 
             setState({
                 environment,
-                isLoading: false,
+                isLoading: environment ? true: false,
                 error,
                 profileName,
                 profileNames,

@@ -17,9 +17,9 @@ const Configuration = ({ onAddProfileClick, onRemoveProfileClick }: Props) => {
         isLoading,
     } = useContext(Context);
 
-    if (environment && profileNames) {
-        const { cluster, clusters, databases, schemas } = environment;
+    console.log("Is loading: ", isLoading, environment);
 
+    if (profileNames) {
         return (
             <div className="profile-container">
                     {/*
@@ -37,34 +37,38 @@ const Configuration = ({ onAddProfileClick, onRemoveProfileClick }: Props) => {
                     <VSCodeDivider></VSCodeDivider>
                     {error && <p className="profileErrorMessage">{error}</p>}
                     {isLoading && <VSCodeProgressRing id="loading-ring"></VSCodeProgressRing>}
-                    {(!isLoading && !error) && <span id='options-title'>Connection Options</span>}
-                    <div className={`setup-container ${isLoading ? "invisible" :""}`}>
-                        <div className="dropdown-container">
-                            <label htmlFor="clusters">Cluster</label>
-                            <VSCodeDropdown id="clusters">
-                                <VSCodeOption>${cluster}</VSCodeOption>
-                                {clusters.filter(x => x.name !== cluster).map(({name}) => <VSCodeOption>${name}</VSCodeOption>).join('')}
-                            </VSCodeDropdown>
+                    {(!isLoading && !error && environment) && <span id='options-title'>Connection Options</span>}
+                    {(!isLoading && !error && environment) && (
+                        <>
+                        <div className={`setup-container ${isLoading ? "invisible" :""}`}>
+                            <div className="dropdown-container">
+                                <label htmlFor="clusters">Cluster</label>
+                                <VSCodeDropdown id="clusters">
+                                    <VSCodeOption>${environment.cluster}</VSCodeOption>
+                                    {environment.clusters.filter(x => x.name !== environment.cluster).map(({name}) => <VSCodeOption>${name}</VSCodeOption>).join('')}
+                                </VSCodeDropdown>
+                            </div>
                         </div>
-                    </div>
-                    <div className={`setup-container ${isLoading ? "invisible" :""}`}>
-                        <div className="dropdown-container">
-                            <label htmlFor="databases">Databases</label>
-                            <VSCodeDropdown id="databases">
-                                <VSCodeOption>${cluster}</VSCodeOption>
-                                {databases.filter(x => x.name !== cluster).map(({name}) => <VSCodeOption>${name}</VSCodeOption>).join('')}
-                            </VSCodeDropdown>
+                        <div className={`setup-container ${isLoading ? "invisible" :""}`}>
+                            <div className="dropdown-container">
+                                <label htmlFor="databases">Databases</label>
+                                <VSCodeDropdown id="databases">
+                                    <VSCodeOption>${environment.cluster}</VSCodeOption>
+                                    {environment.databases.filter(x => x.name !== environment.cluster).map(({name}) => <VSCodeOption>${name}</VSCodeOption>).join('')}
+                                </VSCodeDropdown>
+                            </div>
                         </div>
-                    </div>
-                    <div className={`setup-container ${isLoading ? "invisible" :""}`}>
-                        <div className="dropdown-container">
-                            <label htmlFor="schemas">Schema</label>
-                            <VSCodeDropdown id="schemas">
-                                <VSCodeOption>${cluster}</VSCodeOption>
-                                {schemas.filter(x => x.name !== cluster).map(({name}) => <VSCodeOption>${name}</VSCodeOption>).join('')}
-                            </VSCodeDropdown>
+                        <div className={`setup-container ${isLoading ? "invisible" :""}`}>
+                            <div className="dropdown-container">
+                                <label htmlFor="schemas">Schema</label>
+                                <VSCodeDropdown id="schemas">
+                                    <VSCodeOption>${environment.cluster}</VSCodeOption>
+                                    {environment.schemas.filter(x => x.name !== environment.cluster).map(({name}) => <VSCodeOption>${name}</VSCodeOption>).join('')}
+                                </VSCodeDropdown>
+                            </div>
                         </div>
-                    </div>
+                        </>
+                    )}
                 </div>
             );
     } else {

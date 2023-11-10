@@ -15,21 +15,28 @@ export interface Message {
   type: string;
 }
 
-export const request = async (msg: Message): Promise<any> => {
+export function request<T>(msg: Message): Promise<T> {
   vscode.postMessage(JSON.stringify(msg));
 
-  return new Promise((res) => {
-    const listener = (data: Message) => {
-      console.log("[React]", "New message: ", data);
-      if (data && data.type === msg.type) {
-        console.log("[React]", "Ready to remove listener for: ", msg.type);
-        window.removeEventListener("message", listener);
-        res(data);
-      } else {
-        console.log("[React]", "Listener not removed.");
+  return new Promise((res, rej) => {
+    const listener = ({ data: message }: { data: string}) => {
+      try {
+        const { data, type } = JSON.parse(message) as Message;
+        if (type === msg.type) {
+          console.log("[React]", "Ready to remove listener for: ", msg.type);
+          console.log("[React]", "Returning data: ", data);
+          window.removeEventListener("message", listener);
+          res(data);
+        } else {
+          console.log("[React]", "Listener not removed.");
+        }
+      } catch (err) {
+        console.error("[React]", "Error parsing message: ", err);
+        rej(err);
       }
     };
-    window.addEventListener("message", listener);
+
+    window.addEventListener('message', listener);
   });
 };
 
@@ -46,7 +53,7 @@ export const logError = (error: any) => {
 };
 console.error = logError;
 
-// @ts-ignore
+// // @ts-ignore
 const elm = document.querySelector("#root");
 
 if (elm) {

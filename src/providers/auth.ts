@@ -198,14 +198,14 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     console.log("[AuthProvider]", "Context state request.", );
                     if (this._view) {
                         console.log("[AuthProvider]", "Posting context state.");
-                        const profilesNames = this.context.getProfileNames();
+                        const profileNames = this.context.getProfileNames();
                         const profileName = this.context.getProfileName();
 
-                        const thenable = this._view.webview.postMessage({ type: "contextState", data: {
-                            profilesNames,
+                        const thenable = this._view.webview.postMessage(JSON.stringify({ type: "contextState", data: {
+                            profileNames,
                             profileName,
                             environment: this.context.getEnvironment(),
-                        }});
+                        }}));
                         thenable.then((posted) => {
                             console.log("[AuthProvider]", "Context state message posted: ", posted);
                         });
