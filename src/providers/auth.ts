@@ -63,8 +63,6 @@ async function loginServer(name: string): Promise<AppPasswordResponse | undefine
 }
 
 interface State {
-    isRemoveProfile: boolean;
-    isAddNewProfile: boolean;
     isLoading: boolean;
     error: undefined | string;
 }
@@ -86,8 +84,6 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         this._extensionUri = _extensionUri;
         this.context = context;
         this.state = {
-            isAddNewProfile: false,
-            isRemoveProfile: false,
             isLoading: this.context.isLoading(),
             error: undefined,
         };
@@ -95,12 +91,16 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         // Await for readyness when the extension activates from the outside.
         // E.g. Running a query without opening the extension.
         this.context.isReady().then(() => {
-            this.state = {
+            this.updateState({
                 ...this.state,
                 isLoading: false,
-                error: undefined,
-            };
+                error: undefined
+            });
         });
+    }
+
+    private updateState(state: State) {
+
     }
 
     private capitalizeFirstLetter(str: string) {
@@ -119,12 +119,11 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 
     async displayError(message: string) {
         console.log("[AuthProvider]", "Error detected: ", message);
-        this.state.error = this.capitalizeFirstLetter(message);
-        this.state.isLoading = false;
-
-        if (this._view) {
-            this._view.webview.html = this._getHtmlForWebview(this._view.webview);
-        }
+        this.updateState({
+            ...this.state,
+            error: this.capitalizeFirstLetter(message),
+            isLoading: false,
+        });
     }
 
     async environmentChange() {
@@ -143,15 +142,12 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
     async environmentLoaded() {
         console.log("[AuthProvider]", "New environment available.");
         if (this._view) {
-            this.state.isLoading = false;
-
             // Do not refresh the webview if the user is removing or adding a profile.
             // The UI will auto update after this action ends.
-            if (this.state.isRemoveProfile || this.state.isAddNewProfile) {
-                return;
-            }
-            console.log("[AuthProvider]", "Triggering configuration webview.");
-            this._view.webview.html = this._getHtmlForWebview(this._view.webview);
+            this.updateState({
+                ...this.state,
+                isLoading: true,
+            });
         }
     }
 
@@ -163,18 +159,16 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
      */
     async checkLoginServerResponse(
         appPasswordResponse: AppPasswordResponse | undefined,
-        name: string,
-        webviewView: vscode.WebviewView
+        name: string
     ) {
-        this.state.isAddNewProfile = false;
-        this.state.error = undefined;
+        this.updateState({
+            ...this.state,
+            error: undefined,
+            isLoading: true,
+        });
 
         if (appPasswordResponse) {
             const { appPassword, region } = appPasswordResponse;
-
-            // Set the state loading to true. After the new context is loaded
-            // loading will turn false.
-            this.state.isLoading = true;
             await this.context.addAndSaveProfile(name, appPassword, region.toString());
         } else {
             // Cancel login process.
@@ -193,60 +187,43 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 
         console.log("[Auth]", "resolveWebviewView()");
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-        webviewView.webview.postMessage("Hello");
 
         // Listen for messages from the Sidebar component and execute action
-        webviewView.webview.onDidReceiveMessage(async ({ data, type }) => {
-            console.log("[AuthProvider]", "Receive message: ", type);
+        webviewView.webview.onDidReceiveMessage(async (message) => {
+            console.log("[AuthProvider]", "Receive message: ", message);
+            const { data, type } = typeof message === "string" ? JSON.parse(message) as any : message;
+            console.log("Received message type: ", type);
             switch (type) {
-                case "requestContextState": {
+                case "contextState": {
                     console.log("[AuthProvider]", "Context state request.", );
                     if (this._view) {
                         console.log("[AuthProvider]", "Posting context state.");
                         const profilesNames = this.context.getProfileNames();
                         const profileName = this.context.getProfileName();
 
-                        const thenable = this._view.webview.postMessage({ type: "contextState", data: { profilesNames, profileName } });
+                        const thenable = this._view.webview.postMessage({ type: "contextState", data: {
+                            profilesNames,
+                            profileName,
+                            environment: this.context.getEnvironment(),
+                        }});
                         thenable.then((posted) => {
                             console.log("[AuthProvider]", "Context state message posted: ", posted);
                         });
                     }
                     break;
                 }
-                case "onLogin": {
+                case "onAddProfile": {
                     const { name } = data;
 
-                    // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     loginServer(name).then((appPasswordResponse) => {
-                        this.checkLoginServerResponse(appPasswordResponse, name, webviewView).then(() => {
-                            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+                        this.checkLoginServerResponse(appPasswordResponse, name).then(() => {
+
                         });
                     }).catch((err) => {
                         console.error("Error setting up the server: ", err);
                         vscode.window.showErrorMessage('Internal error while waiting for the credentials.');
-                        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
                     });
-                    break;
-                }
-                case "onContinueProfile": {
-                    const { name } = data;
-                    loginServer(name).then((appPasswordResponse) => {
-                        this.checkLoginServerResponse(appPasswordResponse, name, webviewView);
-                    }).finally(() => {
-                        this.state.isAddNewProfile = false;
-                        // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-                    });
-                    break;
-                }
-                case "onCancelAddProfile": {
-                    this.state.isAddNewProfile = false;
-                    // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-                    break;
-                }
-                case "onAddProfile": {
-                    this.state.isAddNewProfile = true;
-                    // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     break;
                 }
                 case "onProfileChange": {
@@ -255,19 +232,10 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     this.context.setProfile(name);
                     break;
                 }
-                // Remove Profile:
-                case "onCancelRemoveProfile": {
-                    this.state.isRemoveProfile = false;
-                    // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-                    break;
-                }
-                case "onContinueRemoveProfile": {
-                    this.state.isRemoveProfile = false;
-
+                case "onRemoveProfile": {
                     // Set the state loading to true. After the new context is loaded
                     // loading will turn false.
                     this.state.isLoading = true;
-                    // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
                     const name = this.context.getProfileName();
 
@@ -277,11 +245,6 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                         console.error("[Auth]", "Profile name is not available.");
                     }
 
-                    break;
-                }
-                case "onRemoveProfile": {
-                    this.state.isRemoveProfile = true;
-                    // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
                     break;
                 }
                 case "logInfo": {

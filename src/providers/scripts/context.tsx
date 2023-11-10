@@ -1,7 +1,7 @@
 import { createContext, useEffect, useState } from "react";
 import * as React from "react";
-import { vscode } from "./index";
 import { Environment } from "../../context/context";
+import { request } from ".";
 
 interface ContextState {
     isLoading: boolean;
@@ -27,40 +27,26 @@ export const ContextProvider = (props: ContextProviderProps): React.JSX.Element 
     console.log("[ContextProvider]");
 
     useEffect(() => {
-        const listener = ({ data: message }: any) => {
-            const { type } = message;
-            console.log("[React]", "[Context]", "Message received:", type);
+        const asyncOp = async() => {
+            setState({
+                ...state,
+                isLoading: true,
+            });
 
-            switch (type) {
-                case "contextState": {
-                    const { data: context } = message;
-                    setState(context);
-                }
-                case "newProfile": {
-                    const { data: { profileName, profileNames } } = message;
-                    console.log('[React]', "[Context]", message);
-                    setState({
-                        ...state,
-                        profileName,
-                        profileNames
-                    });
-                }
-                case "environmentChange": {
-                    setState({
-                        ...state,
-                        isLoading: true,
-                    });
-                }
-            }
+            const { environment, profileName, profileNames, error } = await request({
+                type: "contextState"
+            });
+
+            setState({
+                environment,
+                isLoading: false,
+                error,
+                profileName,
+                profileNames,
+            });
         };
-        window.addEventListener('message', (data) => {
-            console.log('[React]', data);
-        });
-        vscode.postMessage({ type: "requestContextState" });
 
-        return () => {
-            window.removeEventListener('message', listener);
-        }
+        asyncOp();
     }, []);
 
     return <Context.Provider value={state}>{children}</Context.Provider>;
