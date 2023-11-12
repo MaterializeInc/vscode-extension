@@ -16,7 +16,7 @@ export interface Message {
 }
 
 export function request<T>(msg: Message): Promise<T> {
-  vscode.postMessage(JSON.stringify(msg));
+  postMessage(msg);
 
   return new Promise((res, rej) => {
     const listener = ({ data: message }: { data: string}) => {
@@ -24,7 +24,6 @@ export function request<T>(msg: Message): Promise<T> {
         const { data, type } = JSON.parse(message) as Message;
         if (type === msg.type) {
           console.log("[React]", "Ready to remove listener for: ", msg.type);
-          console.log("[React]", "Returning data: ", data);
           window.removeEventListener("message", listener);
           res(data);
         } else {
@@ -48,7 +47,7 @@ export const logInfo = (...messages: Array<any>) => {
 };
 console.log = logInfo;
 
-export const logError = (error: any) => {
+export const logError = (...error: Array<any>) => {
   postMessage({ type: "logError", data: { error } });
 };
 console.error = logError;

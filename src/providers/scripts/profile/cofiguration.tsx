@@ -1,14 +1,20 @@
 import { VSCodeDivider, VSCodeDropdown, VSCodeOption, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react";
-import React, { useContext } from "react";
+import React, { useCallback, useContext } from "react";
 import Actions from "../utils/actions";
 import { Context } from "../context";
+import { request } from "..";
 
 interface Props {
     onAddProfileClick: () => void;
     onRemoveProfileClick: () => void;
+    onProfileChange: (name: string) => void;
 }
 
-const Configuration = ({ onAddProfileClick, onRemoveProfileClick }: Props) => {
+const Configuration = ({
+    onProfileChange,
+    onAddProfileClick,
+    onRemoveProfileClick,
+}: Props) => {
     const {
         environment,
         profileName,
@@ -17,7 +23,15 @@ const Configuration = ({ onAddProfileClick, onRemoveProfileClick }: Props) => {
         isLoading,
     } = useContext(Context);
 
-    console.log("Is loading: ", isLoading, environment);
+    const handleOnProfileChange = useCallback((e: Event | React.FormEvent<HTMLElement>) => {
+        const target = e.target as HTMLInputElement;
+        onProfileChange(target.value);
+    }, [onProfileChange]);
+
+    const handleConfigurationChange = useCallback(async (e: Event | React.FormEvent<HTMLElement>) => {
+        const { id: type, value: name } = e.target as HTMLSelectElement;
+        await request({ type: "onConfigChange", data: { type, name } });
+    }, []);
 
     if (profileNames) {
         return (
@@ -28,9 +42,9 @@ const Configuration = ({ onAddProfileClick, onRemoveProfileClick }: Props) => {
                     */}
                     <div className="dropdown-container">
                         <label htmlFor="profiles">Profile</label>
-                        <VSCodeDropdown id="profiles" disabled={isLoading}>
+                        <VSCodeDropdown onChange={handleOnProfileChange} id="profiles" disabled={isLoading}>
                             <VSCodeOption>{(profileName)}</VSCodeOption>
-                            {profileNames.filter(name => name !== profileName).map((name) => <VSCodeOption>${name}</VSCodeOption>).join('')}
+                            {profileNames.filter(name => name !== profileName).map((name) => <VSCodeOption key={name}>{name}</VSCodeOption>)}
                         </VSCodeDropdown>
                     </div>
                     <Actions primaryText="Add" secondaryText="Remove" onPrimaryClick={onAddProfileClick} onSecondaryClick={onRemoveProfileClick} />
@@ -43,27 +57,27 @@ const Configuration = ({ onAddProfileClick, onRemoveProfileClick }: Props) => {
                         <div className={`setup-container ${isLoading ? "invisible" :""}`}>
                             <div className="dropdown-container">
                                 <label htmlFor="clusters">Cluster</label>
-                                <VSCodeDropdown id="clusters">
-                                    <VSCodeOption>${environment.cluster}</VSCodeOption>
-                                    {environment.clusters.filter(x => x.name !== environment.cluster).map(({name}) => <VSCodeOption>${name}</VSCodeOption>).join('')}
+                                <VSCodeDropdown onChange={handleConfigurationChange} id="clusters">
+                                    <VSCodeOption>{environment.cluster}</VSCodeOption>
+                                    {environment.clusters.filter(x => x.name !== environment.cluster).map(({name}) => <VSCodeOption key={name.toString()}>{name}</VSCodeOption>)}
                                 </VSCodeDropdown>
                             </div>
                         </div>
                         <div className={`setup-container ${isLoading ? "invisible" :""}`}>
                             <div className="dropdown-container">
                                 <label htmlFor="databases">Databases</label>
-                                <VSCodeDropdown id="databases">
-                                    <VSCodeOption>${environment.cluster}</VSCodeOption>
-                                    {environment.databases.filter(x => x.name !== environment.cluster).map(({name}) => <VSCodeOption>${name}</VSCodeOption>).join('')}
+                                <VSCodeDropdown onChange={handleConfigurationChange} id="databases">
+                                    <VSCodeOption>{environment.cluster}</VSCodeOption>
+                                    {environment.databases.filter(x => x.name !== environment.cluster).map(({name}) => <VSCodeOption key={name.toString()}>{name}</VSCodeOption>)}
                                 </VSCodeDropdown>
                             </div>
                         </div>
                         <div className={`setup-container ${isLoading ? "invisible" :""}`}>
                             <div className="dropdown-container">
                                 <label htmlFor="schemas">Schema</label>
-                                <VSCodeDropdown id="schemas">
-                                    <VSCodeOption>${environment.cluster}</VSCodeOption>
-                                    {environment.schemas.filter(x => x.name !== environment.cluster).map(({name}) => <VSCodeOption>${name}</VSCodeOption>).join('')}
+                                <VSCodeDropdown onChange={handleConfigurationChange} id="schemas">
+                                    <VSCodeOption>{environment.cluster}</VSCodeOption>
+                                    {environment.schemas.filter(x => x.name !== environment.cluster).map(({name}) => <VSCodeOption key={name.toString()}>{name}</VSCodeOption>)}
                                 </VSCodeDropdown>
                             </div>
                         </div>

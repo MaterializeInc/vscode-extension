@@ -45,7 +45,7 @@ const RemoveProfile = ({ onCancel, onContinue }: Props) => {
         if (isNameValid(name)) {
             onContinue();
         }
-    }, [isNameValid]);
+    }, [state, isNameValid]);
 
     useEffect(() => {
         // Listen when the user presses Enter.
@@ -69,11 +69,10 @@ const RemoveProfile = ({ onCancel, onContinue }: Props) => {
 
     return (
         <>
-            <VSCodeTextField id="profileNameInput" onChange={handleOnProfileNameChange}>Profile Name</VSCodeTextField>
-            {state.error ? (
-            <p id="invalidProfileNameErrorMessage">
-                Profile name must contain only ASCII letters, ASCII digits, underscores, and dashes.
-            </p>) : <></>}
+            <p>You are about to remove a profile from your configuration.<br/><br/>
+            Please type <b>{profileName}</b> to confirm:
+            </p>
+            <VSCodeTextField id="profileNameInput" onInput={handleOnProfileNameChange}/>
             <Actions
                 primaryText="Continue"
                 secondaryText="Cancel"

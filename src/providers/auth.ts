@@ -99,8 +99,26 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         });
     }
 
-    private updateState(state: State) {
+    private publishState() {
+        console.log("[AuthProvider]", "Posting context state.");
+        this.context.isReady().finally(() => {
+            if (this._view) {
+                const profileNames = this.context.getProfileNames();
+                const profileName = this.context.getProfileName();
+                const thenable = this._view.webview.postMessage(JSON.stringify({ type: "contextState", data: {
+                    profileNames,
+                    profileName,
+                    environment: this.context.getEnvironment(),
+                }}));
+                thenable.then((posted) => {
+                    console.log("[AuthProvider]", "Context state message posted: ", posted);
+                });
+            }
+        });
+    }
 
+    private updateState(state: State) {
+        this.state = state;
     }
 
     private capitalizeFirstLetter(str: string) {
@@ -197,18 +215,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 case "contextState": {
                     console.log("[AuthProvider]", "Context state request.", );
                     if (this._view) {
-                        console.log("[AuthProvider]", "Posting context state.");
-                        const profileNames = this.context.getProfileNames();
-                        const profileName = this.context.getProfileName();
-
-                        const thenable = this._view.webview.postMessage(JSON.stringify({ type: "contextState", data: {
-                            profileNames,
-                            profileName,
-                            environment: this.context.getEnvironment(),
-                        }}));
-                        thenable.then((posted) => {
-                            console.log("[AuthProvider]", "Context state message posted: ", posted);
-                        });
+                        this.publishState();
                     }
                     break;
                 }
