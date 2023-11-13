@@ -92,4 +92,12 @@ export enum Errors {
      * using the Postgres client.
      */
     unexpectedSqlClientConnectionError = "An unexpected error happened while establishing a connection to your region environment.",
+    /**
+     * Raises when a profile that does not exists in the configuration.
+     */
+    profileDoesNotExist = "The selected profile does not exist.",
+    /**
+     * Raises when a query fails.
+     */
+    queryFailure = "Error querying server."
 }

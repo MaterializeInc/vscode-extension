@@ -1,22 +1,22 @@
 import { Pool, PoolClient, PoolConfig, QueryResult } from "pg";
 import AdminClient from "./admin";
 import CloudClient from "./cloud";
-import { Context, EventType } from "../context";
 import { Profile } from "../context/config";
+import AsyncContext from "../context/asyncContext";
 
 export default class SqlClient {
     private pool: Promise<Pool>;
     private privateClient: Promise<PoolClient>;
     private adminClient: AdminClient;
     private cloudClient: CloudClient;
-    private context: Context;
+    private context: AsyncContext;
     private profile: Profile;
 
     constructor(
         adminClient: AdminClient,
         cloudClient: CloudClient,
         profile: Profile,
-        context: Context,
+        context: AsyncContext,
     ) {
         this.adminClient = adminClient;
         this.cloudClient = cloudClient;
@@ -40,7 +40,7 @@ export default class SqlClient {
                     });
                 } catch (err) {
                     console.error("[SqlClient]", "Error creating pool: ", err);
-                    this.context.emit("event", { type: EventType.error, message: err });
+                    rej(err);
                 }
             };
 

@@ -40,6 +40,10 @@
         return capitalized;
     };
 
+    let timer: any;
+    let elapsedTime: number = 0;
+    let timerElement: HTMLElement | null = null;
+
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', ({ data: message }) => {
         const { type } = message;
@@ -57,6 +61,73 @@
                     const progressRing = document.createElement("vscode-progress-ring");
                     progressRing.id = "progress-ring";
                     container.appendChild(progressRing);
+
+                    // Record the start time of the query
+                    let startTime = Date.now();
+
+                    elapsedTime = 0;
+                    // Dynamically create the timer div if it doesn't exist
+                    if (!timerElement) {
+                        timerElement = document.createElement('div');
+                        timerElement.id = 'timer';
+                        timerElement.style.fontWeight = "300";
+                        timerElement.style.fontSize = "12px";
+                        timerElement.style.paddingTop = "0.5rem";
+                        document.body.appendChild(timerElement);
+                    }
+                    // Reset and show the timer content
+                    timerElement.textContent = 'Time elapsed:';
+                    timerElement.style.display = 'block';
+                    clearInterval(timer);
+                    timer = setInterval(() => {
+                        elapsedTime = Date.now() - startTime;
+                        let displayTime;
+
+                        // If less than 1000 ms, show full milliseconds
+                        if (elapsedTime < 1000) {
+                            displayTime = `${elapsedTime}ms`;
+                        } else {
+                            // After 1000 ms, display seconds with one decimal place
+                            const seconds = (elapsedTime / 1000).toFixed(1);
+                            const totalSeconds = Math.floor(elapsedTime / 1000);
+                            const minutes = Math.floor(totalSeconds / 60);
+                            const remainingSeconds = totalSeconds % 60;
+
+                            if (minutes > 0) {
+                                // Display minutes with one decimal place for the seconds
+                                displayTime = `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
+                            } else {
+                                // Display only seconds with one decimal place
+                                displayTime = `${seconds}s`;
+                            }
+                        }
+
+                        if (timerElement) {
+                            timerElement.textContent = `Time elapsed: ${displayTime}`;
+                        }
+
+                        // Update the timer every 100ms before 1 second, and every 500ms after 1 second
+                        if (elapsedTime >= 1000 && timer) {
+                            clearInterval(timer);
+                            timer = setInterval(() => {
+                                elapsedTime = Date.now() - startTime;
+                                const seconds = (elapsedTime / 1000).toFixed(1);
+                                const totalSeconds = Math.floor(elapsedTime / 1000);
+                                const minutes = Math.floor(totalSeconds / 60);
+                                const remainingSeconds = totalSeconds % 60;
+
+                                if (minutes > 0) {
+                                    displayTime = `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
+                                } else {
+                                    displayTime = `${seconds}s`;
+                                }
+
+                                if (timerElement) {
+                                    timerElement.textContent = `Time elapsed: ${displayTime}`;
+                                }
+                            }, 500);
+                        }
+                    }, 103);
                     break;
                 }
 
@@ -74,6 +145,10 @@
                     let table = document.getElementById(tableId);
 
                     // Elapsed time message
+                    clearInterval(timer);
+                    if (timerElement) {
+                        timerElement.style.display = 'none';
+                    }
                     console.log("[Results]", "Elapsed time: ", elapsedTime);
                     const elapsedTimeCommandMessageContainer = document.createElement("div");
                     const elapsedMessage = `Time elapsed: ${elapsedTime}ms`;
@@ -177,6 +252,9 @@
                         // Append the header row to the table
                         table.appendChild(headerRow);
 
+                        // Fix for: https://github.com/microsoft/vscode-webview-ui-toolkit/issues/473
+                        table.style.display = "grid";
+
                         // Append the table to the document body or a container element
                         container.appendChild(table);
                     }
@@ -246,4 +324,3 @@
     // Communicate to the provider that the script is ready to render data.
     vscode.postMessage({ type: "ready" });
 }());
-
