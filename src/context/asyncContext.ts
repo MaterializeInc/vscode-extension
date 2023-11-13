@@ -23,9 +23,9 @@ interface Providers {
  *
  * All asynchronous methods should be declared in this class
  * and must handle errors using try/catch.
- * Public methods should never reject a Promise (`rej(..)`)
- * or throw errors (`throw new Error()`).
  *
+ * IMPORTANT:
+ * Code using these methods should careful handling rejections.
  * Unhandled rejections in VS Code may result in undesired
  * notifications to the user.
  */

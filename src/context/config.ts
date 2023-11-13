@@ -203,7 +203,6 @@ export class Config {
             } else {
                 delete this.config.profile;
                 delete this.config.profiles;
-                delete this.config.vault;
             }
         }
 
