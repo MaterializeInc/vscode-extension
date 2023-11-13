@@ -1,22 +1,24 @@
 import { createContext, useCallback, useEffect, useState } from "react";
 import * as React from "react";
 import { Environment } from "../../context/context";
-import { request } from ".";
+import { Message, request as extensionRequest } from ".";
 
-interface State {
-    isLoading: boolean;
+interface VSCodeContextState {
     profileName?: string;
     profileNames?: Array<string>;
-    error?: string;
     environment?: Environment;
-    update: (state: State) => void;
-    refresh: () => Promise<void>;
+
+}
+
+interface State extends VSCodeContextState{
+    isLoading: boolean;
+    error?: string;
+    request: (msg: Message) => Promise<void>;
 };
 
 const baseState: State = {
     isLoading: true,
-    refresh: async () => {},
-    update: () => {},
+    request: async () => {},
 };
 
 export const Context = createContext<State>({ ...baseState });
@@ -28,41 +30,32 @@ interface ContextProviderProps {
 export const ContextProvider = (props: ContextProviderProps): React.JSX.Element => {
     const { children } = props;
     const [state, setState] = useState<State>({ ...baseState });
-    console.log("[ContextProvider]");
 
-    const updateContext = useCallback(async (state: State) => {
-        setState({
-            ...state,
-        });
-    }, [state]);
+    // Mutable request
+    const request = useCallback(async (msg: Message) => {
+        try {
+            setState({
+                ...state,
+                isLoading: true,
+            });
+            const newContext: VSCodeContextState = await extensionRequest<VSCodeContextState>(msg);
+            console.log("[React]", "[Context]", "New context: ", newContext);
 
-    const refreshContext = useCallback(async () => {
-        const newState: State = {
-            ...state,
-            isLoading: true,
-            refresh: refreshContext,
-            update: updateContext
-        };
-        setState(newState);
-
-        const { environment, error, profileNames, profileName, } = await request<State>({
-            type: "getContext"
-        });
-
-        setState({
-            refresh: refreshContext,
-            update: updateContext,
-            isLoading: false,
-            environment,
-            error,
-            profileName,
-            profileNames,
-        });
+            setState({
+                ...state,
+                ...newContext,
+                isLoading: false,
+            });
+        } catch (err) {
+            // TODO: Check if something is missing.
+        }
     }, [state]);
 
     useEffect(() => {
-        refreshContext();
+        request({ type: "getContext" });
     }, []);
+
+    state.request = request;
 
     return <Context.Provider value={state}>{children}</Context.Provider>;
 };

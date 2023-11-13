@@ -20,8 +20,7 @@ const Profile = () => {
         profileNames,
         isLoading,
         error,
-        update,
-        refresh
+        request,
     } = context;
     const [state, setState] = useState<State>({
         isAddNewProfile: false,
@@ -30,14 +29,12 @@ const Profile = () => {
 
     const handleAddProfile = useCallback(async (name: string) => {
         try {
-            update({ ...context, isLoading: true });
             await request({ type: "onAddProfile", data: { name } });
-            await refresh();
             setState({...state, isAddNewProfile: false });
         } catch (err) {
             // TODO: Set error.
         }
-    }, [state]);
+    }, [state, request]);
 
     const handleOnCancelAddProfile = useCallback(() => {
         setState({ ...state, isAddNewProfile: false });
@@ -52,13 +49,8 @@ const Profile = () => {
             ...state,
             isRemoveProfile: false,
         });
-        update({
-            ...context,
-            isLoading: true,
-        });
         await request({ type: "onRemoveProfile", data: { name: profileName } });
-        await refresh();
-    }, [state, refresh, profileName]);
+    }, [state, profileName, request]);
 
     const handleOnAddProfileClick = useCallback(() => {
         setState({ ...state, isAddNewProfile: true });
@@ -72,16 +64,15 @@ const Profile = () => {
         try {
             setState({ ...state, });
             await request({ type: "onProfileChange", data: { name } });
-            await refresh();
             setState({...state, isAddNewProfile: false, });
         } catch (err) {
+            console.error("[React]", "[Profile]", err);
             // TODO: Set error.
         }
-    }, [state]);
+    }, [state, request]);
 
     const handleOnConnectionOptionsChange = useCallback(async (type: string, name: string) => {
         try {
-            update({ ...context, isLoading: true });
             const { environment } = context;
             await request({ type: "onConfigChange", data: { type, name } });
 
@@ -102,7 +93,6 @@ const Profile = () => {
                         break;
                 }
             }
-            update({ ...context, isLoading: false });
         } catch (err) {
             console.error(err);
             // TODO: Set error.

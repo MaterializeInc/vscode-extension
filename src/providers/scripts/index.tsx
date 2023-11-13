@@ -15,6 +15,11 @@ export interface Message {
   type: string;
 }
 
+/**
+ * This function shouldn't be used by the components.
+ * @param msg
+ * @returns
+ */
 export function request<T>(msg: Message): Promise<T> {
   const promise = new Promise<T>((res, rej) => {
     const listener = ({ data: message }: { data: string}) => {
