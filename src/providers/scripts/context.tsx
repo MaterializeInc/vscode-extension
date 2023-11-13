@@ -7,7 +7,7 @@ interface VSCodeContextState {
     profileName?: string;
     profileNames?: Array<string>;
     environment?: Environment;
-
+    error?: string;
 }
 
 interface State extends VSCodeContextState{
@@ -36,18 +36,26 @@ export const ContextProvider = (props: ContextProviderProps): React.JSX.Element 
         try {
             setState({
                 ...state,
+                error: undefined,
                 isLoading: true,
+                request,
             });
             const newContext: VSCodeContextState = await extensionRequest<VSCodeContextState>(msg);
             console.log("[React]", "[Context]", "New context: ", newContext);
 
             setState({
-                ...state,
                 ...newContext,
                 isLoading: false,
+                request
             });
         } catch (err) {
-            // TODO: Check if something is missing.
+            console.error(err);
+            setState({
+                ...state,
+                isLoading: false,
+                error: "Internal error processing action.",
+                request
+            });
         }
     }, [state]);
 

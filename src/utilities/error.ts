@@ -1,6 +1,17 @@
 export class ExtensionError extends Error {
-    constructor(error: Errors) {
+    description?: string;
+
+    constructor(error: Errors, description: unknown) {
         super(error);
+
+        if (description instanceof Error) {
+            this.description = description.message;
+        } else if (typeof description === "string") {
+            this.description = description;
+        } else {
+            this.description = error;
+        }
+        super.message = this.description;
     }
 }
 
@@ -99,5 +110,13 @@ export enum Errors {
     /**
      * Raises when a query fails.
      */
-    queryFailure = "Error querying server."
+    queryFailure = "Error running query.",
+    /**
+     * Raises when the Postgres pool client fails to connect.
+     */
+    poolConnectionFailure = "Error connecting pool.",
+    /**
+     * Raises when the SQL client fails to create the pool.
+     */
+    poolCreationFailure = "Error creating the client pool."
 }

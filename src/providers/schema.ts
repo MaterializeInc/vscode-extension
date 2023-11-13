@@ -26,64 +26,69 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
         } else {
             return new Promise((res, rej) => {
                 const asyncOp = async () => {
-                    const profileName = this.context.getProfileName();
+                    try {
 
-                    // A missing profile name means there is no profile loaded yet.
-                    // E.g.: The first time the user open the extension.
-                    if (profileName) {
-                        console.log("[DatabaseTreeProvider]", "Profile name loaded.");
+                        const profileName = this.context.getProfileName();
 
-                        console.log("[DatabaseTreeProvider]", "Waiting context to be ready.");
-                        await this.context.isReady();
+                        // A missing profile name means there is no profile loaded yet.
+                        // E.g.: The first time the user open the extension.
+                        if (profileName) {
+                            console.log("[DatabaseTreeProvider]", "Profile name loaded.");
 
-                        console.log("[DatabaseTreeProvider]", "Looking up the schema.");
-                        const environment = this.context.getEnvironment();
-                        if (environment) {
-                            const { schema: schemaName } = environment;
-                            const { schemas } = environment;
-                            const schema = schemas.find(x => x.name === schemaName);
-                            console.log("SchemaReader: ", schema, schemas, schemaName);
+                            console.log("[DatabaseTreeProvider]", "Waiting context to be ready.");
+                            await this.context.isReady();
 
-                            if (schema) {
-                                const promises = [
-                                    this.getSources(schema.id).then(s => s.length),
-                                    this.getViews(schema.id).then(v => v.length),
-                                    this.getMaterializedViews(schema.id).then(mv => mv.length),
-                                    this.getTables(schema.id).then(t => t.length),
-                                    this.getSinks(schema.id).then(s => s.length),
-                                    this.getCatalog().then(c => c.length),
-                                    this.getInternal().then(i => i.length)
-                                ];
+                            console.log("[DatabaseTreeProvider]", "Looking up the schema.");
+                            const environment = this.context.getEnvironment();
+                            if (environment) {
+                                const { schema: schemaName } = environment;
+                                const { schemas } = environment;
+                                const schema = schemas.find(x => x.name === schemaName);
+                                console.log("SchemaReader: ", schema, schemas, schemaName);
 
-                                const [
-                                    sourceCount,
-                                    viewCount,
-                                    materializedViewCount,
-                                    tableCount,
-                                    sinkCount,
-                                    catalogCount,
-                                    internalCount
-                                ] = await Promise.all(promises);
+                                if (schema) {
+                                    const promises = [
+                                        this.getSources(schema.id).then(s => s.length),
+                                        this.getViews(schema.id).then(v => v.length),
+                                        this.getMaterializedViews(schema.id).then(mv => mv.length),
+                                        this.getTables(schema.id).then(t => t.length),
+                                        this.getSinks(schema.id).then(s => s.length),
+                                        this.getCatalog().then(c => c.length),
+                                        this.getInternal().then(i => i.length)
+                                    ];
 
-                                res([
-                                    new SourceTab(`Sources (${sourceCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new ViewTab(`Views (${viewCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new MaterializedViewTab(`Materialized Views (${materializedViewCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new TableTab(`Tables (${tableCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new SinkTab(`Sinks (${sinkCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new CatalogTab(`Catalog (${catalogCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
-                                    new InternalTab(`Internal (${internalCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema)
-                                ]);
+                                    const [
+                                        sourceCount,
+                                        viewCount,
+                                        materializedViewCount,
+                                        tableCount,
+                                        sinkCount,
+                                        catalogCount,
+                                        internalCount
+                                    ] = await Promise.all(promises);
+
+                                    res([
+                                        new SourceTab(`Sources (${sourceCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                        new ViewTab(`Views (${viewCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                        new MaterializedViewTab(`Materialized Views (${materializedViewCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                        new TableTab(`Tables (${tableCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                        new SinkTab(`Sinks (${sinkCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                        new CatalogTab(`Catalog (${catalogCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema),
+                                        new InternalTab(`Internal (${internalCount})`, vscode.TreeItemCollapsibleState.Collapsed, schema)
+                                    ]);
+                                } else {
+                                    console.error("[DatabaseTreeProvider]", "Error: Wrong state, the schema is missing.");
+                                    res([]);
+                                }
                             } else {
-                                console.error("[DatabaseTreeProvider]", "Error: Wrong state, the schema is missing.");
+                                console.error("[DatabaseTreeProvider]", "Error: Wrong state, the environment is missing.");
                                 res([]);
                             }
                         } else {
-                            console.error("[DatabaseTreeProvider]", "Error: Wrong state, the environment is missing.");
-                            res([]);
+                            res ([]);
                         }
-                    } else {
-                        res ([]);
+                    } catch (err) {
+                        res([]);
                     }
                 };
 

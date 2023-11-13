@@ -81,6 +81,10 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 
     private publish(type: string, data: any) {
         if (this._view) {
+            const { error } = data;
+            if (error) {
+                data.error = error.message;
+            }
             const thenable = this._view.webview.postMessage(JSON.stringify({ type, data}));
             thenable.then((posted) => {
                 console.log("[AuthProvider]", "Context state message posted: ", posted);
@@ -89,21 +93,21 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
     }
 
     private async getContext() {
+        let error;
+
         try {
             await this.context.isReady();
         } catch (err) {
-            // TODO: Check if asomething else needs to be done.
-            console.error("Error awaiting context.");
+            console.error("[AuthProvider]", "Error awaiting context.");
+            error = err;
         }
+
         return {
             profileNames: this.context.getProfileNames(),
             profileName: this.context.getProfileName(),
             environment: this.context.getEnvironment(),
+            error,
         };
-    }
-
-    async displayError(message: string) {
-        console.log("[AuthProvider]", "Error detected: ", message);
     }
 
     /**
@@ -159,12 +163,8 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     const { name } = data;
 
                     loginServer(name).then((appPasswordResponse) => {
-                        this.checkLoginServerResponse(appPasswordResponse, name).then(async () => {
-                            try {
-                                this.publish("onAddProfile", await this.getContext());
-                            } catch (err) {
-                                // TODO:
-                            }
+                        this.checkLoginServerResponse(appPasswordResponse, name).finally(async () => {
+                            this.publish("onAddProfile", await this.getContext());
                         });
                     }).catch((err) => {
                         console.error("Error setting up the server: ", err);
@@ -178,9 +178,9 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     console.log("[AuthProvider]", "onProfileChange(): ", data);
                     try {
                         await this.context.setProfile(name);
+                    } finally {
+                        console.log("[AuthProvider]", "Env: ", this.context.getEnvironment());
                         this.publish("onProfileChange", await this.getContext());
-                    } catch (err) {
-                        this.publish("onProfileChange", { error: err });
                     }
                     break;
                 }
@@ -192,13 +192,12 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     try {
                         if (name) {
                                 await this.context.removeAndSaveProfile(name);
-                                this.publish("onRemoveProfile", await this.getContext());
                         } else {
                             console.error("[Auth]", "Profile name is not available.");
-                            this.publish("onRemoveProfile", await this.getContext());
                         }
-                    } catch (err) {
-                        this.publish("onRemoveProfile", { error: err });
+                    } finally {
+                        console.log("[AuthProvider]", "Env: ", this.context.getEnvironment());
+                        this.publish("onRemoveProfile", await this.getContext());
                     }
 
                     break;
@@ -227,28 +226,27 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                         case "database":
                             try {
                                 await this.context.setDatabase(name);
+                            } finally {
                                 console.log("[AuthProvider]", "Env: ", this.context.getEnvironment());
                                 this.publish("onConfigChange", await this.getContext());
-                            } catch (error) {
-                                this.publish("onConfigChange", { error });
                             }
                             break;
 
                         case "cluster":
                             try {
                                 await this.context.setCluster(name);
+                            } finally {
+                                console.log("[AuthProvider]", "Env: ", this.context.getEnvironment());
                                 this.publish("onConfigChange", await this.getContext());
-                            } catch (error) {
-                                this.publish("onConfigChange", { error });
                             }
                             break;
 
                         case "schema":
                             try {
                                 await this.context.setSchema(name);
+                            } finally {
+                                console.log("[AuthProvider]", "Env: ", this.context.getEnvironment());
                                 this.publish("onConfigChange", await this.getContext());
-                            } catch (error) {
-                                this.publish("onConfigChange", { error });
                             }
                             break;
                         default:

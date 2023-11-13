@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
 import AdminClient from "./admin";
-import { Errors } from "../utilities/error";
+import { Errors, ExtensionError } from "../utilities/error";
 
 const DEFAULT_API_CLOUD_ENDPOINT = 'https://api.cloud.materialize.com';
 
@@ -89,7 +89,7 @@ export default class CloudClient {
             }
         } catch (err) {
             console.error("[CloudClient]", "Error listing cloud providers: ", err);
-            throw new Error(Errors.listingCloudProviders);
+            throw new ExtensionError(Errors.listingCloudProviders, err);
         }
 
         return cloudProviders;

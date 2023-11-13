@@ -4,7 +4,6 @@ import { Context } from "../context";
 import AddProfile from "./add";
 import RemoveProfile from "./remove";
 import Configuration from "./cofiguration";
-import { request } from "..";
 import { VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react";
 
 interface State {
@@ -19,8 +18,8 @@ const Profile = () => {
         profileName,
         profileNames,
         isLoading,
-        error,
         request,
+        error
     } = context;
     const [state, setState] = useState<State>({
         isAddNewProfile: false,
@@ -28,12 +27,8 @@ const Profile = () => {
     });
 
     const handleAddProfile = useCallback(async (name: string) => {
-        try {
-            await request({ type: "onAddProfile", data: { name } });
-            setState({...state, isAddNewProfile: false });
-        } catch (err) {
-            // TODO: Set error.
-        }
+        await request({ type: "onAddProfile", data: { name } });
+        setState({...state, isAddNewProfile: false });
     }, [state, request]);
 
     const handleOnCancelAddProfile = useCallback(() => {
@@ -61,43 +56,14 @@ const Profile = () => {
     }, [state]);
 
     const handleOnProfileChange = useCallback(async (name: string) => {
-        try {
-            setState({ ...state, });
-            await request({ type: "onProfileChange", data: { name } });
-            setState({...state, isAddNewProfile: false, });
-        } catch (err) {
-            console.error("[React]", "[Profile]", err);
-            // TODO: Set error.
-        }
+        setState({ ...state, });
+        await request({ type: "onProfileChange", data: { name } });
+        setState({...state, isAddNewProfile: false, });
     }, [state, request]);
 
     const handleOnConnectionOptionsChange = useCallback(async (type: string, name: string) => {
-        try {
-            const { environment } = context;
-            await request({ type: "onConfigChange", data: { type, name } });
-
-            if (environment) {
-                switch (type) {
-                    case "cluster":
-                        environment.cluster = name;
-                        break;
-
-                    case "database":
-                        environment.database = name;
-                        break;
-
-                    case "schema":
-                        environment.schema = name;
-                        break;
-                    default:
-                        break;
-                }
-            }
-        } catch (err) {
-            console.error(err);
-            // TODO: Set error.
-        }
-    }, [context]);
+        await request({ type: "onConfigChange", data: { type, name } });
+    }, [context, request]);
 
     let content = isLoading ? <VSCodeProgressRing id="loading-ring"></VSCodeProgressRing> : <AddProfile onContinue={handleAddProfile} mandatory />;
 
@@ -115,6 +81,8 @@ const Profile = () => {
                 onConnectionOptionsChange={handleOnConnectionOptionsChange}
             />;
         }
+    } else if (error && !isLoading) {
+        content = <p className="profileErrorMessage">{error}</p>;
     }
 
     return (
