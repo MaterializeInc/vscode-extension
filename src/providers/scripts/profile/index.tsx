@@ -10,51 +10,55 @@ import { VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react";
 interface State {
     isAddNewProfile: boolean;
     isRemoveProfile: boolean;
-    isLoading: boolean;
-    error?: string;
-    newProfileName?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const Profile = () => {
+    const context = useContext(Context);
     const {
+        profileName,
         profileNames,
-        isLoading: isContextLoading
-    } = useContext(Context);
+        isLoading,
+        error,
+        update,
+        refresh
+    } = context;
     const [state, setState] = useState<State>({
         isAddNewProfile: false,
         isRemoveProfile: false,
-        isLoading: false,
-        error: undefined,
     });
 
     const handleAddProfile = useCallback(async (name: string) => {
         try {
-            setState({...state, isLoading: true, });
+            update({ ...context, isLoading: true });
             await request({ type: "onAddProfile", data: { name } });
-            setState({...state, isAddNewProfile: false, });
+            await refresh();
+            setState({...state, isAddNewProfile: false });
         } catch (err) {
             // TODO: Set error.
         }
     }, [state]);
 
     const handleOnCancelAddProfile = useCallback(() => {
-        setState({
-            ...state,
-            isAddNewProfile: false,
-        });
+        setState({ ...state, isAddNewProfile: false });
     }, [state]);
 
     const handleOnCancelRemoveProfile = useCallback(() => {
+        setState({ ...state, isRemoveProfile: false, });
+    }, [state]);
+
+    const handleOnRemoveProfile = useCallback(async () => {
         setState({
             ...state,
             isRemoveProfile: false,
         });
-    }, [state]);
-
-    const handleOnRemoveProfile = useCallback(() => {
-        setState({ ...state, isRemoveProfile: false });
-    }, [state]);
+        update({
+            ...context,
+            isLoading: true,
+        });
+        await request({ type: "onRemoveProfile", data: { name: profileName } });
+        await refresh();
+    }, [state, refresh, profileName]);
 
     const handleOnAddProfileClick = useCallback(() => {
         setState({ ...state, isAddNewProfile: true });
@@ -66,15 +70,46 @@ const Profile = () => {
 
     const handleOnProfileChange = useCallback(async (name: string) => {
         try {
-            setState({...state, isLoading: true, });
+            setState({ ...state, });
             await request({ type: "onProfileChange", data: { name } });
+            await refresh();
             setState({...state, isAddNewProfile: false, });
         } catch (err) {
             // TODO: Set error.
         }
     }, [state]);
 
-    let content = isContextLoading ? <VSCodeProgressRing id="loading-ring"></VSCodeProgressRing> : <AddProfile onContinue={handleAddProfile} mandatory />;
+    const handleOnConnectionOptionsChange = useCallback(async (type: string, name: string) => {
+        try {
+            update({ ...context, isLoading: true });
+            const { environment } = context;
+            await request({ type: "onConfigChange", data: { type, name } });
+
+            if (environment) {
+                switch (type) {
+                    case "cluster":
+                        environment.cluster = name;
+                        break;
+
+                    case "database":
+                        environment.database = name;
+                        break;
+
+                    case "schema":
+                        environment.schema = name;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            update({ ...context, isLoading: false });
+        } catch (err) {
+            console.error(err);
+            // TODO: Set error.
+        }
+    }, [context]);
+
+    let content = isLoading ? <VSCodeProgressRing id="loading-ring"></VSCodeProgressRing> : <AddProfile onContinue={handleAddProfile} mandatory />;
 
     if (profileNames) {
         if (state.isAddNewProfile) {
@@ -83,9 +118,11 @@ const Profile = () => {
             content = <RemoveProfile onCancel={handleOnCancelRemoveProfile} onContinue={handleOnRemoveProfile} />;
         } else {
             content = <Configuration
+                disabled={isLoading}
                 onAddProfileClick={handleOnAddProfileClick}
                 onRemoveProfileClick={handleOnRemoveProfileClick}
                 onProfileChange={handleOnProfileChange}
+                onConnectionOptionsChange={handleOnConnectionOptionsChange}
             />;
         }
     }

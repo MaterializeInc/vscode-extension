@@ -1,11 +1,10 @@
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import Actions from "../utils/actions";
+import { Context } from "../context";
 
 interface State {
-    isLoading: boolean;
-    error?: boolean;
     name: string;
 }
 
@@ -19,9 +18,8 @@ interface Props {
 const pattern = /^[a-zA-Z0-9_\-]+$/;
 
 const AddProfile = ({ mandatory, onCancel, onContinue }: Props) => {
+    const { isLoading } = useContext(Context);
     const [state, setState] = useState<State>({
-        isLoading: false,
-        error: undefined,
         name: "",
     });
 
@@ -36,7 +34,6 @@ const AddProfile = ({ mandatory, onCancel, onContinue }: Props) => {
         setState({
             ...state,
             name: value,
-            error: !isNameValid(value),
         });
     }, [isNameValid]);
 
@@ -74,17 +71,13 @@ const AddProfile = ({ mandatory, onCancel, onContinue }: Props) => {
                 onInput={(e) => handleOnProfileNameChange(e)}
                 value={state.name}
             >
-                    Profile Name
+                Profile Name
             </VSCodeTextField>
-            {state.error &&
-                <p id="invalidProfileNameErrorMessage">
-                    Profile name must contain only ASCII letters, ASCII digits, underscores, and dashes.
-                </p>}
             <Actions
                 primaryText="Continue"
                 secondaryText="Cancel"
-                disable={!isNameValid(state.name)}
-                hidden={mandatory}
+                disable={!isNameValid(state.name) || isLoading}
+                hide={mandatory}
                 onSecondaryClick={onCancel}
                 onPrimaryClick={handleOnContinue}
             />

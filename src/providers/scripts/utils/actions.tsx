@@ -7,15 +7,15 @@ interface Props {
     onPrimaryClick?: () => void;
     onSecondaryClick?: () => void;
     disable?: boolean;
-    hidden?: boolean;
+    hide?: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const Actions = ({ primaryText, secondaryText, disable, hidden, onSecondaryClick, onPrimaryClick }: Props) => {
+const Actions = ({ primaryText, secondaryText, disable, hide, onSecondaryClick, onPrimaryClick }: Props) => {
     return (
         <>
             <div className="setup-container-actions">
-                {!hidden &&
+                {!hide &&
                     <VSCodeButton onClick={onSecondaryClick} className="action_button" appearance="secondary" id="cancelAddProfile">
                         {secondaryText}
                     </VSCodeButton>

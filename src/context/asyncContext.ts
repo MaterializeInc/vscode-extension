@@ -137,7 +137,6 @@ export default class AsyncContext extends Context {
         this.loaded = false;
 
         if (!init) {
-            this.providers.auth.environmentChange();
             this.providers.database.refresh();
         }
 
@@ -212,10 +211,8 @@ export default class AsyncContext extends Context {
                 this.environment.schema = schema;
                 this.environment.schemas = schemas.filter(x => x.databaseId === databaseObj?.id);
             }
-
             console.log("[AsyncContext]", "Environment loaded.");
             this.loaded = true;
-            this.providers.auth.environmentLoaded();
             return true;
         }
     }
@@ -419,6 +416,7 @@ export default class AsyncContext extends Context {
                 ...this.environment,
                 database: name,
                 schema: "",
+                schemas: [],
             };
         }
 

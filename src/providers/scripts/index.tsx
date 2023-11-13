@@ -16,9 +16,7 @@ export interface Message {
 }
 
 export function request<T>(msg: Message): Promise<T> {
-  postMessage(msg);
-
-  return new Promise((res, rej) => {
+  const promise = new Promise<T>((res, rej) => {
     const listener = ({ data: message }: { data: string}) => {
       try {
         const { data, type } = JSON.parse(message) as Message;
@@ -37,6 +35,10 @@ export function request<T>(msg: Message): Promise<T> {
 
     window.addEventListener('message', listener);
   });
+
+  postMessage(msg);
+
+  return promise;
 };
 
 /**

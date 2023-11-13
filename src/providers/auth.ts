@@ -62,11 +62,6 @@ async function loginServer(name: string): Promise<AppPasswordResponse | undefine
     });
 }
 
-interface State {
-    isLoading: boolean;
-    error: undefined | string;
-}
-
 /**
  * The AuthProvider is in charge of rendering the login section.
  * Also enables the user to choose the database, schema or cluster.
@@ -78,95 +73,38 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
     _view?: vscode.WebviewView;
     _doc?: vscode.TextDocument;
     context: AsyncContext;
-    state: State;
 
     constructor(private readonly _extensionUri: vscode.Uri, context: AsyncContext) {
         this._extensionUri = _extensionUri;
         this.context = context;
-        this.state = {
-            isLoading: this.context.isLoading(),
-            error: undefined,
-        };
-
-        // Await for readyness when the extension activates from the outside.
-        // E.g. Running a query without opening the extension.
-        this.context.isReady().then(() => {
-            this.updateState({
-                ...this.state,
-                isLoading: false,
-                error: undefined
-            });
-        });
     }
 
-    private publishState() {
+    private publish(type: string, data: any) {
+        if (this._view) {
+            const thenable = this._view.webview.postMessage(JSON.stringify({ type, data}));
+            thenable.then((posted) => {
+                console.log("[AuthProvider]", "Context state message posted: ", posted);
+            });
+        }
+    }
+
+    private publishContext() {
         console.log("[AuthProvider]", "Posting context state.");
         this.context.isReady().finally(() => {
             if (this._view) {
                 const profileNames = this.context.getProfileNames();
                 const profileName = this.context.getProfileName();
-                const thenable = this._view.webview.postMessage(JSON.stringify({ type: "contextState", data: {
+                this.publish("getContext", {
                     profileNames,
                     profileName,
                     environment: this.context.getEnvironment(),
-                }}));
-                thenable.then((posted) => {
-                    console.log("[AuthProvider]", "Context state message posted: ", posted);
                 });
             }
         });
     }
 
-    private updateState(state: State) {
-        this.state = state;
-    }
-
-    private capitalizeFirstLetter(str: string) {
-        if (typeof str !== "string") {
-            return;
-        }
-        if (str.length === 0) {
-          return str;
-        }
-
-        const firstChar = str.charAt(0);
-        const capitalized = firstChar.toUpperCase() + str.slice(1);
-
-        return capitalized;
-    };
-
     async displayError(message: string) {
         console.log("[AuthProvider]", "Error detected: ", message);
-        this.updateState({
-            ...this.state,
-            error: this.capitalizeFirstLetter(message),
-            isLoading: false,
-        });
-    }
-
-    async environmentChange() {
-        console.log("[AuthProvider]", "Environment change.");
-        this.state.isLoading = true;
-        this.state.error = undefined;
-
-        if (this._view) {
-            const thenable = this._view.webview.postMessage({ type: "environmentChange" });
-            thenable.then((posted) => {
-                console.log("[AuthProvider]", "Environment change message posted: ", posted);
-            });
-        }
-    }
-
-    async environmentLoaded() {
-        console.log("[AuthProvider]", "New environment available.");
-        if (this._view) {
-            // Do not refresh the webview if the user is removing or adding a profile.
-            // The UI will auto update after this action ends.
-            this.updateState({
-                ...this.state,
-                isLoading: true,
-            });
-        }
     }
 
     /**
@@ -179,12 +117,6 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         appPasswordResponse: AppPasswordResponse | undefined,
         name: string
     ) {
-        this.updateState({
-            ...this.state,
-            error: undefined,
-            isLoading: true,
-        });
-
         if (appPasswordResponse) {
             const { appPassword, region } = appPasswordResponse;
             await this.context.addAndSaveProfile(name, appPassword, region.toString());
@@ -210,12 +142,11 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(async (message) => {
             console.log("[AuthProvider]", "Receive message: ", message);
             const { data, type } = typeof message === "string" ? JSON.parse(message) as any : message;
-            console.log("Received message type: ", type);
             switch (type) {
-                case "contextState": {
+                case "getContext": {
                     console.log("[AuthProvider]", "Context state request.", );
                     if (this._view) {
-                        this.publishState();
+                        this.publishContext();
                     }
                     break;
                 }
@@ -224,7 +155,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 
                     loginServer(name).then((appPasswordResponse) => {
                         this.checkLoginServerResponse(appPasswordResponse, name).then(() => {
-
+                            this.publish("onAddProfile", {});
                         });
                     }).catch((err) => {
                         console.error("Error setting up the server: ", err);
@@ -236,20 +167,29 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 case "onProfileChange": {
                     const { name } = data;
                     console.log("[AuthProvider]", "onProfileChange(): ", data);
-                    this.context.setProfile(name);
+                    try {
+                        await this.context.setProfile(name);
+                        this.publish("onProfileChange", {});
+                    } catch (err) {
+                        this.publish("onProfileChange", { error: err });
+                    }
                     break;
                 }
                 case "onRemoveProfile": {
                     // Set the state loading to true. After the new context is loaded
                     // loading will turn false.
-                    this.state.isLoading = true;
-
                     const name = this.context.getProfileName();
 
                     if (name) {
-                        await this.context.removeAndSaveProfile(name);
+                        try {
+                            await this.context.removeAndSaveProfile(name);
+                            this.publish("onRemoveProfile", {});
+                        } catch (err) {
+                            this.publish("onRemoveProfile", { error: err });
+                        }
                     } else {
                         console.error("[Auth]", "Profile name is not available.");
+                        this.publish("onRemoveProfile", {});
                     }
 
                     break;
@@ -275,16 +215,31 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                     console.log("[AuthProvider]", "onConfigChange(): ", data);
 
                     switch (type) {
-                        case "databases":
-                            this.context.setDatabase(name);
+                        case "database":
+                            try {
+                                await this.context.setDatabase(name);
+                                this.publish("onConfigChange", {});
+                            } catch (error) {
+                                this.publish("onConfigChange", { error });
+                            }
                             break;
 
-                        case "clusters":
-                            this.context.setCluster(name);
+                        case "cluster":
+                            try {
+                                await this.context.setCluster(name);
+                                this.publish("onConfigChange", {});
+                            } catch (error) {
+                                this.publish("onConfigChange", { error });
+                            }
                             break;
 
-                        case "schemas":
-                            this.context.setSchema(name);
+                        case "schema":
+                            try {
+                                await this.context.setSchema(name);
+                                this.publish("onConfigChange", {});
+                            } catch (error) {
+                                this.publish("onConfigChange", { error });
+                            }
                             break;
                         default:
                             break;
