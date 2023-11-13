@@ -7,6 +7,7 @@ interface VSCodeContextState {
     profileName?: string;
     profileNames?: Array<string>;
     environment?: Environment;
+    theme?: string;
     error?: string;
 }
 

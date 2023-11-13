@@ -106,6 +106,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             profileNames: this.context.getProfileNames(),
             profileName: this.context.getProfileName(),
             environment: this.context.getEnvironment(),
+            theme: this.getTheme(),
             error,
         };
     }
@@ -127,6 +128,12 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             // Cancel login process.
             // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
         }
+    }
+
+    private getTheme() {
+        const config = vscode.workspace.getConfiguration('workbench');
+        const currentTheme = config.get<string>('colorTheme');
+        return currentTheme;
     }
 
     public resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -154,7 +161,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                             console.log("[Auth]", "Publishing context: ", context);
                             this.publish("getContext", context);
                         } catch (err) {
-                            // TODO: Implement.
+                            console.error("[Auth]", "Error publishing the context: ", err);
                         }
                     }
                     break;
@@ -267,6 +274,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
 		// Do the same for the stylesheet.
         const scriptUri = getUri(webview, this._extensionUri, ["out", "scripts", "index.js"]);
         const styleUri = getUri(webview, this._extensionUri, ["resources", "style.css"]);
+
         const nonce = getNonce();
         console.log("[Auth]", "_getHtmlForWebview", webview.cspSource);
 

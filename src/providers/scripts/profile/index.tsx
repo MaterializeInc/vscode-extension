@@ -5,6 +5,7 @@ import AddProfile from "./add";
 import RemoveProfile from "./remove";
 import Configuration from "./cofiguration";
 import { VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react";
+import { SVGLogo } from "../utils/logo";
 
 interface State {
     isAddNewProfile: boolean;
@@ -19,7 +20,8 @@ const Profile = () => {
         profileNames,
         isLoading,
         request,
-        error
+        error,
+        theme
     } = context;
     const [state, setState] = useState<State>({
         isAddNewProfile: false,
@@ -88,7 +90,7 @@ const Profile = () => {
     return (
         <div id="container">
             <div id="logoContainer">
-                {/* <img id="logo" src={context.getLogoUri()} alt="Materialize Logo" /> */}
+                <SVGLogo theme={theme} />
             </div>
             {content}
         </div>

@@ -77,7 +77,6 @@ export default class LspClient {
             await this.decompressAndInstallBinaries(tarballArrayBuffer);
             this.startClient();
         } catch (err) {
-            // TODO:
             console.error("[LSP]", "Error fetching the LSP: ", err);
         }
     }
@@ -192,7 +191,7 @@ export default class LspClient {
                         this.stop();
                         this.startClient();
                     }).catch(() => {
-                        // TODO:
+                        console.error("[LSP]", "Error restarting client.");
                     });
                 }
             }
@@ -233,7 +232,6 @@ export default class LspClient {
                 console.log("[LSP]", "Client ready.");
                 this.listenConfigurationChanges();
             })
-            // TODO:
             .catch(err => console.error("[LSP]", "Error waiting onReady(): ", err));
     }
 
@@ -261,7 +259,6 @@ export default class LspClient {
                 }
             }
         } catch (err) {
-            // TODO:
             console.error("[LSP]", "Error upgrading the LSP server: ", err);
         }
 

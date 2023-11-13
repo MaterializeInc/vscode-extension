@@ -25,7 +25,7 @@ interface Providers {
  * and must handle errors using try/catch.
  *
  * IMPORTANT:
- * Code using these methods should careful handling rejections.
+ * Code using these methods should handle rejections gracefully.
  * Unhandled rejections in VS Code may result in undesired
  * notifications to the user.
  */
