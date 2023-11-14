@@ -4,6 +4,7 @@ import { getUri } from "../utilities/getUri";
 import AppPassword from "../context/appPassword";
 import { getNonce } from "../utilities/getNonce";
 import AsyncContext from "../context/asyncContext";
+import { Errors, ExtensionError } from "../utilities/error";
 
 // Please update this link if the logo location changes in the future.
 const LOGO_URL: String = "https://materialize.com/svgs/brand-guide/materialize-purple-mark.svg";
@@ -42,11 +43,17 @@ async function loginServer(name: string): Promise<AppPasswordResponse | undefine
             const {secret, clientId, region } = req.query;
             res.send(formatOutput('You can now close the tab.'));
 
-            if (secret && clientId && region) {
-                resolve({
-                    appPassword: new AppPassword(clientId as string, secret as string),
-                    region: new String(region).toLowerCase()
-                });
+            try {
+                if (secret && clientId && region) {
+                    resolve({
+                        appPassword: new AppPassword(clientId as string, secret as string),
+                        region: new String(region).toLowerCase()
+                    });
+                } else {
+                    resolve(undefined);
+                }
+            } catch (err) {
+                reject(new ExtensionError(Errors.browserAuthFailure, err));
             }
         });
 
@@ -126,7 +133,6 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
             await this.context.addAndSaveProfile(name, appPassword, region.toString());
         } else {
             // Cancel login process.
-            // webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
         }
     }
 

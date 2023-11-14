@@ -155,6 +155,7 @@ export default class AsyncContext extends Context {
         } else {
             // Clean the previous [SqlClient] connection.
             if (this.clients.sql) {
+                console.log("[AsyncContext]", "Ending SQL client connection.");
                 this.clients.sql.end();
             }
             this.clients.sql = new SqlClient(this.clients.admin, this.clients.cloud, profile, this);
@@ -241,7 +242,7 @@ export default class AsyncContext extends Context {
             return await new Promise((res, rej) => {
                 const asyncOp = async () => {
                     try {
-                        await this.isReady;
+                        await this.isReady();
                     } catch (err) {
                         console.error("[AsyncContext]", "Error getting SQL client: ", err);
                     } finally {
@@ -404,7 +405,6 @@ export default class AsyncContext extends Context {
      */
     async privateQuery(text: string, vals?: Array<any>): Promise<QueryArrayResult<any>> {
         const client = await this.getSqlClient();
-
         return await client.privateQuery(text, vals);
     }
 

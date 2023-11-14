@@ -76,7 +76,7 @@ const RemoveProfile = ({ onCancel, onContinue }: Props) => {
             <Actions
                 primaryText="Continue"
                 secondaryText="Cancel"
-                disable={!isNameValid(state.name)}
+                disable={{ primary: !isNameValid(state.name) }}
                 onSecondaryClick={onCancel}
                 onPrimaryClick={handleOnContinue}
             />

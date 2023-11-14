@@ -51,7 +51,7 @@ const Configuration = ({
                         {(profileNames || []).filter(name => name !== profileName).map((name) => <VSCodeOption key={name}>{name}</VSCodeOption>)}
                     </VSCodeDropdown>
                 </div>
-                <Actions primaryText="Add" secondaryText="Remove" onPrimaryClick={onAddProfileClick} onSecondaryClick={onRemoveProfileClick} />
+                <Actions disable={{ primary: isLoading, secondary: isLoading }} primaryText="Add" secondaryText="Remove" onPrimaryClick={onAddProfileClick} onSecondaryClick={onRemoveProfileClick} />
                 <VSCodeDivider></VSCodeDivider>
                 {error && <p className="profileErrorMessage">{error}</p>}
                 {(!error && environment) && <span id='options-title'>Connection Options</span>}

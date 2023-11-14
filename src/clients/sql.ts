@@ -52,9 +52,11 @@ export default class SqlClient {
             const asyncOp = async () => {
                 try {
                     const pool = await this.pool;
-                    this.privateClient = pool.connect();
+                    const client = await pool.connect();
+                    res(client);
                 } catch (err) {
                     console.error("[SqlClient]", "Error awaiting the pool: ", err);
+                    rej(err);
                 }
             };
 

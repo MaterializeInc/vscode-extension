@@ -118,5 +118,9 @@ export enum Errors {
     /**
      * Raises when the SQL client fails to create the pool.
      */
-    poolCreationFailure = "Error creating the client pool."
+    poolCreationFailure = "Error creating the client pool.",
+    /**
+     * Raises when the user is authenticated using the browser.
+     */
+    browserAuthFailure = "Error doing browser auth."
 }

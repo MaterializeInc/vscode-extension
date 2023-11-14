@@ -6,6 +6,7 @@ import { Context } from "../context";
 
 interface State {
     name: string;
+    error: boolean;
 }
 
 interface Props {
@@ -21,6 +22,7 @@ const AddProfile = ({ mandatory, onCancel, onContinue }: Props) => {
     const { isLoading } = useContext(Context);
     const [state, setState] = useState<State>({
         name: "",
+        error: false,
     });
 
     const isNameValid = useCallback((name: string) => {
@@ -34,6 +36,7 @@ const AddProfile = ({ mandatory, onCancel, onContinue }: Props) => {
         setState({
             ...state,
             name: value,
+            error: !isNameValid(value)
         });
     }, [isNameValid]);
 
@@ -67,16 +70,24 @@ const AddProfile = ({ mandatory, onCancel, onContinue }: Props) => {
     return (
         <>
             <VSCodeTextField
+                disabled={isLoading}
                 id="profileNameInput"
                 onInput={(e) => handleOnProfileNameChange(e)}
                 value={state.name}
             >
                 Profile Name
             </VSCodeTextField>
+            {state.error &&
+                <p id="invalidProfileNameErrorMessage">
+                    Profile name must contain only ASCII letters, ASCII digits, underscores, and dashes.
+                </p>}
             <Actions
                 primaryText="Continue"
                 secondaryText="Cancel"
-                disable={!isNameValid(state.name) || isLoading}
+                disable={{
+                    primary: !isNameValid(state.name) || isLoading,
+                    secondary: isLoading
+                }}
                 hide={mandatory}
                 onSecondaryClick={onCancel}
                 onPrimaryClick={handleOnContinue}

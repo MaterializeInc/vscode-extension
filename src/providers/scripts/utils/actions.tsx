@@ -6,7 +6,10 @@ interface Props {
     secondaryText: string;
     onPrimaryClick?: () => void;
     onSecondaryClick?: () => void;
-    disable?: boolean;
+    disable?: {
+        primary?: boolean,
+        secondary?: boolean,
+    };
     hide?: boolean;
 }
 
@@ -16,11 +19,11 @@ const Actions = ({ primaryText, secondaryText, disable, hide, onSecondaryClick, 
         <>
             <div className="setup-container-actions">
                 {!hide &&
-                    <VSCodeButton onClick={onSecondaryClick} className="action_button" appearance="secondary" id="cancelAddProfile">
+                    <VSCodeButton disabled={disable?.secondary} onClick={onSecondaryClick} className="action_button" appearance="secondary" id="cancelAddProfile">
                         {secondaryText}
                     </VSCodeButton>
                 }
-                <VSCodeButton disabled={disable} onClick={onPrimaryClick} appearance="primary" id="continueProfileButton" className="action_button">
+                <VSCodeButton disabled={disable?.primary} onClick={onPrimaryClick} appearance="primary" id="continueProfileButton" className="action_button">
                     {primaryText}
                 </VSCodeButton>
             </div>
