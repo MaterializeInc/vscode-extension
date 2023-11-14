@@ -1,6 +1,5 @@
 import fetch from "node-fetch";
 import AdminClient from "./admin";
-import * as vscode from 'vscode';
 import { Errors } from "../utilities/error";
 
 const DEFAULT_API_CLOUD_ENDPOINT = 'https://api.cloud.materialize.com';

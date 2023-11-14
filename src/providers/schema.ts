@@ -1,21 +1,14 @@
 import * as vscode from 'vscode';
-import Context, { EventType } from '../context/context';
-import path = require('path');
+import AsyncContext from '../context/asyncContext';
 
 export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Node> {
 
     private _onDidChangeTreeData: vscode.EventEmitter<Node | undefined | null | void> = new vscode.EventEmitter<Node | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<Node | undefined | null | void> = this._onDidChangeTreeData.event;
-    private context: Context;
+    private context: AsyncContext;
 
-    constructor(context: Context) {
+    constructor(context: AsyncContext) {
         this.context = context;
-        this.context.on("event", ({ type }) => {
-            if (type === EventType.environmentChange) {
-                console.log("[DatabaseTreeProvider]", "Environment change detected. Refreshing provider.");
-                this.refresh();
-            }
-        });
     }
 
     refresh(): void {
@@ -41,7 +34,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                         console.log("[DatabaseTreeProvider]", "Profile name loaded.");
 
                         console.log("[DatabaseTreeProvider]", "Waiting context to be ready.");
-                        await this.context.waitReadyness();
+                        await this.context.isReady();
 
                         console.log("[DatabaseTreeProvider]", "Looking up the schema.");
                         const environment = this.context.getEnvironment();
@@ -83,11 +76,11 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                                 ]);
                             } else {
                                 console.error("[DatabaseTreeProvider]", "Error: Wrong state, the schema is missing.");
-                                rej(new Error("The schema is missing."));
+                                res([]);
                             }
                         } else {
                             console.error("[DatabaseTreeProvider]", "Error: Wrong state, the environment is missing.");
-                            rej(new Error("The environment is missing."));
+                            res([]);
                         }
                     } else {
                         res ([]);
@@ -100,9 +93,13 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
     }
 
     private async query(text: string, vals?: Array<any>): Promise<Array<any>> {
-        const { rows } =  await this.context.query(text, vals);
+        try {
+            const { rows } =  await this.context.internalQuery(text, vals);
 
-        return rows;
+            return rows;
+        } catch (err) {
+            return [];
+        }
     }
 
     private async getChildrenFromNode(element: Node): Promise<Array<Node>> {
@@ -166,7 +163,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
 
     private async getSources(schema: String): Promise<Array<Node>> {
         const sources: Promise<Array<Node>> = new Promise((res, rej) => {
-            this.query("SELECT id, name, owner_id FROM mz_sources WHERE schema_id = $1", [schema]).then((results) => {
+            this.query("SELECT id, name, owner_id FROM mz_sources WHERE schema_id = $1 ORDER BY name", [schema]).then((results) => {
                 let sources = results.map(({ id, name, owner_id: ownerId }) => {
                     return new View(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
                 });
@@ -179,7 +176,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
 
     private async getSinks(schema: String): Promise<Array<Node>> {
         const sinks: Promise<Array<Node>> = new Promise((res, rej) => {
-            this.query("SELECT id, name, owner_id FROM mz_sinks WHERE schema_id = $1", [schema]).then((results) => {
+            this.query("SELECT id, name, owner_id FROM mz_sinks WHERE schema_id = $1 ORDER BY name", [schema]).then((results) => {
                 let sinks = results.map(({ id, name, owner_id: ownerId }) => {
                     return new View(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
                 });
@@ -192,7 +189,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
 
     private async getViews(schema: String): Promise<Array<Node>> {
         const views: Promise<Array<Node>> = new Promise((res, rej) => {
-            this.query("SELECT id, name, owner_id FROM mz_views WHERE schema_id = $1", [schema]).then((results) => {
+            this.query("SELECT id, name, owner_id FROM mz_views WHERE schema_id = $1 ORDER BY name", [schema]).then((results) => {
                 let views = results.map(({ id, name, owner_id: ownerId }) => {
                     return new View(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
                 });
@@ -205,7 +202,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
 
     private async getMaterializedViews(schema: String): Promise<Array<Node>> {
         const materializedViews: Promise<Array<Node>> = new Promise((res, rej) => {
-            this.query("SELECT id, name, owner_id, cluster_id FROM mz_materialized_views WHERE schema_id = $1", [schema]).then((results) => {
+            this.query("SELECT id, name, owner_id, cluster_id FROM mz_materialized_views WHERE schema_id = $1 ORDER BY name", [schema]).then((results) => {
                 let materializedViews = results.map(({ id, name, owner_id: ownerId }) => {
                     return new MaterializedView(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
                 });
@@ -218,7 +215,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
 
     private async getTables(schema: String): Promise<Array<Node>> {
         const tables: Promise<Array<Node>> = new Promise((res, rej) => {
-            this.query("SELECT id, name, owner_id FROM mz_tables WHERE schema_id = $1", [schema]).then((results) => {
+            this.query("SELECT id, name, owner_id FROM mz_tables WHERE schema_id = $1 ORDER BY name", [schema]).then((results) => {
                 let tables = results.map(({ id, name, owner_id: ownerId }) => {
                     return new Table(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
                 });
@@ -231,7 +228,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
 
     private async getSchemas(database: String): Promise<Array<Schema>> {
         return new Promise((res, rej) => {
-            this.query("SELECT id, name, database_id, owner_id FROM mz_schemas WHERE database_id = $1", [database]).then((results) => {
+            this.query("SELECT id, name, database_id, owner_id FROM mz_schemas WHERE database_id = $1 ORDER BY name", [database]).then((results) => {
                 const schemas = results.map(({ id, name, owner_id: ownerId }) => {
                     return new Schema(name, vscode.TreeItemCollapsibleState.Collapsed, { id, name, ownerId });
                 });
@@ -242,7 +239,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
 
     private async getColumns(id: String): Promise<Array<Column>> {
         return new Promise((res, rej) => {
-            this.query("SELECT name, type FROM mz_columns WHERE id = $1", [id]).then((results) => {
+            this.query("SELECT name, type FROM mz_columns WHERE id = $1 ORDER BY name", [id]).then((results) => {
                 const columns = results.map(({ name, type }) => {
                     return new Column(name, vscode.TreeItemCollapsibleState.None, { id: name, type });
                 });
