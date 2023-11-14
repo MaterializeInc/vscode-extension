@@ -212,7 +212,7 @@ suite('Extension Test Suite', () => {
 
 	test('Test query execution', async () => {
 		const _context: AsyncContext = await extension.activate();
-		const rows = _context.query("SELECT 100");
+		const rows = _context.privateQuery("SELECT 100");
 
 		assert.ok((await rows).rowCount > 0);
 	},);
@@ -223,7 +223,7 @@ suite('Extension Test Suite', () => {
 		const altClusterName = context.getClusters()?.find(x => x.name !== clusterName);
 		assert.ok(typeof altClusterName?.name === "string");
 		context.setCluster(altClusterName.name);
-		const rows = await context.query("SHOW CLUSTER;");
+		const rows = await context.internalQuery("SHOW CLUSTER;");
 
 		assert.ok(rows.rows[0].cluster === altClusterName.name);
 	}).timeout(10000);
