@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
 import AppPassword from "../context/appPassword";
-import { Errors } from "../utilities/error";
+import { Errors, ExtensionError } from "../utilities/error";
 const jwksClient = require("jwks-rsa");
 const jwt = require("node-jsonwebtoken");
 
@@ -93,7 +93,7 @@ export default class AdminClient {
             return authData.payload;
         } catch (err) {
             console.error("[AdminClient]", "Error retrieving claims: ", err);
-            throw new Error(Errors.verifyCredential);
+            throw new ExtensionError(Errors.verifyCredential, err);
         }
     }
 
@@ -113,7 +113,7 @@ export default class AdminClient {
             }
         } catch (err) {
             console.error("[AdminClient]", "Error retrieving email: ", err);
-            throw new Error(Errors.retrievingEmail);
+            throw new ExtensionError(Errors.retrievingEmail, err);
         }
     }
 }

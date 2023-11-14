@@ -206,7 +206,7 @@ export default class LspClient {
                         this.stop();
                         this.startClient();
                     }).catch(() => {
-
+                        console.error("[LSP]", "Error restarting client.");
                     });
                 }
             }

@@ -1,5 +1,5 @@
 import * as uuid from "uuid";
-import { Errors } from "../utilities/error";
+import { Errors, ExtensionError } from "../utilities/error";
 
 /// App-password prefix.
 const PREFIX = 'mzp_';
@@ -66,10 +66,10 @@ export default class AppPassword {
             };
           } catch (err) {
             console.log("[AppPassword]", "Error parsing UUID.");
-            throw new Error(Errors.invalidAppPassword);
+            throw new ExtensionError(Errors.invalidAppPassword, err);
           }
         }
 
-        throw new Error(Errors.invalidAppPassword);
+        throw new ExtensionError(Errors.invalidAppPassword, "Invalid length.");
       }
 }

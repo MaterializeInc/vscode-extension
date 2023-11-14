@@ -3,6 +3,7 @@ import AdminClient from "./admin";
 import CloudClient from "./cloud";
 import { Profile } from "../context/config";
 import AsyncContext from "../context/asyncContext";
+import { Errors, ExtensionError } from "../utilities/error";
 
 export default class SqlClient {
     private pool: Promise<Pool>;
@@ -36,11 +37,11 @@ export default class SqlClient {
                         res(pool);
                     }).catch((err) => {
                         console.error(err);
-                        rej(err);
+                        rej(new ExtensionError(Errors.poolConnectionFailure, err));
                     });
                 } catch (err) {
                     console.error("[SqlClient]", "Error creating pool: ", err);
-                    rej(err);
+                    rej(new ExtensionError(Errors.poolCreationFailure, err));
                 }
             };
 
@@ -51,9 +52,11 @@ export default class SqlClient {
             const asyncOp = async () => {
                 try {
                     const pool = await this.pool;
-                    this.privateClient = pool.connect();
+                    const client = await pool.connect();
+                    res(client);
                 } catch (err) {
                     console.error("[SqlClient]", "Error awaiting the pool: ", err);
+                    rej(err);
                 }
             };
 

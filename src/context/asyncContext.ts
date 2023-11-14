@@ -24,9 +24,9 @@ interface Providers {
  *
  * All asynchronous methods should be declared in this class
  * and must handle errors using try/catch.
- * Public methods should never reject a Promise (`rej(..)`)
- * or throw errors (`throw new Error()`).
  *
+ * IMPORTANT:
+ * Code using these methods should handle rejections gracefully.
  * Unhandled rejections in VS Code may result in undesired
  * notifications to the user.
  */
@@ -37,13 +37,12 @@ export default class AsyncContext extends Context {
 
     constructor(vsContext: ExtensionContext) {
         super(vsContext);
-        this.isReadyPromise = new Promise((res) => {
+        this.isReadyPromise = new Promise((res, rej) => {
             const asyncOp = async () => {
                 try {
                     await this.loadContext();
                 } catch (err) {
-                    this.handleErr(err, "Error loading context.");
-                    res(false);
+                    rej(this.parseErr(err, "Error loading context."));
                 } finally {
                     res(true);
                 }
@@ -104,12 +103,18 @@ export default class AsyncContext extends Context {
      */
     private async loadContext(init?: boolean) {
         const profile = this.config.getProfile();
+        const profileNames = this.config.getProfileNames();
         this.environment = undefined;
 
         // If there is no profile loaded skip, do not load a context.
         if (!profile) {
-            this.loaded = true;
-            throw new Error(Errors.profileDoesNotExist);
+            if (profileNames && profileNames.length > 0) {
+                this.loaded = true;
+                throw new Error(Errors.profileDoesNotExist);
+            } else {
+                this.loaded = true;
+                return true;
+            }
         }
 
         console.log("[AsyncContext]", "Loading context for profile.");
@@ -138,7 +143,6 @@ export default class AsyncContext extends Context {
         this.loaded = false;
 
         if (!init) {
-            this.providers.auth.environmentChange();
             this.providers.database.refresh();
         }
 
@@ -151,6 +155,7 @@ export default class AsyncContext extends Context {
         } else {
             // Clean the previous [SqlClient] connection.
             if (this.clients.sql) {
+                console.log("[AsyncContext]", "Ending SQL client connection.");
                 this.clients.sql.end();
             }
             this.clients.sql = new SqlClient(this.clients.admin, this.clients.cloud, profile, this);
@@ -217,10 +222,8 @@ export default class AsyncContext extends Context {
                 this.environment.schema = schema;
                 this.environment.schemas = schemas.filter(x => x.databaseId === databaseObj?.id);
             }
-
             console.log("[AsyncContext]", "Environment loaded.");
             this.loaded = true;
-            this.providers.auth.environmentLoaded();
             return true;
         }
     }
@@ -239,7 +242,7 @@ export default class AsyncContext extends Context {
             return await new Promise((res, rej) => {
                 const asyncOp = async () => {
                     try {
-                        await this.isReady;
+                        await this.isReady();
                     } catch (err) {
                         console.error("[AsyncContext]", "Error getting SQL client: ", err);
                     } finally {
@@ -271,13 +274,10 @@ export default class AsyncContext extends Context {
                 const success = await this.reloadContext();
                 return success;
             } catch (err) {
-                this.handleErr(err, "Error reloading context.");
+                throw this.parseErr(err, "Error reloading context.");
             }
-            return true;
         } catch (err) {
-            this.handleErr(err, "Error saving profile.");
-
-            return false;
+            throw this.parseErr(err, "Error saving profile.");
         }
     }
 
@@ -292,8 +292,7 @@ export default class AsyncContext extends Context {
             const success = await this.reloadContext();
             return success;
         } catch (err) {
-            this.handleErr(err, "Error reloading context.");
-            return false;
+            throw this.parseErr(err, "Error reloading context.");
         }
     }
 
@@ -311,15 +310,13 @@ export default class AsyncContext extends Context {
                 const success = await this.reloadContext();
                 return success;
             } catch (err) {
-                this.handleErr(err, "Error reloading context.");
                 console.error("[AsyncContext]", "Error reloading context: ", err);
+                throw this.parseErr(err, "Error reloading context.");
             }
         } catch (err) {
-            this.handleErr(err, "Error setting profile.");
             console.error("[AsyncContext]", "Error setting profile: ", err);
+            throw this.parseErr(err, "Error setting profile.");
         }
-
-        return false;
     }
 
     /**
@@ -327,13 +324,13 @@ export default class AsyncContext extends Context {
      * @param err
      * @param altMessage
      */
-    private handleErr(err: unknown, altMessage: string) {
+    private parseErr(err: unknown, altMessage: string): Error {
         console.log("[AsyncContext]", altMessage);
 
         if (err instanceof ExtensionError || err instanceof Error) {
-            this.providers.auth.displayError(err.message);
+            return new Error(err.message);
           } else {
-            this.providers.auth.displayError(altMessage || Errors.unexpectedErrorContext);
+            return new Error(altMessage || Errors.unexpectedErrorContext);
           }
     }
 
@@ -341,14 +338,13 @@ export default class AsyncContext extends Context {
      * Reloads the whole context.
      */
     private async reloadContext() {
-        this.isReadyPromise = new Promise((res) => {
+        this.isReadyPromise = new Promise((res, rej) => {
             const asyncOp = async () => {
                 try {
                     const success = await this.loadContext();
                     res(success);
                 } catch (err) {
-                    this.handleErr(err, "Error reloading context.");
-                    res(false);
+                    rej(this.parseErr(err, "Error reloading context."));
                 }
             };
 
@@ -363,14 +359,13 @@ export default class AsyncContext extends Context {
      * @param reloadSchema only true when the database changes.
      */
     private async reloadEnvironment(reloadSchema?: boolean) {
-        this.isReadyPromise = new Promise((res) => {
+        this.isReadyPromise = new Promise((res, rej) => {
             const asyncOp = async () => {
                 try {
                     await this.loadEnvironment(false, reloadSchema);
                     res(true);
                 } catch (err) {
-                    this.handleErr(err, "Error reloading environment.");
-                    res(false);
+                    rej(this.parseErr(err, "Error reloading environment."));
                 }
             };
 
@@ -410,7 +405,6 @@ export default class AsyncContext extends Context {
      */
     async privateQuery(text: string, vals?: Array<any>): Promise<QueryArrayResult<any>> {
         const client = await this.getSqlClient();
-
         return await client.privateQuery(text, vals);
     }
 
@@ -437,8 +431,7 @@ export default class AsyncContext extends Context {
             await this.isReadyPromise;
             return true;
         } catch (err) {
-            this.handleErr(err, "Error waiting to be ready.");
-            return false;
+            throw this.parseErr(err, "Error waiting to be ready.");
         }
     }
 
@@ -457,6 +450,7 @@ export default class AsyncContext extends Context {
                 ...this.environment,
                 database: name,
                 schema: "",
+                schemas: [],
             };
         }
 
@@ -464,8 +458,7 @@ export default class AsyncContext extends Context {
             const success = await this.reloadEnvironment(true);
             return success;
         } catch (err) {
-            this.handleErr(err as Error, "Error reloading environment.");
-            return false;
+            throw this.parseErr(err as Error, "Error reloading environment.");
         }
     }
 
@@ -486,8 +479,7 @@ export default class AsyncContext extends Context {
             const success = await this.reloadEnvironment();
             return success;
         } catch (err) {
-            this.handleErr(err as Error, "Error reloading environment.");
-            return false;
+            throw this.parseErr(err as Error, "Error reloading environment.");
         }
     }
 
@@ -508,8 +500,7 @@ export default class AsyncContext extends Context {
             const success = await this.reloadEnvironment();
             return success;
         } catch (err) {
-            this.handleErr(err as Error, "Error reloading environment.");
-            return false;
+            throw this.parseErr(err as Error, "Error reloading environment.");
         }
     }
 
@@ -521,8 +512,7 @@ export default class AsyncContext extends Context {
             const appPassword = await this.config.getAppPassword();
             return appPassword;
         } catch (err) {
-            this.handleErr(err, "Error getting app-password.");
-            return undefined;
+            throw this.parseErr(err, "Error getting app-password.");
         }
     }
 

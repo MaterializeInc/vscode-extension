@@ -12,6 +12,8 @@
     width: 250px;
     margin: auto;
     text-align: center;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
 }
 
 #logo {
@@ -52,7 +54,6 @@
 }
 
 #invalidProfileNameErrorMessage {
-    display: none;
     color: rgb(220 38 38);
 }
 
