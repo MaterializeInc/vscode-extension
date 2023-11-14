@@ -5,7 +5,7 @@ import { Errors, ExtensionError } from "../utilities/error";
 import AppPassword from "./appPassword";
 import { ActivityLogTreeProvider, AuthProvider, DatabaseTreeProvider, ResultsProvider } from "../providers";
 import * as vscode from 'vscode';
-import { QueryResult } from "pg";
+import { QueryArrayResult, QueryResult } from "pg";
 import { ExecuteCommandParseStatement } from "../clients/lsp";
 
 /**
@@ -389,7 +389,7 @@ export default class AsyncContext extends Context {
      * @param vals
      * @returns query results
      */
-    async internalQuery(text: string, vals?: Array<any>) {
+    async internalQuery(text: string, vals?: Array<any>): Promise<QueryResult<any>> {
         const client = await this.getSqlClient();
 
         return await client.internalQuery(text, vals);
@@ -398,13 +398,17 @@ export default class AsyncContext extends Context {
     /**
      * Private queries are intended for the user.
      * A private query reuses always the same client.
-     * In this way, it functions like a shell, processing one statement after another.
+     * In this way, it functions like a shell,
+     * processing one statement after another.
+     *
+     * Another important difference is that
+     * it returns the values in Array mode.
      *
      * @param text
      * @param vals
      * @returns query results
      */
-    async privateQuery(text: string, vals?: Array<any>) {
+    async privateQuery(text: string, vals?: Array<any>): Promise<QueryArrayResult<any>> {
         const client = await this.getSqlClient();
 
         return await client.privateQuery(text, vals);
