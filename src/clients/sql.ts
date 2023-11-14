@@ -1,4 +1,4 @@
-import { Pool, QueryResult } from "pg";
+import { Pool, PoolClient, PoolConfig, QueryResult } from "pg";
 import AdminClient from "./admin";
 import CloudClient from "./cloud";
 import { Profile } from "../context/config";
@@ -6,6 +6,7 @@ import AsyncContext from "../context/asyncContext";
 
 export default class SqlClient {
     private pool: Promise<Pool>;
+    private privateClient: Promise<PoolClient>;
     private adminClient: AdminClient;
     private cloudClient: CloudClient;
     private context: AsyncContext;
@@ -45,6 +46,19 @@ export default class SqlClient {
 
             asyncOp();
         });
+
+        this.privateClient = new Promise((res, rej) => {
+            const asyncOp = async () => {
+                try {
+                    const pool = await this.pool;
+                    this.privateClient = pool.connect();
+                } catch (err) {
+                    console.error("[SqlClient]", "Error awaiting the pool: ", err);
+                }
+            };
+
+            asyncOp();
+        });
     }
 
     async connectErr() {
@@ -74,7 +88,7 @@ export default class SqlClient {
         return connectionOptions.join(" ");
     }
 
-    private async buildPoolConfig() {
+    private async buildPoolConfig(): Promise<PoolConfig> {
         console.log("[SqlClient]", "Loading host.");
         const hostPromise = this.cloudClient?.getHost(this.profile.region);
         console.log("[SqlClient]", "Loading user email.");
@@ -94,46 +108,49 @@ export default class SqlClient {
             password: await this.context.getAppPassword(),
             // Disable SSL for tests
             ssl: (host && host.startsWith("localhost")) ? false : true,
+            keepAlive: true
         };
     }
 
-    async query(statement: string, values?: Array<any>): Promise<QueryResult<any>> {
+    /**
+     * Internal queries are intended for exploring cases.
+     * Like quering the catalog, or information about Materialize.
+     * Queries goes to the pool, and no client is kept.
+     * @param statement
+     * @param values
+     * @returns query results
+     */
+    async internalQuery(statement: string, values?: Array<any>): Promise<QueryResult<any>> {
         const pool = await this.pool;
         const results = await pool.query(statement, values);
 
         return results;
     }
 
-    async* cursorQuery(statement: string): AsyncGenerator<QueryResult> {
-        const pool = await this.pool;
-        const client = await pool.connect();
 
+    /**
+     * Private queries are intended for the user. A private query reuses always the same client.
+     * In this way, it functions like a shell, processing one statement after another.
+     * @param statement
+     * @param values
+     * @returns query results
+     */
+    async privateQuery(statement: string, values?: Array<any>): Promise<QueryResult<any>> {
+        const client = await this.privateClient;
+        const results = await client.query(statement, values);
+
+        return results;
+    }
+
+    /**
+     * Shut down cleanly the pool.
+     */
+    async end() {
         try {
-            const batchSize = 100; // Number of rows to fetch in each batch
-
-            await client.query("BEGIN");
-            await client.query(`DECLARE c CURSOR FOR ${statement}`);
-            let finish = false;
-
-            // Run the query
-            while (!finish) {
-                let results: QueryResult = await client.query(`FETCH ${batchSize} c;`);
-                const { rowCount } = results;
-
-                if (rowCount === 0) {
-                  finish = true;
-                }
-
-                yield results;
-            }
-        } finally {
-            try {
-                await client.query("COMMIT;");
-            } catch (err) {
-                console.error("[SqlClient]", "Error commiting transaction.", err);
-            }
-            // Release the client and pool resources
-            client.release();
+            const pool = await this.pool;
+            await pool.end();
+        } catch (err) {
+            console.error("[SqlClient]", "Error ending the pool: ", err);
         }
     }
 }
