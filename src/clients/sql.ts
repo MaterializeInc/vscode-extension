@@ -1,4 +1,4 @@
-import { Pool, PoolClient, PoolConfig, QueryResult } from "pg";
+import { Pool, PoolClient, PoolConfig, QueryArrayResult, QueryResult } from "pg";
 import AdminClient from "./admin";
 import CloudClient from "./cloud";
 import { Profile } from "../context/config";
@@ -116,11 +116,12 @@ export default class SqlClient {
      * Internal queries are intended for exploring cases.
      * Like quering the catalog, or information about Materialize.
      * Queries goes to the pool, and no client is kept.
+     *
      * @param statement
      * @param values
      * @returns query results
      */
-    async internalQuery(statement: string, values?: Array<any>): Promise<QueryResult<any>> {
+    async internalQuery(statement: string, values?: Array<any>): Promise<QueryArrayResult<any>> {
         const pool = await this.pool;
         const results = await pool.query(statement, values);
 
@@ -129,15 +130,28 @@ export default class SqlClient {
 
 
     /**
-     * Private queries are intended for the user. A private query reuses always the same client.
-     * In this way, it functions like a shell, processing one statement after another.
+     * Private queries are intended for the user.
+     * A private query reuses always the same client.
+     * In this way, it functions like a shell,
+     * processing one statement after another.
+     *
+     * Another important difference is that
+     * it returns the values in Array mode.
+     *
      * @param statement
      * @param values
      * @returns query results
      */
-    async privateQuery(statement: string, values?: Array<any>): Promise<QueryResult<any>> {
+    async privateQuery(statement: string, values?: Array<any>): Promise<QueryArrayResult<any>> {
         const client = await this.privateClient;
-        const results = await client.query(statement, values);
+        // Row mode is a must.
+        // Otherwise when two columns have the same name, one is dropped
+        // Issue: https://github.com/brianc/node-postgres/issues/280
+        const results = await client.query({
+            rowMode: "array",
+            text: statement,
+            values
+        });
 
         return results;
     }
