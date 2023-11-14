@@ -27,6 +27,21 @@ const SERVER_DECOMPRESS_PATH: string = path.join(os.tmpdir(), "mz", "bin", "mz-l
 /// The final server binary path.
 const SERVER_PATH: string = path.join(__dirname, "bin", "mz-lsp-server");
 
+
+/// Represents the structure a client uses to understand
+export interface ExecuteCommandParseStatement {
+    /// The sql content in the statement
+    sql: string,
+    /// The type of statement.
+    /// Represents the String version of [Statement].
+    kind: string,
+}
+
+/// Represents the response from the parse command.
+interface ExecuteCommandParseResponse {
+    statements: Array<ExecuteCommandParseStatement>
+}
+
 /// This class implements the Language Server Protocol (LSP) client for Materialize.
 /// The LSP is downloaded for an endpoint an it is out of the bundle. Binaries are heavy-weight
 /// and is preferable to download on the first activation.
@@ -279,5 +294,32 @@ export default class LspClient {
      */
     stop() {
         this.client && this.client.stop();
+    }
+
+    /**
+     * Sends a request to the LSP server to execute the parse command.
+     * The parse command returns the list of statements in an array,
+     * including their corresponding SQL and type (e.g., select, create_table, etc.).
+     *
+     * For more information about commands: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_executeCommand
+     */
+    async parseSql(sql: string): Promise<Array<ExecuteCommandParseStatement>> {
+        if (this.client) {
+            console.log("[LSP]", "Setting on request handler.");
+
+            // Setup the handler.
+            this.client.onRequest("workspace/executeCommand", (...params) => {
+                console.log("[LSP]", "Response params: ", params);
+            });
+
+            // Send request
+            const { statements } = await this.client.sendRequest("workspace/executeCommand", { command: "parse", arguments: [
+                sql
+            ]}) as ExecuteCommandParseResponse;
+
+            return statements;
+        } else {
+            throw new Error("Client is not yet available.");
+        }
     }
 }

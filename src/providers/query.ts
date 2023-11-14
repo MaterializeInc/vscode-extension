@@ -29,56 +29,80 @@ export const buildRunSQLCommand = (context: AsyncContext) => {
             const textSelected = activeEditor.document.getText(selection).trim();
             const query = textSelected ? textSelected : document.getText();
 
-            console.log("[RunSQLCommand]", "Running query: ", query);
-
             // Identify the query to not overlap results.
             // When a user press many times the run query button
             // the results from one query can overlap the results
             // from another. We only want to display the last results.
             const id = randomUUID();
-            resultsProvider.setQueryId(id);
-
-            // Benchmark
-            const startTime = Date.now();
             try {
-                const results = await context.query(query);
-                const endTime = Date.now();
-                const elapsedTime = endTime - startTime;
+                resultsProvider.setQueryId(id);
+                try {
+                    const statements = await context.parseSql(query);
+                    console.log("[RunSQLCommand]", "Running statements: ", statements);
+                    const lastStatement = statements[statements.length - 1];
 
-                console.log("[RunSQLCommand]", "Results: ", results);
-                console.log("[RunSQLCommand]", "Emitting results.");
+                    for (const statement of statements) {
+                        console.log("[RunSQLCommand]", "Running statement: ", statement);
 
-                if (Array.isArray(results)) {
-                    resultsProvider.setResults(id, { ...results[0], elapsedTime, id });
-                } else {
-                    resultsProvider.setResults(id, { ...results, elapsedTime, id });
+                        // Benchmark
+                        const startTime = Date.now();
+                        try {
+                            const results = await context.privateQuery(statement.sql);
+                            const endTime = Date.now();
+                            const elapsedTime = endTime - startTime;
+
+                            console.log("[RunSQLCommand]", "Results: ", results);
+                            console.log("[RunSQLCommand]", "Emitting results.");
+
+                            // Only display the results from the last statement.
+                            if (lastStatement === statement) {
+                                if (Array.isArray(results)) {
+                                    resultsProvider.setResults(id, { ...results[0], elapsedTime, id });
+                                } else {
+                                    resultsProvider.setResults(id, { ...results, elapsedTime, id });
+                                }
+                            }
+
+                            activityProvider.addLog({
+                                status: "success",
+                                latency: elapsedTime, // assuming elapsedTime holds the time taken for the query to execute
+                                sql: statement.sql
+                            });
+                        } catch (error: any) {
+                            console.log("[RunSQLCommand]", JSON.stringify(error));
+                            const endTime = Date.now();
+                            const elapsedTime = endTime - startTime;
+
+                            activityProvider.addLog({
+                                status: "failure",
+                                latency: elapsedTime, // assuming elapsedTime holds the time taken before the error was caught
+                                sql: statement.sql
+                            });
+
+                            resultsProvider.setResults(id,
+                                undefined,
+                                {
+                                    message: error.toString(),
+                                    position: error.position,
+                                    query,
+                            });
+
+                            // Break for-loop.
+                            break;
+                        }
+                    }
+                } catch (err) {
+                    resultsProvider.setResults(id,
+                        undefined,
+                        {
+                            message: "Syntax errors are present. For more information, please refer to the \"Problems\" tab.",
+                            position: 0,
+                            query,
+                        }
+                    );
+
+                    console.error("[RunSQLCommand]", "Error running statement: ", err);
                 }
-
-                activityProvider.addLog({
-                    status: "success",
-                    latency: elapsedTime,
-                    sql: query
-                });
-            } catch (error: any) {
-                console.log("[RunSQLCommand]", error.toString());
-                console.log("[RunSQLCommand]", JSON.stringify(error));
-                const endTime = Date.now();
-                const elapsedTime = endTime - startTime;
-
-                activityProvider.addLog({
-                    status: "failure",
-                    latency: elapsedTime, // assuming elapsedTime holds the time taken before the error was caught
-                    sql: query
-                });
-
-
-                resultsProvider.setResults(id,
-                    undefined,
-                    {
-                        message: error.toString(),
-                        position: error.position,
-                        query,
-                });
             } finally {
                 resultsProvider._view?.show();
             }

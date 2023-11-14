@@ -5,7 +5,8 @@ import { Errors, ExtensionError } from "../utilities/error";
 import AppPassword from "./appPassword";
 import { ActivityLogTreeProvider, AuthProvider, DatabaseTreeProvider, ResultsProvider } from "../providers";
 import * as vscode from 'vscode';
-import { QueryResult } from "pg";
+import { QueryArrayResult, QueryResult } from "pg";
+import { ExecuteCommandParseStatement } from "../clients/lsp";
 
 /**
  * Represents the different providers available in the extension.
@@ -152,6 +153,10 @@ export default class AsyncContext extends Context {
         } else if (!profile) {
             throw new Error(Errors.unconfiguredProfile);
         } else {
+            // Clean the previous [SqlClient] connection.
+            if (this.clients.sql) {
+                this.clients.sql.end();
+            }
             this.clients.sql = new SqlClient(this.clients.admin, this.clients.cloud, profile, this);
 
             try {
@@ -164,12 +169,12 @@ export default class AsyncContext extends Context {
             // Set environment
             if (!this.environment) {
                 const environmentPromises = [
-                    this.query("SHOW CLUSTER;"),
-                    this.query("SHOW DATABASE;"),
-                    this.query("SHOW SCHEMA;"),
-                    this.query(`SELECT id, name, owner_id as "ownerId" FROM mz_clusters;`),
-                    this.query(`SELECT id, name, owner_id as "ownerId" FROM mz_databases;`),
-                    this.query(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas`),
+                    this.internalQuery("SHOW CLUSTER;"),
+                    this.internalQuery("SHOW DATABASE;"),
+                    this.internalQuery("SHOW SCHEMA;"),
+                    this.internalQuery(`SELECT id, name, owner_id as "ownerId" FROM mz_clusters;`),
+                    this.internalQuery(`SELECT id, name, owner_id as "ownerId" FROM mz_databases;`),
+                    this.internalQuery(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas`),
                 ];
 
                 try {
@@ -203,8 +208,8 @@ export default class AsyncContext extends Context {
             if (reloadSchema && this.environment) {
                 console.log("[AsyncContext]", "Reloading schema.");
                 const schemaPromises = [
-                    this.query("SHOW SCHEMA;"),
-                    this.query(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas`)
+                    this.internalQuery("SHOW SCHEMA;"),
+                    this.internalQuery(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas`)
                 ];
                 const [
                     { rows: [{ schema }] },
@@ -370,16 +375,49 @@ export default class AsyncContext extends Context {
     }
 
     /**
-     * Runs a query in the SQL client.
+     * Internal queries are intended for exploring cases.
+     * Like quering the catalog, or information about Materialize.
+     * Queries goes to the pool, and no client is kept.
      *
-     * WARNING: If using this method handle exceptions carefuly.
      * @param text
      * @param vals
-     * @returns
+     * @returns query results
      */
-    async query(text: string, vals?: Array<any>): Promise<QueryResult<any>> {
+    async internalQuery(text: string, vals?: Array<any>): Promise<QueryResult<any>> {
         const client = await this.getSqlClient();
-        return await client.query(text, vals);
+
+        return await client.internalQuery(text, vals);
+    }
+
+    /**
+     * Private queries are intended for the user.
+     * A private query reuses always the same client.
+     * In this way, it functions like a shell,
+     * processing one statement after another.
+     *
+     * Another important difference is that
+     * it returns the values in Array mode.
+     *
+     * @param text
+     * @param vals
+     * @returns query results
+     */
+    async privateQuery(text: string, vals?: Array<any>): Promise<QueryArrayResult<any>> {
+        const client = await this.getSqlClient();
+
+        return await client.privateQuery(text, vals);
+    }
+
+    /**
+     * Sends a request to the LSP server to execute the parse command.
+     * The parse command returns the list of statements in an array,
+     * including their corresponding SQL and type (e.g., select, create_table, etc.).
+     *
+     * @param sql
+     * @returns {Promise<Array<ExecuteCommandParseStatement>>}
+     */
+    async parseSql(sql: string): Promise<Array<ExecuteCommandParseStatement>> {
+        return this.clients.lsp.parseSql(sql);
     }
 
     /**

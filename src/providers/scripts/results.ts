@@ -262,13 +262,11 @@
                     // Create data rows
                     // Loop through the data and create rows and cells
                     if (rows && rows.length > 0) {
-                        rows.forEach((row: any, i: number) => {
+                        rows.forEach((row: any) => {
                             const dataRow = document.createElement("vscode-data-grid-row");
-
-                            fields.forEach(({ name: field }: { name: string }, index: number) => {
+                            row.forEach((value: any, index: number) => {
                                 const dataCell = document.createElement("vscode-data-grid-cell");
                                 dataCell.setAttribute("grid-column", String(index + 1));
-                                const value = row[field];
                                 dataCell.innerText = typeof value === "object" ? JSON.stringify(value) : value;
 
                                 dataRow.appendChild(dataCell);
