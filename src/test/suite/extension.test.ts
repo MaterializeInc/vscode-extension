@@ -254,10 +254,9 @@ suite('Extension Test Suite', () => {
 		let err = false;
 		try {
 			await context.setProfile("invalid_profile");
-		} catch (err) {
+		} catch (error) {
 			err = true;
 		}
-
 
 		assert.ok(err);
 
