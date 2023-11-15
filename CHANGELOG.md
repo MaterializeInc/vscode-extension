@@ -2,6 +2,11 @@
 
 All notable changes to the Materialize extension for Visual Studio Code will be documented in this file.
 
+## [0.3.1] - 2023-11-15
+
+### Fixed
+ - The release process now has a pre-release step.
+
 ## [0.3.0] - 2023-11-15
 
 ### Added
