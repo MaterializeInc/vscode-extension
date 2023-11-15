@@ -2,6 +2,18 @@
 
 All notable changes to the Materialize extension for Visual Studio Code will be documented in this file.
 
+## [0.3.0] - 2023-11-15
+
+### Added
+ - Queries now run in a single Postgres client.
+ - Activity log
+ - Query execution timing.
+
+### Fixed
+ - Duplicated columns now display correctly.
+ - Rendering problems for big tables.
+ - Explorer objects are now sorted alphabetically.
+
 ## [0.2.0] - 2023-10-27
 
 ### Added

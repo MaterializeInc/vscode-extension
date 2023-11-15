@@ -6,7 +6,7 @@
   },
   "displayName": "Materialize",
   "description": "Working environment for Materialize.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "tasks": [
     {
       "problemMatcher": "$esbuild-watch"
