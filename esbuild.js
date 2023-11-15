@@ -45,8 +45,6 @@ const reactScriptsConfig = {
   entryPoints: ["./src/providers/scripts/index.tsx"],
   outfile: './out/scripts/index.js',
   bundle: true,
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  // loader: { ".tsx": "tsx" }
 };
 
 const testConfig = {

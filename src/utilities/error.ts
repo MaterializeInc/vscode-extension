@@ -122,5 +122,32 @@ export enum Errors {
     /**
      * Raises when the user is authenticated using the browser.
      */
-    browserAuthFailure = "Error doing browser auth."
+    browserAuthFailure = "Error doing browser auth.",
+    /**
+     * Raises when there is an issue executing an LSP command.
+     */
+    lspCommandFailure = "Error executing LSP command.",
+    /**
+     * Raises when the LSP client is not available.
+     *
+     * It could be because the install failed,
+     * or incompatibility in the environment.
+     */
+    lspClientFailure = "Error starting the LSP client.",
+    /**
+     * Raises when trying to install the LSP server.
+     */
+    lspInstallFailure = "Error installing the LSP server.",
+    /**
+     * Raises when the client fn onReady throws an error.
+     */
+    lspOnReadyFailure = "Error waiting the client to be ready.",
+    /**
+     * Raises when the OS is invalid to run the LSP server.
+     */
+    invalidOS = "The operating system is not compatible.",
+    /**
+     * Raises when it is impossible to parse the statements.
+     */
+    parsingFailure = " Error parsing the statements.",
 }
