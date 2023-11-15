@@ -369,7 +369,7 @@ export default class LspClient {
             const parsingError = "Error parsing the statements.";
             console.error("[LSP]", (err && (err as any).message));
             if (parsingError === (err instanceof Error && err.message)) {
-                throw new ExtensionError(Errors.parsingFailure, "Syntax errors are present. For more information, please refer to the \"Problems\" tab.");
+                throw new ExtensionError(Errors.parsingFailure, "Syntax errors present in your query.");
             } else {
                 console.warn("[LSP]", "Using alternative parser, an error raised using the LSP: ", err);
                 try {
