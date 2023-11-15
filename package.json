@@ -191,7 +191,7 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run esbuild-base -- --minify",
+    "vscode:prepublish": "npm run esbuild -- --minify",
     "esbuild": "node esbuild",
     "esbuild-watch": "node esbuild --watch",
     "lint": "eslint src --ext ts",
