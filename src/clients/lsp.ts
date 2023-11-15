@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import fetch from "node-fetch";
 import path from "path";
 import * as vscode from "vscode";
@@ -13,6 +14,7 @@ import tar from "tar";
 import stream from "stream";
 import os from "os";
 import { SemVer } from "semver";
+import { Errors, ExtensionError } from "../utilities/error";
 
 // This endpoint returns a string with the latest LSP version.
 const BINARIES_ENDPOINT = "https://binaries.materialize.com";
@@ -34,7 +36,7 @@ export interface ExecuteCommandParseStatement {
     sql: string,
     /// The type of statement.
     /// Represents the String version of [Statement].
-    kind: string,
+    kind?: string,
 }
 
 /// Represents the response from the parse command.
@@ -42,26 +44,49 @@ interface ExecuteCommandParseResponse {
     statements: Array<ExecuteCommandParseStatement>
 }
 
+/// Enum state for parsing until we can support WASM in the LSP.
+enum State {
+    Normal,
+    InString,
+    InLineComment,
+    InDollarString,
+    InBlockComment
+}
+
 /// This class implements the Language Server Protocol (LSP) client for Materialize.
 /// The LSP is downloaded for an endpoint an it is out of the bundle. Binaries are heavy-weight
 /// and is preferable to download on the first activation.
 /// This is only the first approach and will evolve with time.
 export default class LspClient {
+    private isReady: Promise<boolean>;
     private client: LanguageClient | undefined;
 
     constructor() {
-        if (this.isValidOs()) {
-            if (!this.isInstalled()) {
-                this.installAndStartLspServer();
-            } else {
-                console.log("[LSP]", "The server already exists.");
-                this.startClient();
-                this.serverUpgradeIfAvailable();
-            }
-        } else {
-            console.error("[LSP]", "Invalid operating system.");
-            return;
-        }
+        this.isReady = new Promise((res, rej) => {
+            const asyncOp = async () => {
+                if (this.isValidOs()) {
+                    if (!this.isInstalled()) {
+                        try {
+                            await this.installAndStartLspServer();
+                            res(true);
+                        } catch (err) {
+                            rej(err);
+                        }
+                    } else {
+                        console.log("[LSP]", "The server already exists.");
+                        await this.startClient();
+                        this.serverUpgradeIfAvailable();
+                        res(true);
+                    }
+                } else {
+                    console.error("[LSP]", "Invalid operating system.");
+                    rej(new ExtensionError(Errors.invalidOS, "Invalid operating system."));
+                    return;
+                }
+            };
+
+            asyncOp();
+        });
     }
 
     /**
@@ -90,9 +115,10 @@ export default class LspClient {
             fs.mkdirSync(BIN_DIR_PATH, { recursive: true });
             const tarballArrayBuffer = await this.fetchLsp();
             await this.decompressAndInstallBinaries(tarballArrayBuffer);
-            this.startClient();
+            await this.startClient();
         } catch (err) {
             console.error("[LSP]", "Error fetching the LSP: ", err);
+            throw new ExtensionError(Errors.lspInstallFailure, err);
         }
     }
 
@@ -217,7 +243,7 @@ export default class LspClient {
      * Starts the LSP Client and checks for upgrades.
      * @param serverPath
      */
-    private startClient() {
+    private async startClient() {
         console.log("[LSP]", "Starting the client.");
 
         // Build the options
@@ -242,12 +268,13 @@ export default class LspClient {
         this.client = new LanguageClient("materialize-language-server", "Materialize language server", serverOptions, clientOptions);
         this.client.start();
 
-        this.client.onReady()
-            .then(() => {
-                console.log("[LSP]", "Client ready.");
-                this.listenConfigurationChanges();
-            })
-            .catch(err => console.error("[LSP]", "Error waiting onReady(): ", err));
+        try {
+            await this.client.onReady();
+            this.listenConfigurationChanges();
+        } catch (err) {
+            console.error("[LSP]", "Error waiting onReady(): ", err);
+            throw new ExtensionError(Errors.lspOnReadyFailure, err);
+        }
     }
 
     /**
@@ -301,25 +328,140 @@ export default class LspClient {
      * The parse command returns the list of statements in an array,
      * including their corresponding SQL and type (e.g., select, create_table, etc.).
      *
-     * For more information about commands: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_executeCommand
+     * If there is an issue processing the SQL query using the LSP,
+     * such as an incompatible OS, inability to download, or other issues,
+     * we use a less sophisticated local parser to make it possible to run
+     * simple queries.
+     *
+     * TODO: This behavior should be removed after having the LSP
+     * compiled in WASM: https://github.com/MaterializeInc/materialize/issues/23101
+     *
+     * For more information about LSP commands: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_executeCommand
      */
-    async parseSql(sql: string): Promise<Array<ExecuteCommandParseStatement>> {
-        if (this.client) {
-            console.log("[LSP]", "Setting on request handler.");
+    async parseSql(sql: string, useAlternativeParse?: boolean): Promise<Array<ExecuteCommandParseStatement>> {
+        // This is only useful for testing purposes.
+        if (useAlternativeParse) {
+            try {
+                return this.alternativeParser(sql);
+            } catch (err) {
+                throw new ExtensionError(Errors.parsingFailure, "Error parsing the statements.");
+            }
+        }
 
-            // Setup the handler.
-            this.client.onRequest("workspace/executeCommand", (...params) => {
-                console.log("[LSP]", "Response params: ", params);
-            });
+        try {
+            await this.isReady;
 
-            // Send request
-            const { statements } = await this.client.sendRequest("workspace/executeCommand", { command: "parse", arguments: [
-                sql
-            ]}) as ExecuteCommandParseResponse;
+            if (this.client) {
+                try {
+                    // Send request
+                    const { statements } = await this.client.sendRequest("workspace/executeCommand", { command: "parse", arguments: [
+                        sql
+                    ]}) as ExecuteCommandParseResponse;
 
-            return statements;
-        } else {
-            throw new Error("Client is not yet available.");
+                    return statements;
+                } catch (err) {
+                    throw new ExtensionError(Errors.lspCommandFailure, err);
+                }
+            } else {
+                throw new ExtensionError(Errors.lspClientFailure, "Error processing request in the LSP.");
+            }
+        } catch (err) {
+            const parsingError = "Error parsing the statements.";
+            console.error("[LSP]", (err && (err as any).message));
+            if (parsingError === (err instanceof Error && err.message)) {
+                throw new ExtensionError(Errors.parsingFailure, "Syntax errors are present. For more information, please refer to the \"Problems\" tab.");
+            } else {
+                console.warn("[LSP]", "Using alternative parser, an error raised using the LSP: ", err);
+                try {
+                    return this.alternativeParser(sql);
+                } catch (err) {
+                    throw new ExtensionError(Errors.parsingFailure, "Error parsing the statements.");
+                }
+            }
         }
     }
+
+    /**
+     * Simple SQL parser for statements.
+     *
+     * It takes a SQL containing multiple statements,
+     * and returns each statement as an element in an array.
+     *
+     * @param {string} sql
+     * @returns {Array<ExecuteCommandParseStatement>} array of statements
+     */
+    private alternativeParser(sql: string): Array<ExecuteCommandParseStatement> {
+        let state: State = State.Normal;
+        let dollarQuoteTag = '';
+        let currentStatement = '';
+        const statements: Array<ExecuteCommandParseStatement> = [];
+
+        for (let i = 0; i < sql.length; i++) {
+            const char = sql[i];
+            const lookahead = sql.substring(i);
+
+            switch (state) {
+                case State.Normal:
+                    if (char === '\'') {
+                        state = State.InString;
+                    }
+                    else if (lookahead.startsWith('--')) {
+                        state = State.InLineComment;
+                    }
+                    else if (lookahead.startsWith('/*')) {
+                        state = State.InBlockComment;
+                        i++;
+                    } else if (char === '$') {
+                        // Detecting start of dollar-quoted string
+                        const match = lookahead.match(/^\$([A-Za-z0-9_]*)\$/);
+                        if (match) {
+                            dollarQuoteTag = match[0];
+                            state = State.InDollarString;
+                            i += dollarQuoteTag.length - 1;
+                        }
+                    }
+                    break;
+                case State.InString:
+                    if (char === '\'' && sql[i - 1] !== '\\') {
+                        state = State.Normal;
+                    }
+                    break;
+                case State.InLineComment:
+                    if (char === '\n') {
+                        state = State.Normal;
+                    }
+                    break;
+                case State.InBlockComment:
+                    if (lookahead.startsWith('*/')) {
+                        state = State.Normal;
+                        i++;
+                    }
+                    break;
+                case State.InDollarString:
+                    if (lookahead.startsWith(dollarQuoteTag)) {
+                        state = State.Normal;
+                        i += dollarQuoteTag.length - 1;
+                    }
+                    break;
+            }
+
+            // Boundary
+            if (char === ';' && state === State.Normal) {
+                statements.push({
+                    sql: currentStatement.trim()
+                });
+                currentStatement = '';
+            } else {
+                currentStatement += char;
+            }
+        }
+
+        if (currentStatement.trim()) {
+            statements.push({
+                sql: currentStatement.trim(),
+            });
+        }
+
+        return statements;
+    };
 }

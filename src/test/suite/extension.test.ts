@@ -9,6 +9,7 @@ import * as fs from "fs";
 import AppPassword from '../../context/appPassword';
 import { randomUUID } from 'crypto';
 import AsyncContext from '../../context/asyncContext';
+import LspClient from '../../clients/lsp';
 
 /**
  * Simple util function to use delay.
@@ -261,4 +262,33 @@ suite('Extension Test Suite', () => {
 		assert.ok(err);
 
 	}).timeout(10000);
+
+	test('Alternative parser', async () => {
+		const lsp = new LspClient();
+		const simpleSelect = await lsp.parseSql("SELECT 100; SELECT 200; SELECT 300;", true);
+		assert.ok(simpleSelect.length === 3);
+
+		const selectAndComments = await lsp.parseSql(`
+		-- This is a simple SELECT query
+		SELECT 100;
+		/* This is another SELECT query */
+		SELECT 200;
+		SELECT $1;`, true);
+		assert.ok(selectAndComments.length === 3);
+
+		const semicolonStringSelect = await lsp.parseSql(`SELECT 'This is a multiline string
+		with a semicolon; in the middle';`, true);
+		assert.ok(semicolonStringSelect.length === 1);
+
+		const semicolonStringColumnSelect = await lsp.parseSql(`SELECT '";"';`, true);
+		assert.ok(semicolonStringColumnSelect.length === 1);
+
+		const createSource = await lsp.parseSql(`
+			CREATE SOURCE mz_source
+			FROM POSTGRES CONNECTION pg_connection (PUBLICATION 'mz_source')
+			FOR ALL TABLES
+			WITH (SIZE = '3xsmall');
+		`, true);
+		assert.ok(createSource.length === 1);
+	}).timeout(30000);;
 });

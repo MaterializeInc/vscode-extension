@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { randomUUID } from 'crypto';
 import AsyncContext from "../context/asyncContext";
+import { ExtensionError } from '../utilities/error';
 
 export const buildRunSQLCommand = (context: AsyncContext) => {
     const sqlCommand = async () => {
@@ -92,11 +93,12 @@ export const buildRunSQLCommand = (context: AsyncContext) => {
                         }
                     }
                 } catch (err) {
+                    console.error("[RunSQLCommand]", err);
                     resultsProvider.setResults(id,
                         undefined,
                         {
-                            message: "Syntax errors are present. For more information, please refer to the \"Problems\" tab.",
-                            position: 0,
+                            message: err instanceof Error ? err.message : "Error processing your request.",
+                            position: undefined,
                             query,
                         }
                     );

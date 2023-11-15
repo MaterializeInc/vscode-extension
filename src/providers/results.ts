@@ -10,7 +10,7 @@ interface Results extends QueryResult {
 
 interface ResultsError {
     message: string,
-    position: number,
+    position?: number,
     query: string,
 }
 
@@ -139,7 +139,7 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
     }
 
     private _getHtmlForWebview(webview: vscode.Webview) {
-        const scriptUri = getUri(webview, this._extensionUri, ["out", "providers", "scripts", "results.js"]);
+        const scriptUri = getUri(webview, this._extensionUri, ["out", "scripts", "results.js"]);
 
 		// Use a nonce to only allow a specific script to be run.
 		const nonce = getNonce();
