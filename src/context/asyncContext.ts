@@ -417,7 +417,7 @@ export default class AsyncContext extends Context {
      * @returns {Promise<Array<ExecuteCommandParseStatement>>}
      */
     async parseSql(sql: string): Promise<Array<ExecuteCommandParseStatement>> {
-        return this.clients.lsp.parseSql(sql);
+        return this.clients.lsp.parseSql(sql, true);
     }
 
     /**

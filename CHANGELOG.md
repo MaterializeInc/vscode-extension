@@ -2,6 +2,11 @@
 
 All notable changes to the Materialize extension for Visual Studio Code will be documented in this file.
 
+## [0.3.2] - 2023-11-15
+
+### Fixed
+ - Alternative SQL Parser in replacement of the LSP parsing command.
+
 ## [0.3.1] - 2023-11-15
 
 ### Fixed
