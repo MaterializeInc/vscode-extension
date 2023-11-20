@@ -16,7 +16,7 @@ interface Props {
 }
 
 // Profile names must consist of only ASCII letters, ASCII digits, underscores, and dashes
-const pattern = /^[a-zA-Z0-9_\-]+$/;
+const pattern = /^[a-zA-Z0-9_-]+$/;
 
 const AddProfile = ({ mandatory, onCancel, onContinue }: Props) => {
     const { isLoading } = useContext(Context);

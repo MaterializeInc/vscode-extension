@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { Request, Response, Application } from 'express';
+import express, { Request, Response, Application, } from 'express';
 import { getUri } from "../utilities/getUri";
 import AppPassword from "../context/appPassword";
 import { getNonce } from "../utilities/getNonce";
@@ -7,14 +7,14 @@ import AsyncContext from "../context/asyncContext";
 import { Errors, ExtensionError } from "../utilities/error";
 
 // Please update this link if the logo location changes in the future.
-const LOGO_URL: String = "https://materialize.com/svgs/brand-guide/materialize-purple-mark.svg";
+const LOGO_URL = "https://materialize.com/svgs/brand-guide/materialize-purple-mark.svg";
 
 /**
  * Returns a proper HTML webpage to render the response in the browser.
  * @param output
  * @returns
  */
-function formatOutput(output: String): String {
+function formatOutput(output: string): string {
     return `
         <body style="margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f0f0f0;">
             <div style="text-align: center; padding: 100px; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);">
@@ -35,7 +35,6 @@ interface AppPasswordResponse {
  * @returns the app-password or nothing if the user cancels the action.
  */
 async function loginServer(name: string): Promise<AppPasswordResponse | undefined> {
-    const express = require('express');
     const app: Application = express();
 
     return await new Promise((resolve, reject) => {
@@ -58,7 +57,7 @@ async function loginServer(name: string): Promise<AppPasswordResponse | undefine
         });
 
         const server = app.listen(() => {
-            let serverAddress = server.address();
+            const serverAddress = server.address();
             if (serverAddress !== null) {
                 const serverPort = typeof serverAddress === 'string' ? serverAddress : serverAddress.port;
                 vscode.env.openExternal(vscode.Uri.parse(`https://console.materialize.com/access/cli?redirectUri=http://localhost:${serverPort}&tokenDescription=${name}`));
@@ -298,4 +297,4 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
         </body>
         </html>`;
     }
-};
+}

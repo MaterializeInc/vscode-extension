@@ -8,11 +8,11 @@ interface RegionInfo {
     /// Represents the environmentd PG wire protocol address.
     ///
     /// E.g.: 3es24sg5rghjku7josdcs5jd7.eu-west-1.aws.materialize.cloud:6875
-    sqlAddress: String,
+    sqlAddress: string,
     /// Represents the environmentd HTTP address.
     ///
     /// E.g.: 3es24sg5rghjku7josdcs5jd7.eu-west-1.aws.materialize.cloud:443
-    httpAddress: String,
+    httpAddress: string,
     /// Indicates true if the address is resolvable by DNS.
     resolvable: boolean,
     /// The time at which the region was enabled
@@ -40,7 +40,7 @@ interface CloudProvider {
     /// Contains the cloud provider name.
     ///
     /// E.g.: `aws` or `gcp`
-    cloudProvider: String,
+    cloudProvider: string,
 }
 
 interface CloudProviderResponse {
@@ -50,7 +50,7 @@ interface CloudProviderResponse {
 
 export default class CloudClient {
     adminClient: AdminClient;
-    providersEndpoint: String;
+    providersEndpoint: string;
 
     constructor(adminClient: AdminClient, endpoint?: string) {
         this.adminClient = adminClient;
@@ -74,8 +74,9 @@ export default class CloudClient {
         let cursor = '';
 
         try {
-            while (true) {
-                let response = await this.fetch(`${this.providersEndpoint}?limit=50&cursor=${cursor}`);
+            let retry = true;
+            while (retry) {
+                const response = await this.fetch(`${this.providersEndpoint}?limit=50&cursor=${cursor}`);
 
                 console.log("[CloudClient]", `Status: ${response.status}`);
                 const cloudProviderResponse = (await response.json()) as CloudProviderResponse;
@@ -84,7 +85,7 @@ export default class CloudClient {
                 if (cloudProviderResponse.nextCursor) {
                     cursor = cloudProviderResponse.nextCursor;
                 } else {
-                    break;
+                    retry = false;
                 }
             }
         } catch (err) {
@@ -99,18 +100,14 @@ export default class CloudClient {
         try {
             const regionEdnpoint = `${cloudProvider.url}/api/region`;
 
-            let response = await this.fetch(regionEdnpoint);
+            const response = await this.fetch(regionEdnpoint);
 
             console.log("[CloudClient]", `Status: ${response.status}`);
             if (response.status === 200) {
                 const region: Region = (await response.json()) as Region;
                 return region;
             } else {
-                try {
-                    throw new Error((await response.json() as any).error);
-                } catch (err) {
-                    throw err;
-                }
+                throw new Error((await response.json() as any).error);
             }
         } catch (err) {
             console.error("[CloudClient]", "Error retrieving region: ", err);

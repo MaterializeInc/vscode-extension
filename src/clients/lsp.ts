@@ -257,7 +257,7 @@ export default class LspClient {
         const configuration = vscode.workspace.getConfiguration('materialize');
         const formattingWidth = configuration.get('formattingWidth');
         console.log("[LSP]", "Formatting width: ", formattingWidth);
-        let clientOptions: LanguageClientOptions = {
+        const clientOptions: LanguageClientOptions = {
             documentSelector: [{ scheme: "file", language: "materialize-sql"}],
             initializationOptions: {
                 formattingWidth,
@@ -463,5 +463,5 @@ export default class LspClient {
         }
 
         return statements;
-    };
+    }
 }

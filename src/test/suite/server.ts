@@ -24,7 +24,7 @@ export function mockServer(): Promise<string> {
 
     const { privateKey, publicKey } = generateKeyPairSync('rsa', keyPairOptions);
 
-	var token = sign({ foo: 'bar', email: "materialize" },
+	const token = sign({ foo: 'bar', email: "materialize" },
     {
       key: privateKey,
       passphrase

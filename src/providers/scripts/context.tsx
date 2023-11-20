@@ -15,11 +15,11 @@ interface State extends VSCodeContextState{
     isLoading: boolean;
     error?: string;
     request: (msg: Message) => Promise<void>;
-};
+}
 
 const baseState: State = {
     isLoading: true,
-    request: async () => {},
+    request: async () => { return; },
 };
 
 export const Context = createContext<State>({ ...baseState });

@@ -36,6 +36,11 @@ jobs:
       with:
         node-version: 16.x
 
+    - run: npm install
+
+    - name: Run ESLint
+      run: npm run lint
+
     - name: Run Docker Image
       run: |
         docker pull materialize/materialized:v0.62.2
@@ -48,7 +53,6 @@ jobs:
         sudo apt-get install -y xvfb
         sudo apt-get install -y libnss3-dev libasound2 libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev libatk1.0-0
 
-    - run: npm install
     - name: Run Tests on Linux
       if: runner.os == 'Linux'
       run: |
