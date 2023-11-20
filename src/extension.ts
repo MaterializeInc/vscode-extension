@@ -10,7 +10,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
     context = new AsyncContext(vsContext);
 
     // Register the `Run SQL` command.
-    let runDisposable = vscode.commands.registerCommand('materialize.run', async () => {
+    const runDisposable = vscode.commands.registerCommand('materialize.run', async () => {
         console.log("[RunSQLCommand]", "Firing detected.");
 
         // Check for available profile before proceeding.
@@ -30,7 +30,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
         vscode.commands.executeCommand('queryResults.focus').then(sqlCommand);
     });
 
-    let copyDisposable = vscode.commands.registerCommand('materialize.copy', async ({ tooltip }) => {
+    const copyDisposable = vscode.commands.registerCommand('materialize.copy', async ({ tooltip }) => {
         // Additional context information
         console.log("[CopyCommand]", "Copying tooltip: ", tooltip);
         try {
@@ -44,7 +44,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
     vsContext.subscriptions.push(runDisposable);
     vsContext.subscriptions.push(copyDisposable);
 
-    let copySQLDisposable = vscode.commands.registerCommand('extension.copySQL', (sql: string) => {
+    const copySQLDisposable = vscode.commands.registerCommand('extension.copySQL', (sql: string) => {
         vscode.env.clipboard.writeText(sql);
     });
 

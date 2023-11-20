@@ -1,20 +1,20 @@
 import fetch from "node-fetch";
 import AppPassword from "../context/appPassword";
 import { Errors, ExtensionError } from "../utilities/error";
-const jwksClient = require("jwks-rsa");
-const jwt = require("node-jsonwebtoken");
+import jwksClient from "jwks-rsa";
+import { verify } from "node-jsonwebtoken";
 
 interface AuthenticationResponse {
     accessToken: string,
     expires: string,
-    expiresIn: Number,
+    expiresIn: number,
     refreshToken: string,
-};
+}
 
 interface AuthenticationRequest {
     clientId: string,
     secret: string,
-};
+}
 
 const DEFAULT_ADMIN_ENDPOINT = 'https://admin.cloud.materialize.com';
 
@@ -88,7 +88,7 @@ export default class AdminClient {
             const key = jwk.getPublicKey();
 
             // Ignore expiration during tests
-            const authData = jwt.verify(token, key, { complete: true });
+            const authData = verify(token, key, { complete: true });
 
             return authData.payload;
         } catch (err) {
@@ -99,12 +99,9 @@ export default class AdminClient {
 
     /// Returns the current user's email.
     async getEmail() {
-        let claims = await this.getClaims();
-
+        const claimOrPayload = await this.getClaims();
         try {
-            if (typeof claims === "string") {
-                claims = JSON.parse(claims);
-            }
+            const claims = typeof claimOrPayload === "string" ? JSON.parse(claimOrPayload) : claimOrPayload;
 
             if (!claims.email) {
                 throw new Error(Errors.emailNotPresentInClaims);

@@ -15,9 +15,6 @@ interface Props {
     onCancel: () => void;
 }
 
-// Profile names must consist of only ASCII letters, ASCII digits, underscores, and dashes
-const pattern = /^[a-zA-Z0-9_\-]+$/;
-
 const RemoveProfile = ({ onCancel, onContinue }: Props) => {
     const { profileName } = useContext(Context);
     const [state, setState] = useState<State>({

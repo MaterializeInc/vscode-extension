@@ -55,7 +55,7 @@ export class Config {
      */
     private shouldUseKeychain(profile: Profile): boolean {
         if (process.platform === "darwin") {
-            let vault = profile.vault || this.config.vault;
+            const vault = profile.vault || this.config.vault;
             if (!vault || vault === "keychain") {
                 return true;
             }
@@ -130,7 +130,7 @@ export class Config {
 
         try {
             console.log("[Config]", "Config file path: ", this.configFilePath);
-            let configInToml = readFileSync(this.configFilePath, 'utf-8');
+            const configInToml = readFileSync(this.configFilePath, 'utf-8');
             return TOML.parse(configInToml) as File;
         } catch (err) {
             console.error("[Config]", "Error reading the configuration file.", err);
@@ -173,7 +173,7 @@ export class Config {
             this.config.profiles = {
                 [name]: newProfile
             };
-        };
+        }
 
         this.save();
         this.setProfile(name);
@@ -248,7 +248,7 @@ export class Config {
     }
 
     /// Returns all the profile names
-    getProfileNames(): Array<String> | undefined {
+    getProfileNames(): Array<string> | undefined {
         if (this.config.profiles) {
             return Object.keys(this.config.profiles);
         }

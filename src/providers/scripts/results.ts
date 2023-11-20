@@ -1,18 +1,21 @@
+// Load UX/UI from VSCode.
+import {
+    provideVSCodeDesignSystem, vsCodeDropdown, vsCodeTextField, vsCodeOption, vsCodeButton, vsCodeDataGrid, vsCodeDataGridCell, vsCodeDataGridRow, vsCodeLink, vsCodeProgressRing, vsCodeDivider,
+} from "@vscode/webview-ui-toolkit";
+
 // This script will be run within the webview itself
 // It cannot access the main VS Code APIs directly.
 (function () {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     const vscode = acquireVsCodeApi();
-
-    // Load UX/UI from VSCode.
-    const { provideVSCodeDesignSystem, vsCodeDropdown, vsCodeTextField, vsCodeOption, vsCodeButton, vsCodeDataGrid, vsCodeDataGridCell, vsCodeDataGridRow, vsCodeLink, vsCodeProgressRing, vsCodeDivider } = require ("@vscode/webview-ui-toolkit");
 
     provideVSCodeDesignSystem().register(vsCodeDropdown(), vsCodeOption(), vsCodeButton(), vsCodeDataGrid(), vsCodeDataGridCell(), vsCodeDataGridRow(), vsCodeLink(), vsCodeTextField(), vsCodeProgressRing(), vsCodeDivider());
 
     const oldState = vscode.getState() || { results: [] };
 
     /** @type {Array<{ value: string }>} */
-    let results = oldState.results;
+    const results = oldState.results;
 
     const logInfo = (...messages: Array<string>) => {
         vscode.postMessage({ type: "logInfo", data: { messages } });
@@ -41,7 +44,7 @@
     };
 
     let timer: any;
-    let elapsedTime: number = 0;
+    let elapsedTime = 0;
     let timerElement: HTMLElement | null = null;
 
     // Handle messages sent from the extension to the webview
@@ -63,7 +66,7 @@
                     container.appendChild(progressRing);
 
                     // Record the start time of the query
-                    let startTime = Date.now();
+                    const startTime = Date.now();
 
                     elapsedTime = 0;
                     // Dynamically create the timer div if it doesn't exist
@@ -188,8 +191,8 @@
                         // Handle the correct caret position and error message.
                         if (position || typeof position === "number") {
                             // Identify the line number
-                            let lines = query.substring(0, position).split("\n");
-                            let lineNumber = lines && lines.length;
+                            const lines = query.substring(0, position).split("\n");
+                            const lineNumber = lines && lines.length;
                             const linePositionMessage = lineNumber ? `LINE ${lineNumber}: <code>...${lines[lineNumber - 1]}</code>` : "";
 
                             const linePositionElement = document.createElement("p");

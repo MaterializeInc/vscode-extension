@@ -31,7 +31,7 @@ export default class AppPassword {
 
     static fromString(password: string) {
 
-        let strippedPassword = password.replace(PREFIX, '');
+        const strippedPassword = password.replace(PREFIX, '');
         if (strippedPassword.length === 43 || strippedPassword.length === 44) {
           // If it's exactly 43 or 44 bytes, assume we have base64-encoded
           // UUID bytes without or with padding, respectively.

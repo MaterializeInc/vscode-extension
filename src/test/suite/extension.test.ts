@@ -213,9 +213,9 @@ suite('Extension Test Suite', () => {
 
 	test('Test query execution', async () => {
 		const _context: AsyncContext = await extension.activate();
-		const rows = _context.privateQuery("SELECT 100");
+		const rows = await _context.privateQuery("SELECT 100");
 
-		assert.ok((await rows).rowCount > 0);
+		assert.ok((rows.rowCount || 0) > 0);
 	},);
 
 	test('Change cluster', async () => {
@@ -290,5 +290,5 @@ suite('Extension Test Suite', () => {
 			WITH (SIZE = '3xsmall');
 		`, true);
 		assert.ok(createSource.length === 1);
-	}).timeout(30000);;
+	}).timeout(30000);
 });
