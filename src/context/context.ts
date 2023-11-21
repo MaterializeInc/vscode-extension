@@ -17,6 +17,34 @@ export interface Environment {
 }
 
 /**
+ * Represents a column from an object schema.
+ */
+export interface SchemaObjectColumn {
+    name: string;
+    type: string;
+}
+
+/**
+ * Reperesents an object from a schema.
+ *
+ * E.g. Materialized view, index.
+ */
+export interface SchemaObject {
+    type: string,
+    name: string,
+    columns: Array<SchemaObjectColumn>
+}
+
+/**
+ * Current explorer schema information
+ */
+export interface ExplorerSchema {
+    schema: string,
+    database: string,
+    objects: Array<SchemaObject>
+}
+
+/**
  * Represents the different clients available in the extension.
  */
 interface Clients {
@@ -27,7 +55,10 @@ interface Clients {
 }
 
 export class Context {
+    // Configuration file
     protected config: Config;
+
+    // Has environment finished loading?
     protected loaded: boolean;
 
     // Visual Studio Code Context
@@ -39,12 +70,15 @@ export class Context {
     // User environment
     protected environment?: Environment;
 
+    // Current exploring schema
+    protected explorerSchema?: ExplorerSchema;
+
     constructor(vsContext: vscode.ExtensionContext) {
         this.vsContext = vsContext;
         this.config = new Config();
         this.loaded = false;
         this.clients = {
-            lsp: new LspClient()
+            lsp: new LspClient(this.explorerSchema)
         };
     }
 

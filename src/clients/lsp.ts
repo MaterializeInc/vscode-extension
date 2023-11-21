@@ -15,6 +15,7 @@ import stream from "stream";
 import os from "os";
 import { SemVer } from "semver";
 import { Errors, ExtensionError } from "../utilities/error";
+import { ExplorerSchema } from "../context/context";
 
 // This endpoint returns a string with the latest LSP version.
 const BINARIES_ENDPOINT = "https://binaries.materialize.com";
@@ -60,28 +61,34 @@ enum State {
 export default class LspClient {
     private isReady: Promise<boolean>;
     private client: LanguageClient | undefined;
+    private schema: ExplorerSchema;
 
-    constructor() {
+    constructor(schema: ExplorerSchema) {
+        this.schema = schema;
         this.isReady = new Promise((res, rej) => {
             const asyncOp = async () => {
-                if (this.isValidOs()) {
-                    if (!this.isInstalled()) {
-                        try {
-                            await this.installAndStartLspServer();
+                try {
+                    if (this.isValidOs()) {
+                        if (!this.isInstalled()) {
+                            try {
+                                await this.installAndStartLspServer();
+                                res(true);
+                            } catch (err) {
+                                rej(err);
+                            }
+                        } else {
+                            console.log("[LSP]", "The server already exists.");
+                            await this.startClient();
+                            this.serverUpgradeIfAvailable();
                             res(true);
-                        } catch (err) {
-                            rej(err);
                         }
                     } else {
-                        console.log("[LSP]", "The server already exists.");
-                        await this.startClient();
-                        this.serverUpgradeIfAvailable();
-                        res(true);
+                        console.error("[LSP]", "Invalid operating system.");
+                        rej(new ExtensionError(Errors.invalidOS, "Invalid operating system."));
+                        return;
                     }
-                } else {
-                    console.error("[LSP]", "Invalid operating system.");
-                    rej(new ExtensionError(Errors.invalidOS, "Invalid operating system."));
-                    return;
+                } catch (err) {
+                    rej(new ExtensionError(Errors.lspOnReadyFailure,err));
                 }
             };
 
@@ -141,11 +148,11 @@ export default class LspClient {
             bufferStream
                 .pipe(gunzip)
                 .pipe(extract)
-                .on('finish', (d: any) => {
+                .on('finish', () => {
                     console.log("[LSP]", "Server installed.");
                     res("");
                 })
-                .on('error', (error: any) => {
+                .on('error', (error: Error) => {
                     console.error("[LSP]", "Error during decompression:", error);
                     rej("Error during compression");
                 });
@@ -226,17 +233,34 @@ export default class LspClient {
             if (e.affectsConfiguration('materialize.formattingWidth')) {
                 console.log("[LSP]", "Formatting width has changed.");
 
-                // Restart client.
-                if (this.client) {
-                    this.client.onReady().then(() => {
-                        this.stop();
-                        this.startClient();
-                    }).catch(() => {
-                        console.error("[LSP]", "Error restarting client.");
-                    });
-                }
+                this.restartClient();
             }
         });
+    }
+
+    /**
+     * Restarts the LSP client with the latest configuratio available.
+     */
+    private restartClient() {
+        // Restart client.
+        if (this.client) {
+            this.client.onReady().then(() => {
+                this.stop();
+                this.startClient();
+            }).catch(() => {
+                console.error("[LSP]", "Error restarting client.");
+            });
+        }
+    }
+
+    /**
+     * Updates the schema and restarts the client.
+     * @param schema
+     */
+    updateSchema(schema: ExplorerSchema) {
+        console.log("[LSP]", "Updating schema.");
+        this.schema = schema;
+        this.restartClient();
     }
 
     /**
@@ -257,10 +281,13 @@ export default class LspClient {
         const configuration = vscode.workspace.getConfiguration('materialize');
         const formattingWidth = configuration.get('formattingWidth');
         console.log("[LSP]", "Formatting width: ", formattingWidth);
+        console.log("[LSP]", "Schema: ", this.schema);
+
         const clientOptions: LanguageClientOptions = {
             documentSelector: [{ scheme: "file", language: "materialize-sql"}],
             initializationOptions: {
                 formattingWidth,
+                schema: this.schema,
             }
         };
 
