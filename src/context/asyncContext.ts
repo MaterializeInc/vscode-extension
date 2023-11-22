@@ -217,14 +217,14 @@ export default class AsyncContext extends Context {
                         `, [schemaId]),
                     ]);
 
-                    const columnsMap: Map<string, Array<SchemaObjectColumn>> = new Map();
+                    const columnsMap: { [id: string] : Array<SchemaObjectColumn>; } = {};
                     columnsResults.rows.forEach(({ id, name, type }: any) => {
-                        const columns = columnsMap.get(id);
+                        const columns = columnsMap[id];
                         const column = { name, type };
                         if (columns) {
                             columns.push(column);
                         } else {
-                            columnsMap.set(id, [column])
+                            columnsMap[id] = [column];
                         }
                     });
 
@@ -232,20 +232,18 @@ export default class AsyncContext extends Context {
                         database,
                         schema,
                         objects: objects.rows.map((x: any) => ({
-                            ...x,
-                            columnsMap
+                            name: x.name,
+                            type: x.type,
+                            columns: columnsMap[x.id]
                         }))
                     };
-                    this.clients.lsp.updateSchema(this.explorerSchema);
 
                     console.log("[AsyncContext]", "Environment:", this.environment);
                 } catch (err) {
                     console.error("[AsyncContext]", "Error querying evnrionment information.");
                     throw err;
                 }
-            }
-
-            if (reloadSchema && this.environment) {
+            } else if (reloadSchema && this.environment) {
                 console.log("[AsyncContext]", "Reloading schema.");
                 const schemaPromises = [
                     this.internalQuery("SHOW SCHEMA;"),
@@ -297,7 +295,15 @@ export default class AsyncContext extends Context {
                         columnsMap
                     }))
                 };
-                // this.clients.lsp.updateSchema(this.explorerSchema);
+            }
+
+            if (this.explorerSchema) {
+                console.log("[AsyncContext]", "Update schema.");
+                try {
+                    this.clients.lsp.updateSchema(this.explorerSchema);
+                } catch (err) {
+                    console.error("[AsyncContext]", "Error updating LSP schema:", err);
+                }
             }
 
             console.log("[AsyncContext]", "Environment loaded.");
@@ -599,5 +605,12 @@ export default class AsyncContext extends Context {
      */
     getProviders(): Providers {
         return this.providers;
+    }
+
+    /**
+     * Stops the LSP client.
+     */
+    async stop() {
+        await this.clients.lsp.stop();
     }
 }

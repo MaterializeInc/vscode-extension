@@ -61,9 +61,9 @@ enum State {
 export default class LspClient {
     private isReady: Promise<boolean>;
     private client: LanguageClient | undefined;
-    private schema: ExplorerSchema;
+    private schema?: ExplorerSchema;
 
-    constructor(schema: ExplorerSchema) {
+    constructor(schema?: ExplorerSchema) {
         this.schema = schema;
         this.isReady = new Promise((res, rej) => {
             const asyncOp = async () => {
@@ -232,35 +232,19 @@ export default class LspClient {
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('materialize.formattingWidth')) {
                 console.log("[LSP]", "Formatting width has changed.");
-
-                this.restartClient();
+                this.updateServerOptions();
             }
         });
-    }
-
-    /**
-     * Restarts the LSP client with the latest configuratio available.
-     */
-    private restartClient() {
-        // Restart client.
-        if (this.client) {
-            this.client.onReady().then(() => {
-                this.stop();
-                this.startClient();
-            }).catch(() => {
-                console.error("[LSP]", "Error restarting client.");
-            });
-        }
     }
 
     /**
      * Updates the schema and restarts the client.
      * @param schema
      */
-    updateSchema(schema: ExplorerSchema) {
+    async updateSchema(schema: ExplorerSchema) {
         console.log("[LSP]", "Updating schema.");
         this.schema = schema;
-        this.restartClient();
+        await this.updateServerOptions();
     }
 
     /**
@@ -278,8 +262,7 @@ export default class LspClient {
             run,
             debug: run,
         };
-        const configuration = vscode.workspace.getConfiguration('materialize');
-        const formattingWidth = configuration.get('formattingWidth');
+        const formattingWidth = this.getFormattingWidth();
         console.log("[LSP]", "Formatting width: ", formattingWidth);
         console.log("[LSP]", "Schema: ", this.schema);
 
@@ -346,8 +329,37 @@ export default class LspClient {
      * Stops the LSP server client.
      * This is useful before installing an upgrade.
      */
-    stop() {
-        this.client && this.client.stop();
+    async stop() {
+        if (this.client) {
+            await this.client.onReady();
+            await this.client.stop();
+        }
+    }
+
+    /**
+     * @returns the current workspace formatting width.
+     */
+    private getFormattingWidth() {
+        const configuration = vscode.workspace.getConfiguration('materialize');
+        const formattingWidth = configuration.get('formattingWidth');
+
+        return formattingWidth;
+    }
+
+    /**
+     * Updates the LSP options.
+     */
+    private async updateServerOptions() {
+        // Send request
+        if (this.client) {
+            console.log("[LSP]", "Updating the server configuration.");
+            await this.client.sendRequest("workspace/executeCommand", {
+                command: "optionsUpdate",
+                arguments: [{
+                    formattingWidth: this.getFormattingWidth(),
+                    schema: this.schema,
+            }]}) as ExecuteCommandParseResponse;
+        }
     }
 
     /**

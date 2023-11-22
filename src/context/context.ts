@@ -82,10 +82,6 @@ export class Context {
         };
     }
 
-    stop() {
-        this.clients.lsp.stop();
-    }
-
     isLoading(): boolean {
         return !this.loaded;
     }
