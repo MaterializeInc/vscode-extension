@@ -173,9 +173,9 @@ export default class AsyncContext extends Context {
                     this.internalQuery("SHOW CLUSTER;"),
                     this.internalQuery("SHOW DATABASE;"),
                     this.internalQuery("SHOW SCHEMA;"),
-                    this.internalQuery(`SELECT id, name, owner_id as "ownerId" FROM mz_clusters;`),
-                    this.internalQuery(`SELECT id, name, owner_id as "ownerId" FROM mz_databases;`),
-                    this.internalQuery(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas`),
+                    this.internalQuery(`SELECT id, name FROM mz_clusters;`),
+                    this.internalQuery(`SELECT id, name FROM mz_databases;`),
+                    this.internalQuery(`SELECT id, name, database_id as "databaseId" FROM mz_schemas`),
                 ];
 
                 try {
@@ -247,7 +247,7 @@ export default class AsyncContext extends Context {
                 console.log("[AsyncContext]", "Reloading schema.");
                 const schemaPromises = [
                     this.internalQuery("SHOW SCHEMA;"),
-                    this.internalQuery(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas`)
+                    this.internalQuery(`SELECT id, name, database_id as "databaseId" FROM mz_schemas`)
                 ];
                 const [
                     { rows: [{ schema }] },
@@ -263,7 +263,7 @@ export default class AsyncContext extends Context {
                 const schemaId = schemas.find((x: { name: any; }) => x.name = schema)?.id;
                 const [columnsResults, objects] = await Promise.all([
                     this.internalQuery(`
-                        SELECT * FROM mz_columns;
+                        SELECT * FROM mz_columns WHERE substring(id, 0, 2) = 'u';
                     `, []),
                     this.internalQuery(`
                         SELECT id, name, 'source' AS type FROM mz_sources WHERE schema_id = $1
@@ -275,6 +275,9 @@ export default class AsyncContext extends Context {
                         ORDER BY name;
                     `, [schemaId]),
                 ]);
+
+                const objectsId: Set<string> = new Set();
+                objects.rows.forEach(x => objectsId.add(x.id));
 
                 const columnsMap: Map<string, Array<SchemaObjectColumn>> = new Map();
                 columnsResults.rows.forEach(({ id, name, type }: any) => {
