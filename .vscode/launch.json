@@ -15,7 +15,10 @@
                         "outFiles": [
                                 "${workspaceFolder}/out/**/*.js"
                         ],
-                        "preLaunchTask": "${defaultBuildTask}"
+                        "preLaunchTask": "${defaultBuildTask}",
+                        "env": {
+                                "NODE_ENV": "development"
+                        }
                 },
                 {
                         "name": "Extension Tests",
@@ -30,7 +33,8 @@
                         ],
                         "preLaunchTask": "${defaultBuildTask}",
                         "env": {
-                                "MZ_CONFIG_PATH": "${env:HOME}/.config/materialize/test"
+                                "MZ_CONFIG_PATH": "${env:HOME}/.config/materialize/test",
+                                "NODE_ENV": "development"
                         }
                 }
         ]

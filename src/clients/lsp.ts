@@ -15,6 +15,7 @@ import stream from "stream";
 import os from "os";
 import { SemVer } from "semver";
 import { Errors, ExtensionError } from "../utilities/error";
+import * as Sentry from "@sentry/node";
 
 // This endpoint returns a string with the latest LSP version.
 const BINARIES_ENDPOINT = "https://binaries.materialize.com";
@@ -70,6 +71,7 @@ export default class LspClient {
                             await this.installAndStartLspServer();
                             res(true);
                         } catch (err) {
+                            Sentry.captureException(err);
                             rej(err);
                         }
                     } else {
@@ -81,6 +83,7 @@ export default class LspClient {
                 } else {
                     console.error("[LSP]", "Invalid operating system.");
                     rej(new ExtensionError(Errors.invalidOS, "Invalid operating system."));
+                    Sentry.captureException(new ExtensionError(Errors.invalidOS, "Invalid operating system."));
                     return;
                 }
             };
@@ -273,6 +276,7 @@ export default class LspClient {
             this.listenConfigurationChanges();
         } catch (err) {
             console.error("[LSP]", "Error waiting onReady(): ", err);
+            Sentry.captureException(err);
             throw new ExtensionError(Errors.lspOnReadyFailure, err);
         }
     }
@@ -301,6 +305,7 @@ export default class LspClient {
                 }
             }
         } catch (err) {
+            Sentry.captureException(new ExtensionError(Errors.lspInstallFailure, err));
             console.error("[LSP]", "Error upgrading the LSP server: ", err);
         }
 
@@ -344,6 +349,7 @@ export default class LspClient {
             try {
                 return this.alternativeParser(sql);
             } catch (err) {
+                Sentry.captureException(err);
                 throw new ExtensionError(Errors.parsingFailure, "Error parsing the statements.");
             }
         }

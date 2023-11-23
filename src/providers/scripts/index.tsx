@@ -4,7 +4,6 @@ import Profile from "./profile";
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 
-
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 const vscode = acquireVsCodeApi();

@@ -13,14 +13,17 @@ jobs:
         with:
           node-version: 18
       - run: npm install
-      - run: npm run vscode:prepublish
+      - name: Build
+        run: npm run vscode:prepublish
+        env:
+          NODE_ENV: 'production'
       - name: Runs on Pre-Release
-        if: 'github.event.prerelease'
+        if: 'github.event.release.prerelease'
         run: npm run deploy-pre-release
         env:
           VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
       - name: Runs on Release
-        if: '!github.event.prerelease'
+        if: '!github.event.release.prerelease'
         run: npm run deploy
         env:
           VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
