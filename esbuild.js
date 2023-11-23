@@ -54,7 +54,6 @@ const reactScriptsConfig = {
   entryPoints: ["./src/providers/scripts/index.tsx"],
   outfile: './out/scripts/index.js',
   bundle: true,
-  sourcemap: true,
 };
 
 const testConfig = {
