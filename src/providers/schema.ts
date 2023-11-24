@@ -44,7 +44,7 @@ export default class DatabaseTreeProvider implements vscode.TreeDataProvider<Nod
                                 const { schema: schemaName } = environment;
                                 const { schemas } = environment;
                                 const schema = schemas.find(x => x.name === schemaName);
-                                console.log("SchemaReader: ", schema, schemas, schemaName);
+                                console.log("[DatabaseTreeProvider]", "Schema:", schema, schemas, schemaName);
 
                                 if (schema) {
                                     const promises = [

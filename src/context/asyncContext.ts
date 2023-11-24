@@ -1,12 +1,13 @@
 import { AdminClient, CloudClient, SqlClient } from "../clients";
 import { ExtensionContext } from "vscode";
-import { Context, SchemaObjectColumn } from "./context";
+import { Context, SchemaObject, SchemaObjectColumn } from "./context";
 import { Errors, ExtensionError } from "../utilities/error";
 import AppPassword from "./appPassword";
 import { ActivityLogTreeProvider, AuthProvider, DatabaseTreeProvider, ResultsProvider } from "../providers";
 import * as vscode from 'vscode';
 import { QueryArrayResult, QueryResult } from "pg";
 import { ExecuteCommandParseStatement } from "../clients/lsp";
+import { MaterializeObject } from "../providers/schema";
 
 /**
  * Represents the different providers available in the extension.
@@ -199,55 +200,21 @@ export default class AsyncContext extends Context {
                         clusters
                     };
 
-                    // Not super efficient.
-                    // TODO: Replace query that appears down.
-                    const schemaId = schemas.find((x: { name: any; }) => x.name = schema)?.id;
-                    const [columnsResults, objects] = await Promise.all([
-                        this.internalQuery(`
-                            SELECT * FROM mz_columns;
-                        `, []),
-                        this.internalQuery(`
-                            SELECT id, name, 'source' AS type FROM mz_sources WHERE schema_id = $1
-                            UNION ALL SELECT id, name, 'sink' AS type FROM mz_sinks WHERE schema_id = $1
-                            UNION ALL SELECT id, name, 'view' AS type FROM mz_views WHERE schema_id = $1
-                            UNION ALL
-                                SELECT id, name, 'materialized_view' AS type FROM mz_materialized_views WHERE schema_id = $1
-                            UNION ALL SELECT id, name, 'table' AS type FROM mz_tables WHERE schema_id = $1
-                            ORDER BY name;
-                        `, [schemaId]),
-                    ]);
-
-                    const columnsMap: { [id: string] : Array<SchemaObjectColumn>; } = {};
-                    columnsResults.rows.forEach(({ id, name, type }: any) => {
-                        const columns = columnsMap[id];
-                        const column = { name, type };
-                        if (columns) {
-                            columns.push(column);
-                        } else {
-                            columnsMap[id] = [column];
-                        }
-                    });
-
-                    this.explorerSchema = {
-                        database,
-                        schema,
-                        objects: objects.rows.map((x: any) => ({
-                            name: x.name,
-                            type: x.type,
-                            columns: columnsMap[x.id]
-                        }))
-                    };
-
+                    const schemaObj = schemas.find((x: { name: string, databaseId: string, }) => x.name === schema && x.databaseId === databaseObj?.id);
+                    console.log("[AsyncContext]", schemaObj, schemas);
+                    if (schemaObj) {
+                        this.explorerSchema = await this.getExplorerSchema(database, schemaObj);
+                    }
                     console.log("[AsyncContext]", "Environment:", this.environment);
                 } catch (err) {
-                    console.error("[AsyncContext]", "Error querying evnrionment information.");
+                    console.error("[AsyncContext]", "Error querying environment information: ", err);
                     throw err;
                 }
             } else if (reloadSchema && this.environment) {
                 console.log("[AsyncContext]", "Reloading schema.");
                 const schemaPromises = [
                     this.internalQuery("SHOW SCHEMA;"),
-                    this.internalQuery(`SELECT id, name, database_id as "databaseId" FROM mz_schemas`)
+                    this.internalQuery(`SELECT id, name, database_id as "databaseId" FROM mz_schemas;`)
                 ];
                 const [
                     { rows: [{ schema }] },
@@ -259,45 +226,10 @@ export default class AsyncContext extends Context {
                 this.environment.schema = schema;
                 this.environment.schemas = schemas.filter((x: { databaseId: string | undefined; }) => x.databaseId === databaseObj?.id);
 
-                // Not super efficient.
-                const schemaId = schemas.find((x: { name: any; }) => x.name = schema)?.id;
-                const [columnsResults, objects] = await Promise.all([
-                    this.internalQuery(`
-                        SELECT * FROM mz_columns WHERE substring(id, 0, 2) = 'u';
-                    `, []),
-                    this.internalQuery(`
-                        SELECT id, name, 'source' AS type FROM mz_sources WHERE schema_id = $1
-                        UNION ALL SELECT id, name, 'sink' AS type FROM mz_sinks WHERE schema_id = $1
-                        UNION ALL SELECT id, name, 'view' AS type FROM mz_views WHERE schema_id = $1
-                        UNION ALL
-                            SELECT id, name, 'materialized_view' AS type FROM mz_materialized_views WHERE schema_id = $1
-                        UNION ALL SELECT id, name, 'table' AS type FROM mz_tables WHERE schema_id = $1
-                        ORDER BY name;
-                    `, [schemaId]),
-                ]);
-
-                const objectsId: Set<string> = new Set();
-                objects.rows.forEach(x => objectsId.add(x.id));
-
-                const columnsMap: Map<string, Array<SchemaObjectColumn>> = new Map();
-                columnsResults.rows.forEach(({ id, name, type }: any) => {
-                    const columns = columnsMap.get(id);
-                    const column = { name, type };
-                    if (columns) {
-                        columns.push(column);
-                    } else {
-                        columnsMap.set(id, [column])
-                    }
-                });
-
-                this.explorerSchema = {
-                    database,
-                    schema,
-                    objects: objects.rows.map((x: any) => ({
-                        ...x,
-                        columnsMap
-                    }))
-                };
+                const schemaObj = schemas.find((x: { name: string, databaseId: string, }) => x.name === schema && x.databaseId === databaseObj?.id);
+                if (schemaObj) {
+                    this.explorerSchema = await this.getExplorerSchema(database, schema);
+                }
             }
 
             if (this.explorerSchema) {
@@ -313,6 +245,49 @@ export default class AsyncContext extends Context {
             this.loaded = true;
             return true;
         }
+    }
+
+    private async getExplorerSchema(
+        database: string,
+        { name: schema, id: schemaId }: MaterializeObject,
+    ) {
+        // Not super efficient.
+        // TODO: Replace query that appears down.
+        const [columnsResults, objects] = await Promise.all([
+            this.internalQuery(`
+                SELECT * FROM mz_columns;
+            `, []),
+            this.internalQuery(`
+                SELECT id, name, 'source' AS type FROM mz_sources WHERE schema_id = $1
+                UNION ALL SELECT id, name, 'sink' AS type FROM mz_sinks WHERE schema_id = $1
+                UNION ALL SELECT id, name, 'view' AS type FROM mz_views WHERE schema_id = $1
+                UNION ALL
+                    SELECT id, name, 'materializedView' AS type FROM mz_materialized_views WHERE schema_id = $1
+                UNION ALL SELECT id, name, 'table' AS type FROM mz_tables WHERE schema_id = $1
+                ORDER BY name;
+            `, [schemaId]),
+        ]);
+
+        const columnsMap: { [id: string] : Array<SchemaObjectColumn>; } = {};
+        columnsResults.rows.forEach(({ id, name, type }: any) => {
+            const columns = columnsMap[id];
+            const column = { name, type };
+            if (columns) {
+                columns.push(column);
+            } else {
+                columnsMap[id] = [column];
+            }
+        });
+
+        return {
+            database,
+            schema,
+            objects: objects.rows.filter(x => columnsMap[x.id]).map((x: any) => ({
+                name: x.name,
+                type: x.type,
+                columns: columnsMap[x.id]
+            }))
+        };
     }
 
     /**
