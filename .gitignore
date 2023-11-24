@@ -13,3 +13,5 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 test-resources
+# Sentry Config File
+.env.sentry-build-plugin

@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { randomUUID } from 'crypto';
 import AsyncContext from "../context/asyncContext";
-import { ExtensionError } from '../utilities/error';
 
 export const buildRunSQLCommand = (context: AsyncContext) => {
     const sqlCommand = async () => {
