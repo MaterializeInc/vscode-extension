@@ -1,13 +1,22 @@
 // file: esbuild.js
 
 const { build } = require("esbuild");
+const { sentryEsbuildPlugin } = require("@sentry/esbuild-plugin");
 
 const baseConfig = {
   bundle: true,
   minify: process.env.NODE_ENV === "production",
-  sourcemap: process.env.NODE_ENV !== "production",
+  // Turned on to capture sourcemap for Sentry
+  sourcemap: true,
   format: "cjs",
   platform: "node",
+  plugins: process.env.NODE_ENV === "production" ? [
+    sentryEsbuildPlugin({
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      org: "materializeinc",
+      project: "vscode-extension",
+    }),
+  ] : []
 };
 
 const extensionConfig = {

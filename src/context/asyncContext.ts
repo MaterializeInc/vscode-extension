@@ -587,6 +587,8 @@ export default class AsyncContext extends Context {
 
     /**
      * Stops the LSP client.
+     *
+     * Note: This action should be executed only when deactivating the extension.
      */
     async stop() {
         await this.clients.lsp.stop();
