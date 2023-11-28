@@ -47,8 +47,9 @@ class ActivityLogItem extends vscode.TreeItem {
     constructor(public readonly log: ActivityLog) {
         // Shorten the displayed query if it's too long
         const shortSQL = log.sql.length > 50 ? log.sql.substring(0, 50) + "..." : log.sql;
-
-        super(shortSQL, vscode.TreeItemCollapsibleState.None);
+        // Removes enters and extra spaces.
+        const cleanSQL = shortSQL.replace(/\n/g, '').replace(/\s{2,}/g, ' ');
+        super(cleanSQL, vscode.TreeItemCollapsibleState.None);
 
         // Set iconPath based on the status
         const iconName = log.status === "success" ? "success_icon.svg" : "error_icon.svg";
