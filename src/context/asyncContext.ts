@@ -288,9 +288,16 @@ export default class AsyncContext extends Context {
      */
     async removeAndSaveProfile(name: string) {
         try {
-            this.config.removeAndSaveProfile(name);
-            const success = await this.reloadContext();
-            return success;
+            await this.config.removeAndSaveProfile(name);
+            const leftProfileNames = this.getProfileNames();
+            console.log("[AsyncContext]", "Left profile names: ", leftProfileNames);
+            if (leftProfileNames && leftProfileNames.length > 0) {
+                const success = await this.reloadContext();
+                return success;
+            } else {
+                this.isReadyPromise = new Promise((res) => res(true));
+                return true;
+            }
         } catch (err) {
             throw this.parseErr(err, "Error reloading context.");
         }

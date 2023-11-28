@@ -207,6 +207,7 @@ export class Config {
         }
 
         this.save();
+        await this.removeKeychainPassword(name);
 
         if (newProfileName) {
             this.setProfile(newProfileName);
@@ -276,12 +277,28 @@ export class Config {
                     resolve();
                 }
             };
-
             keychain.setPassword({
                 account,
                 password: appPassword,
                 service: KEYCHAIN_SERVICE,
                 type: "generic",
+            }, cb);
+        });
+    }
+
+    /// Removes an app-password from the keychain
+    async removeKeychainPassword(account: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const cb = (err: KeychainError): void => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            };
+            keychain.deletePassword({
+                account,
+                service: KEYCHAIN_SERVICE,
             }, cb);
         });
     }
