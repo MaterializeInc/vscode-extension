@@ -3,6 +3,7 @@ import AppPassword from "../context/appPassword";
 import { Errors, ExtensionError } from "../utilities/error";
 import jwksClient from "jwks-rsa";
 import { verify } from "node-jsonwebtoken";
+import { fetchWithRetry } from "../utilities/utils";
 
 interface AuthenticationResponse {
     accessToken: string,
@@ -44,12 +45,12 @@ export default class AdminClient {
                 secret: this.appPassword.secretKey
             };
 
-            const response = await fetch(this.adminEndpoint, {
+            const response = await fetchWithRetry(this.adminEndpoint, {
                 method: 'post',
                 body: JSON.stringify(authRequest),
                 // eslint-disable-next-line @typescript-eslint/naming-convention
-                headers: {'Content-Type': 'application/json'}
-            });
+                headers: {'Content-Type': 'application/json' }
+            }, 3000);
 
             if (response.status === 200) {
                 this.auth = (await response.json()) as AuthenticationResponse;

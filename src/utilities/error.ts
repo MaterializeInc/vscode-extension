@@ -149,5 +149,9 @@ export enum Errors {
     /**
      * Raises when it is impossible to parse the statements.
      */
-    parsingFailure = " Error parsing the statements.",
+    parsingFailure = "Error parsing the statements.",
+    /**
+     * Raises when a fetch failes after a minute.
+     */
+    fetchTimeoutError = "Failed to fetch after a minute."
 }
