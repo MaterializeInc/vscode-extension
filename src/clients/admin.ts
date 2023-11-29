@@ -50,7 +50,7 @@ export default class AdminClient {
                 body: JSON.stringify(authRequest),
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 headers: {'Content-Type': 'application/json' }
-            }, 3000);
+            });
 
             if (response.status === 200) {
                 this.auth = (await response.json()) as AuthenticationResponse;
