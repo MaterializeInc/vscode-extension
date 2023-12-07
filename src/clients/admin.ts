@@ -1,4 +1,3 @@
-import fetch from "node-fetch";
 import AppPassword from "../context/appPassword";
 import { Errors, ExtensionError } from "../utilities/error";
 import jwksClient from "jwks-rsa";
