@@ -40,9 +40,10 @@
     },
     "languages": [
       {
-        "id": "materialize-sql",
+        "id": "mzsql",
         "extensions": [
-          ".sql"
+          ".sql",
+          ".mzsql"
         ],
         "aliases": [
           "Materialize SQL"
@@ -56,9 +57,9 @@
     ],
     "grammars": [
       {
-        "language": "materialize-sql",
-        "scopeName": "source.materialize-sql",
-        "path": "./syntaxes/materialize-sql.tmLanguage"
+        "language": "mzsql",
+        "scopeName": "source.mzsql",
+        "path": "./syntaxes/mzsql.tmLanguage"
       }
     ],
     "menus": {
@@ -186,7 +187,7 @@
         "command": "materialize.run",
         "key": "ctrl+enter",
         "mac": "cmd+enter",
-        "when": "resourceLangId == 'sql' || resourceLangId == 'materialize-sql'"
+        "when": "resourceLangId == 'sql' || resourceLangId == 'mzsql'"
       }
     ]
   },
