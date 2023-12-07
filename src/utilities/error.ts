@@ -149,7 +149,11 @@ export enum Errors {
     /**
      * Raises when it is impossible to parse the statements.
      */
-    parsingFailure = "Error parsing the statements.",
+    parsingFailure = " Error parsing the statements.",
+    /**
+     * Raises when there is an issue restarting the LSP client.
+     */
+    lspRestartFailure = "Error restarting the LSP client.",
     /**
      * Raises when a fetch failes after a minute.
      */
