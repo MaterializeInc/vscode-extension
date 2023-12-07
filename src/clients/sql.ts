@@ -29,6 +29,36 @@ export default class SqlClient {
         this.handleReconnection();
     }
 
+    /**
+     * Reconnects the pool and creates a new private client.
+     *
+     * This is useful to reconnect on errors, or when wanting
+     * to abort a query.
+     */
+    async reconnect() {
+        try {
+            const client = await this.privateClient;
+            client.release();
+        } catch (err) {
+            console.error("[SqlClient]", "Error aborting private client:", err);
+        } finally {
+            try {
+                const pool = await this.pool;
+                pool.end();
+            } catch (err) {
+                console.error("[SqlClient]", "Error ending pool. It is ok it the pool connection failed:", err);
+            } finally {
+                this.pool = this.buildPool();
+                this.privateClient = this.buildPrivateClient();
+                this.handleReconnection();
+            }
+        }
+    }
+
+    /**
+     * Handles the reconnection from the pool or private client
+     * when there is a connection issue.
+     */
     private async handleReconnection() {
         let reconnecting = false;
 
@@ -38,18 +68,8 @@ export default class SqlClient {
             if (reconnecting === false && this.ended === false) {
                 reconnecting = true;
                 const interval = setInterval(async () => {
-                    try {
-                        const pool = await this.pool;
-                        pool.end();
-                    } catch (err) {
-                        console.error("[SqlClient]", "Error awaiting pool to end. It is ok it the pool connection failed.");
-                    } finally {
-                        this.pool = this.buildPool();
-                        this.privateClient = this.buildPrivateClient();
-                        this.handleReconnection();
-                        reconnecting = false;
-                        clearInterval(interval);
-                    }
+                    this.reconnect();
+                    clearInterval(interval);
                 }, 5000);
             }
         };
@@ -71,11 +91,17 @@ export default class SqlClient {
         }
     }
 
+    /**
+     * @returns a client form the pool.
+     */
     private async buildPrivateClient(): Promise<PoolClient> {
         const pool = await this.pool;
         return pool.connect();
     }
 
+    /**
+     * @returns a Postgres connection pool.
+     */
     private async buildPool(): Promise<Pool> {
         return new Pool(await this.buildPoolConfig());
     }
