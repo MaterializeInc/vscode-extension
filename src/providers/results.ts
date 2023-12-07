@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
-import { getUri } from "../utilities/getUri";
-import { getNonce } from "../utilities/getNonce";
+import { getNonce, getUri } from "../utilities/utils";
 import { QueryResult } from "pg";
 
 interface Results extends QueryResult {

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import fetch from "node-fetch";
 import path from "path";
 import * as vscode from "vscode";
 import {
@@ -17,6 +16,7 @@ import { SemVer } from "semver";
 import { Errors, ExtensionError } from "../utilities/error";
 import { ExplorerSchema } from "../context/context";
 import * as Sentry from "@sentry/node";
+import { fetchWithRetry } from "../utilities/utils";
 
 // This endpoint returns a string with the latest LSP version.
 const BINARIES_ENDPOINT = "https://binaries.materialize.com";
@@ -206,7 +206,7 @@ export default class LspClient {
      */
     private async fetchLatestVersionNumber() {
         console.log("[LSP]", "Fetching latest version number.");
-        const response = await fetch(LATEST_VERSION_ENDPOINT);
+        const response = await fetchWithRetry(LATEST_VERSION_ENDPOINT);
         const latestVersion: string = await response.text();
 
         return new SemVer(latestVersion);
@@ -221,7 +221,7 @@ export default class LspClient {
         const endpoint = this.getEndpointByOs(latestVersion);
 
         console.log("[LSP]", `Fetching LSP from: ${endpoint}`);
-        const binaryResponse = await fetch(endpoint);
+        const binaryResponse = await fetchWithRetry(endpoint);
         const buffer = await binaryResponse.arrayBuffer();
 
         return buffer;
@@ -271,7 +271,7 @@ export default class LspClient {
         console.log("[LSP]", "Schema: ", this.schema);
 
         const clientOptions: LanguageClientOptions = {
-            documentSelector: [{ scheme: "file", language: "materialize-sql"}],
+            documentSelector: [{ scheme: "file", language: "mzsql"}],
             initializationOptions: {
                 formattingWidth,
                 schema: this.schema,

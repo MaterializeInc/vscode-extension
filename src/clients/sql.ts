@@ -1,9 +1,8 @@
-import { Pool, PoolClient, PoolConfig, QueryArrayResult, QueryResult } from "pg";
+import { Pool, PoolClient, PoolConfig, QueryArrayResult } from "pg";
 import AdminClient from "./admin";
 import CloudClient from "./cloud";
 import { Profile } from "../context/config";
 import AsyncContext from "../context/asyncContext";
-import { Errors, ExtensionError } from "../utilities/error";
 
 export default class SqlClient {
     private pool: Promise<Pool>;
@@ -12,6 +11,7 @@ export default class SqlClient {
     private cloudClient: CloudClient;
     private context: AsyncContext;
     private profile: Profile;
+    private ended: boolean;
 
     constructor(
         adminClient: AdminClient,
@@ -23,45 +23,61 @@ export default class SqlClient {
         this.cloudClient = cloudClient;
         this.profile = profile;
         this.context = context;
+        this.ended = false;
+        this.pool = this.buildPool();
+        this.privateClient = this.buildPrivateClient();
+        this.handleReconnection();
+    }
 
-        this.pool = new Promise((res, rej) => {
-            const asyncOp = async () => {
-                try {
-                    console.log("[SqlClient]", "Building config.");
-                    const config = await this.buildPoolConfig();
-                    const pool = new Pool(config);
-                    console.log("[SqlClient]", "Connecting pool.");
+    private async handleReconnection() {
+        let reconnecting = false;
 
-                    pool.connect().then(() => {
-                        console.log("[SqlClient]", "Pool successfully connected.");
-                        res(pool);
-                    }).catch((err) => {
-                        console.error(err);
-                        rej(new ExtensionError(Errors.poolConnectionFailure, err));
-                    });
-                } catch (err) {
-                    console.error("[SqlClient]", "Error creating pool: ", err);
-                    rej(new ExtensionError(Errors.poolCreationFailure, err));
-                }
-            };
+        const reconnect = (err: Error) => {
+            console.error("[SqlClient]", "Unexpected error: ", err);
+            console.log("[SqlClient]", "Reconnecting.");
+            if (reconnecting === false && this.ended === false) {
+                reconnecting = true;
+                const interval = setInterval(async () => {
+                    try {
+                        const pool = await this.pool;
+                        pool.end();
+                    } catch (err) {
+                        console.error("[SqlClient]", "Error awaiting pool to end. It is ok it the pool connection failed.");
+                    } finally {
+                        this.pool = this.buildPool();
+                        this.privateClient = this.buildPrivateClient();
+                        this.handleReconnection();
+                        reconnecting = false;
+                        clearInterval(interval);
+                    }
+                }, 5000);
+            }
+        };
 
-            asyncOp();
-        });
+        try {
+            const pool = await this.pool;
+            pool.on("error", reconnect);
 
-        this.privateClient = new Promise((res, rej) => {
-            const asyncOp = async () => {
-                try {
-                    const pool = await this.pool;
-                    const client = await pool.connect();
-                    res(client);
-                } catch (err) {
-                    console.error("[SqlClient]", "Error awaiting the pool: ", err);
-                    rej(err);
-                }
-            };
+            try {
+                const client = await this.privateClient;
+                client.on("error", reconnect);
+            } catch (err) {
+                reconnect(err as Error);
+                console.error("[SqlClient]", "Unexpected error on client: ", err);
+            }
+        } catch (err) {
+            reconnect(err as Error);
+            console.error("[SqlClient]", "Unexpected error on pool: ", err);
+        }
+    }
 
-            asyncOp();
-        });
+    private async buildPrivateClient(): Promise<PoolClient> {
+        const pool = await this.pool;
+        return pool.connect();
+    }
+
+    private async buildPool(): Promise<Pool> {
+        return new Pool(await this.buildPoolConfig());
     }
 
     async connectErr() {
@@ -124,7 +140,7 @@ export default class SqlClient {
      * @param values
      * @returns query results
      */
-    async internalQuery(statement: string, values?: Array<any>): Promise<QueryArrayResult<any>> {
+    async internalQuery(statement: string, values?: Array<string | number>): Promise<QueryArrayResult<any>> {
         const pool = await this.pool;
         const results = await pool.query(statement, values);
 
@@ -163,6 +179,8 @@ export default class SqlClient {
      * Shut down cleanly the pool.
      */
     async end() {
+        this.ended = true;
+
         try {
             const pool = await this.pool;
             await pool.end();

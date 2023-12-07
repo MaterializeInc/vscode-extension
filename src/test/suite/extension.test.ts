@@ -255,13 +255,14 @@ suite('Extension Test Suite', () => {
 		let err = false;
 		try {
 			await context.setProfile("invalid_profile");
-		} catch (error) {
+		} catch (error: any) {
+			assert.ok(error.message === "Invalid authentication");
 			err = true;
 		}
 
 		assert.ok(err);
 
-	}).timeout(10000);
+	}).timeout(30000);
 
 	test('Alternative parser', async () => {
 		const lsp = new LspClient();

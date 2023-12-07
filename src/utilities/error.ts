@@ -153,5 +153,9 @@ export enum Errors {
     /**
      * Raises when there is an issue restarting the LSP client.
      */
-    lspRestartFailure = "Error restarting the LSP client."
+    lspRestartFailure = "Error restarting the LSP client.",
+    /**
+     * Raises when a fetch failes after a minute.
+     */
+    fetchTimeoutError = "Failed to fetch after a minute."
 }

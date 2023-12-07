@@ -70,6 +70,6 @@ export default class AppPassword {
           }
         }
 
-        throw new ExtensionError(Errors.invalidAppPassword, "Invalid length.");
+        throw new ExtensionError(Errors.invalidAppPassword, "Invalid app-password length.");
       }
 }
