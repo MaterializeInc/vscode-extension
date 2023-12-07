@@ -1,6 +1,6 @@
-import fetch from "node-fetch";
 import AdminClient from "./admin";
 import { Errors, ExtensionError } from "../utilities/error";
+import { fetchWithRetry } from "../utilities/utils";
 
 const DEFAULT_API_CLOUD_ENDPOINT = 'https://api.cloud.materialize.com';
 
@@ -58,7 +58,7 @@ export default class CloudClient {
     }
 
     async fetch(endpoint: string) {
-        return fetch(endpoint, {
+        return fetchWithRetry(endpoint, {
             method: 'get',
             headers: {
                 // eslint-disable-next-line @typescript-eslint/naming-convention
