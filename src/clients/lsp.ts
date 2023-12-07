@@ -261,7 +261,7 @@ export default class LspClient {
         const formattingWidth = configuration.get('formattingWidth');
         console.log("[LSP]", "Formatting width: ", formattingWidth);
         const clientOptions: LanguageClientOptions = {
-            documentSelector: [{ scheme: "file", language: "materialize-sql"}],
+            documentSelector: [{ scheme: "file", language: "mzsql"}],
             initializationOptions: {
                 formattingWidth,
             }
