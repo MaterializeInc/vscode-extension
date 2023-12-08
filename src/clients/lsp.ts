@@ -274,7 +274,7 @@ export default class LspClient {
             documentSelector: [{ scheme: "file", language: "mzsql"}],
             initializationOptions: {
                 formattingWidth,
-                schema: this.schema,
+                // schema: this.schema,
             }
         };
 
@@ -364,7 +364,7 @@ export default class LspClient {
                 command: "optionsUpdate",
                 arguments: [{
                     formattingWidth: this.getFormattingWidth(),
-                    schema: this.schema,
+                    // schema: this.schema,
             }]}) as ExecuteCommandParseResponse;
         }
     }
