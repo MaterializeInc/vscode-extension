@@ -129,7 +129,7 @@ export default class AsyncContext extends Context {
         this.clients = {
             ...this.clients,
             admin: adminClient,
-            cloud: new CloudClient(adminClient, profile["cloud-endpoint"])
+            cloud: new CloudClient(adminClient, this.config.getCloudEndpoint())
         };
 
         await this.loadEnvironment(init);
