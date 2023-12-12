@@ -26,28 +26,28 @@
                 <key>1</key>
                 <dict>
                     <key>name</key>
-                    <string>keyword.other.create.materialize-sql</string>
+                    <string>keyword.other.create.mzsql</string>
                 </dict>
                 <key>2</key>
                 <dict>
                     <key>name</key>
-                    <string>keyword.other.materialize-sql</string>
+                    <string>keyword.other.mzsql</string>
                 </dict>
                 <key>3</key>
                 <dict>
                     <key>name</key>
-                    <string>keyword.other.materialize-sql</string>
+                    <string>keyword.other.mzsql</string>
                 </dict>
                 <key>4</key>
                 <dict>
                     <key>name</key>
-                    <string>entity.name.function.materialize-sql</string>
+                    <string>entity.name.function.mzsql</string>
                 </dict>
             </dict>
             <key>end</key>
             <string>;\s*</string>
             <key>name</key>
-            <string>meta.statement.materialize-sql.create</string>
+            <string>meta.statement.mzsql.create</string>
             <key>patterns</key>
             <array>
                 <dict>
@@ -80,28 +80,28 @@
                 <key>1</key>
                 <dict>
                     <key>name</key>
-                    <string>keyword.other.create.materialize-sql</string>
+                    <string>keyword.other.create.mzsql</string>
                 </dict>
                 <key>2</key>
                 <dict>
                     <key>name</key>
-                    <string>keyword.other.materialize-sql</string>
+                    <string>keyword.other.mzsql</string>
                 </dict>
                 <key>3</key>
                 <dict>
                     <key>name</key>
-                    <string>keyword.other.materialize-sql</string>
+                    <string>keyword.other.mzsql</string>
                 </dict>
                 <key>4</key>
                 <dict>
                     <key>name</key>
-                    <string>entity.name.function.materialize-sql</string>
+                    <string>entity.name.function.mzsql</string>
                 </dict>
             </dict>
             <key>end</key>
             <string>;\s*</string>
             <key>name</key>
-            <string>meta.statement.materialize-sql.create</string>
+            <string>meta.statement.mzsql.create</string>
             <key>patterns</key>
             <array>
                 <dict>
@@ -134,7 +134,7 @@
                 <key>0</key>
                 <dict>
                     <key>name</key>
-                    <string>keyword.other.materialize-sql</string>
+                    <string>keyword.other.mzsql</string>
                 </dict>
             </dict>
             <key>comment</key>
@@ -142,7 +142,7 @@
             <key>end</key>
             <string>;\s*</string>
             <key>name</key>
-            <string>meta.statement.materialize-sql</string>
+            <string>meta.statement.mzsql</string>
             <key>patterns</key>
             <array>
                 <dict>
@@ -175,7 +175,7 @@
                 <key>0</key>
                 <dict>
                     <key>name</key>
-                    <string>meta.preprocessor.materialize-sql</string>
+                    <string>meta.preprocessor.mzsql</string>
                 </dict>
             </dict>
             <key>comment</key>
@@ -183,7 +183,7 @@
             <key>end</key>
             <string>\n</string>
             <key>name</key>
-            <string>meta.statement.materialize-sql.psql</string>
+            <string>meta.statement.mzsql.psql</string>
         </dict>
     </array>
     <key>repository</key>
@@ -198,13 +198,13 @@
                         <key>1</key>
                         <dict>
                             <key>name</key>
-                            <string>punctuation.definition.comment.materialize-sql</string>
+                            <string>punctuation.definition.comment.mzsql</string>
                         </dict>
                     </dict>
                     <key>match</key>
                     <string>(--).*$\n?</string>
                     <key>name</key>
-                    <string>comment.line.double-dash.materialize-sql</string>
+                    <string>comment.line.double-dash.mzsql</string>
                 </dict>
                 <dict>
                     <key>begin</key>
@@ -214,7 +214,7 @@
                         <key>0</key>
                         <dict>
                             <key>name</key>
-                            <string>punctuation.definition.comment.materialize-sql</string>
+                            <string>punctuation.definition.comment.mzsql</string>
                         </dict>
                     </dict>
                     <key>end</key>
@@ -237,7 +237,7 @@
                     <key>end</key>
                     <string>\1</string>
                     <key>name</key>
-                    <string>meta.dollar-quote.materialize-sql</string>
+                    <string>meta.dollar-quote.mzsql</string>
                     <key>patterns</key>
                     <array>
                         <dict>
@@ -274,7 +274,7 @@
                         <key>1</key>
                         <dict>
                             <key>name</key>
-                            <string>keyword.other.materialize-sql</string>
+                            <string>keyword.other.mzsql</string>
                         </dict>
                     </dict>
                     <key>match</key>
@@ -290,31 +290,31 @@
                     <key>match</key>
                     <string>\b\d+\b</string>
                     <key>name</key>
-                    <string>constant.numeric.materialize-sql</string>
+                    <string>constant.numeric.mzsql</string>
                 </dict>
                 <dict>
                     <key>match</key>
                     <string>\*</string>
                     <key>name</key>
-                    <string>keyword.operator.star.materialize-sql</string>
+                    <string>keyword.operator.star.mzsql</string>
                 </dict>
                 <dict>
                     <key>match</key>
                     <string>[!&lt;&gt;]?=|&lt;&gt;|&lt;|&gt;</string>
                     <key>name</key>
-                    <string>keyword.operator.comparison.materialize-sql</string>
+                    <string>keyword.operator.comparison.mzsql</string>
                 </dict>
                 <dict>
                     <key>match</key>
                     <string>-|\+|/</string>
                     <key>name</key>
-                    <string>keyword.operator.math.materialize-sql</string>
+                    <string>keyword.operator.math.mzsql</string>
                 </dict>
                 <dict>
                     <key>match</key>
                     <string>\|\|</string>
                     <key>name</key>
-                    <string>keyword.operator.concatenator.materialize-sql</string>
+                    <string>keyword.operator.concatenator.mzsql</string>
                 </dict>
             </array>
         </dict>
@@ -323,7 +323,7 @@
             <key>match</key>
             <string>\\.</string>
             <key>name</key>
-            <string>constant.character.escape.materialize-sql</string>
+            <string>constant.character.escape.mzsql</string>
         </dict>
         <key>strings</key>
         <dict>
@@ -335,12 +335,12 @@
                         <key>1</key>
                         <dict>
                             <key>name</key>
-                            <string>punctuation.definition.string.begin.materialize-sql</string>
+                            <string>punctuation.definition.string.begin.mzsql</string>
                         </dict>
                         <key>3</key>
                         <dict>
                             <key>name</key>
-                            <string>punctuation.definition.string.end.materialize-sql</string>
+                            <string>punctuation.definition.string.end.mzsql</string>
                         </dict>
                     </dict>
                     <key>comment</key>
@@ -348,7 +348,7 @@
                     <key>match</key>
                     <string>(')[^'\\]*(')</string>
                     <key>name</key>
-                    <string>string.quoted.single.materialize-sql</string>
+                    <string>string.quoted.single.mzsql</string>
                 </dict>
                 <dict>
                     <key>begin</key>
@@ -358,7 +358,7 @@
                         <key>0</key>
                         <dict>
                             <key>name</key>
-                            <string>punctuation.definition.string.begin.materialize-sql</string>
+                            <string>punctuation.definition.string.begin.mzsql</string>
                         </dict>
                     </dict>
                     <key>comment</key>
@@ -370,11 +370,11 @@
                         <key>0</key>
                         <dict>
                             <key>name</key>
-                            <string>punctuation.definition.string.end.materialize-sql</string>
+                            <string>punctuation.definition.string.end.mzsql</string>
                         </dict>
                     </dict>
                     <key>name</key>
-                    <string>string.quoted.single.materialize-sql</string>
+                    <string>string.quoted.single.mzsql</string>
                     <key>patterns</key>
                     <array>
                         <dict>
@@ -389,7 +389,7 @@
                     <key>match</key>
                     <string>(")[^"#]*(")</string>
                     <key>name</key>
-                    <string>variable.other.materialize-sql</string>
+                    <string>variable.other.mzsql</string>
                 </dict>
                 <dict>
                     <key>begin</key>
@@ -399,13 +399,13 @@
                     <key>end</key>
                     <string>\1</string>
                     <key>name</key>
-                    <string>string.unquoted.dollar.materialize-sql</string>
+                    <string>string.unquoted.dollar.mzsql</string>
                 </dict>
             </array>
         </dict>
     </dict>
     <key>scopeName</key>
-    <string>source.materialize-sql</string>
+    <string>source.mzsql</string>
     <key>uuid</key>
     <string>4D6B679D-111C-4529-B558-3F25487D9E27</string>
 </dict>

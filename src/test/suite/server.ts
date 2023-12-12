@@ -80,8 +80,8 @@ export function mockServer(): Promise<string> {
     });
 
 	return new Promise((res) => {
-		app.listen(3000, 'localhost', () => {
-            console.log(`Mock server listening at localhost:3000`);
+		const server = app.listen(3000, 'localhost', () => {
+            console.log(`Mock server listening at localhost:3000: `, server.listening);
             res("Loaded.");
 		});
 	});

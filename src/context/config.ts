@@ -355,15 +355,37 @@ export class Config {
     }
 
     /**
+     * @returns a clean profile cloud endpoint.
+     */
+    getCloudEndpoint(): string | undefined {
+        return this.profile && this.cleanEndpoint(this.profile["cloud-endpoint"]);
+    }
+
+    /**
+     * Removes unwanted characters from the endpoint URLs.
+     * @param endpoint
+     * @returns the clean endpoint.
+     */
+    cleanEndpoint(endpoint: string | undefined): string | undefined {
+        if (endpoint) {
+            const trimmedEndpoint = endpoint.trim();
+            return trimmedEndpoint.endsWith("/") ? trimmedEndpoint.substring(0, trimmedEndpoint.length - 1) : trimmedEndpoint
+        }
+    }
+
+    /**
      * @returns the admin endpoint of the current profile
      */
     getAdminEndpoint(): string | undefined {
         if (this.profile) {
+            const cloudEndpoint = this.getCloudEndpoint();
             if (this.profile["admin-endpoint"]) {
-                return this.profile["admin-endpoint"];
-            } else if (this.profile["cloud-endpoint"]) {
-                const cloudUrl = new URL(this.profile["cloud-endpoint"]);
+                return this.cleanEndpoint(this.profile["admin-endpoint"]);
+            } else if (cloudEndpoint) {
+                const cloudUrl = new URL(cloudEndpoint);
+                console.log("[Config]", "After endpoint: ", cloudUrl.toString());
                 const { hostname } = cloudUrl;
+
                 if (hostname.startsWith("api.")) {
                     cloudUrl.hostname = "admin." + hostname.slice(4);
                     return cloudUrl.toString();

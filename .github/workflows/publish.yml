@@ -17,6 +17,7 @@ jobs:
         run: npm run vscode:prepublish
         env:
           NODE_ENV: 'production'
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       - name: Runs on Pre-Release
         if: 'github.event.release.prerelease'
         run: npm run deploy-pre-release

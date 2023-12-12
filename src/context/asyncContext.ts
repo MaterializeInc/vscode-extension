@@ -1,12 +1,13 @@
 import { AdminClient, CloudClient, SqlClient } from "../clients";
 import { ExtensionContext } from "vscode";
-import { Context } from "./context";
+import { Context, SchemaObject, SchemaObjectColumn } from "./context";
 import { Errors, ExtensionError } from "../utilities/error";
 import AppPassword from "./appPassword";
 import { ActivityLogTreeProvider, AuthProvider, DatabaseTreeProvider, ResultsProvider } from "../providers";
 import * as vscode from 'vscode';
 import { QueryArrayResult, QueryResult } from "pg";
 import { ExecuteCommandParseStatement } from "../clients/lsp";
+import { MaterializeObject } from "../providers/schema";
 
 /**
  * Represents the different providers available in the extension.
@@ -128,7 +129,7 @@ export default class AsyncContext extends Context {
         this.clients = {
             ...this.clients,
             admin: adminClient,
-            cloud: new CloudClient(adminClient, profile["cloud-endpoint"])
+            cloud: new CloudClient(adminClient, this.config.getCloudEndpoint())
         };
 
         await this.loadEnvironment(init);
@@ -173,9 +174,9 @@ export default class AsyncContext extends Context {
                     this.internalQuery("SHOW CLUSTER;"),
                     this.internalQuery("SHOW DATABASE;"),
                     this.internalQuery("SHOW SCHEMA;"),
-                    this.internalQuery(`SELECT id, name, owner_id as "ownerId" FROM mz_clusters;`),
-                    this.internalQuery(`SELECT id, name, owner_id as "ownerId" FROM mz_databases;`),
-                    this.internalQuery(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas`),
+                    this.internalQuery(`SELECT id, name FROM mz_clusters;`),
+                    this.internalQuery(`SELECT id, name FROM mz_databases;`),
+                    this.internalQuery(`SELECT id, name, database_id as "databaseId" FROM mz_schemas`),
                 ];
 
                 try {
@@ -185,32 +186,35 @@ export default class AsyncContext extends Context {
                         { rows: [{ schema }] },
                         { rows: clusters },
                         { rows: databases },
-                        { rows: schemas }
+                        { rows: schemas },
                     ] = await Promise.all(environmentPromises);
 
-                    const databaseObj = databases.find(x => x.name === database);
+                    const databaseObj = databases.find((x: { name: any; }) => x.name === database);
 
                     this.environment = {
                         cluster,
                         database,
                         schema,
                         databases,
-                        schemas: schemas.filter(x => x.databaseId === databaseObj?.id),
+                        schemas: schemas.filter((x: { databaseId: any; }) => x.databaseId === databaseObj?.id),
                         clusters
                     };
 
+                    const schemaObj = schemas.find((x: { name: string, databaseId: string, }) => x.name === schema && x.databaseId === databaseObj?.id);
+                    console.log("[AsyncContext]", schemaObj, schemas);
+                    if (schemaObj) {
+                        this.explorerSchema = await this.getExplorerSchema(database, schemaObj);
+                    }
                     console.log("[AsyncContext]", "Environment:", this.environment);
                 } catch (err) {
-                    console.error("[AsyncContext]", "Error querying evnrionment information.");
+                    console.error("[AsyncContext]", "Error querying environment information: ", err);
                     throw err;
                 }
-            }
-
-            if (reloadSchema && this.environment) {
+            } else if (reloadSchema && this.environment) {
                 console.log("[AsyncContext]", "Reloading schema.");
                 const schemaPromises = [
                     this.internalQuery("SHOW SCHEMA;"),
-                    this.internalQuery(`SELECT id, name, database_id as "databaseId", owner_id as "ownerId" FROM mz_schemas`)
+                    this.internalQuery(`SELECT id, name, database_id as "databaseId" FROM mz_schemas;`)
                 ];
                 const [
                     { rows: [{ schema }] },
@@ -220,12 +224,70 @@ export default class AsyncContext extends Context {
                 const { databases, database } = this.environment;
                 const databaseObj = databases.find(x => x.name === database);
                 this.environment.schema = schema;
-                this.environment.schemas = schemas.filter(x => x.databaseId === databaseObj?.id);
+                this.environment.schemas = schemas.filter((x: { databaseId: string | undefined; }) => x.databaseId === databaseObj?.id);
+
+                const schemaObj = schemas.find((x: { name: string, databaseId: string, }) => x.name === schema && x.databaseId === databaseObj?.id);
+                if (schemaObj) {
+                    this.explorerSchema = await this.getExplorerSchema(database, schema);
+                }
             }
+
+            if (this.explorerSchema) {
+                console.log("[AsyncContext]", "Update schema.");
+                try {
+                    this.clients.lsp.updateSchema(this.explorerSchema);
+                } catch (err) {
+                    console.error("[AsyncContext]", "Error updating LSP schema:", err);
+                }
+            }
+
             console.log("[AsyncContext]", "Environment loaded.");
             this.loaded = true;
             return true;
         }
+    }
+
+    private async getExplorerSchema(
+        database: string,
+        { name: schema, id: schemaId }: MaterializeObject,
+    ) {
+        // Not super efficient.
+        // TODO: Replace query that appears down.
+        const [columnsResults, objects] = await Promise.all([
+            this.internalQuery(`
+                SELECT * FROM mz_columns;
+            `, []),
+            this.internalQuery(`
+                SELECT id, name, 'source' AS type FROM mz_sources WHERE schema_id = $1
+                UNION ALL SELECT id, name, 'sink' AS type FROM mz_sinks WHERE schema_id = $1
+                UNION ALL SELECT id, name, 'view' AS type FROM mz_views WHERE schema_id = $1
+                UNION ALL
+                    SELECT id, name, 'materializedView' AS type FROM mz_materialized_views WHERE schema_id = $1
+                UNION ALL SELECT id, name, 'table' AS type FROM mz_tables WHERE schema_id = $1
+                ORDER BY name;
+            `, [schemaId]),
+        ]);
+
+        const columnsMap: { [id: string] : Array<SchemaObjectColumn>; } = {};
+        columnsResults.rows.forEach(({ id, name, type }: any) => {
+            const columns = columnsMap[id];
+            const column = { name, type };
+            if (columns) {
+                columns.push(column);
+            } else {
+                columnsMap[id] = [column];
+            }
+        });
+
+        return {
+            database,
+            schema,
+            objects: objects.rows.filter(x => columnsMap[x.id]).map((x: any) => ({
+                name: x.name,
+                type: x.type,
+                columns: columnsMap[x.id]
+            }))
+        };
     }
 
     /**
@@ -528,5 +590,14 @@ export default class AsyncContext extends Context {
      */
     getProviders(): Providers {
         return this.providers;
+    }
+
+    /**
+     * Stops the LSP client.
+     *
+     * Note: This action should be executed only when deactivating the extension.
+     */
+    async stop() {
+        await this.clients.lsp.stop();
     }
 }

@@ -2,6 +2,16 @@
 
 All notable changes to the Materialize extension for Visual Studio Code will be documented in this file.
 
+## [0.4.0] - 2023-12-08
+
+### Fixed
+ - Auto-reconnect after a connection failure.
+ - Preserve focus after running a query.
+ - Error in login after a succesful profile delete.
+
+### Changed
+ - Materialize file extension renamed from `.materialize-sql` to `.mzsql`.
+
 ## [0.3.2] - 2023-11-15
 
 ### Fixed

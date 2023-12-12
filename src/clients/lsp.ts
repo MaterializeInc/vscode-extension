@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import fetch from "node-fetch";
 import path from "path";
 import * as vscode from "vscode";
 import {
@@ -15,7 +14,9 @@ import stream from "stream";
 import os from "os";
 import { SemVer } from "semver";
 import { Errors, ExtensionError } from "../utilities/error";
+import { ExplorerSchema } from "../context/context";
 import * as Sentry from "@sentry/node";
+import { fetchWithRetry } from "../utilities/utils";
 
 // This endpoint returns a string with the latest LSP version.
 const BINARIES_ENDPOINT = "https://binaries.materialize.com";
@@ -61,30 +62,37 @@ enum State {
 export default class LspClient {
     private isReady: Promise<boolean>;
     private client: LanguageClient | undefined;
+    private schema?: ExplorerSchema;
 
-    constructor() {
+    constructor(schema?: ExplorerSchema) {
+        this.schema = schema;
         this.isReady = new Promise((res, rej) => {
             const asyncOp = async () => {
-                if (this.isValidOs()) {
-                    if (!this.isInstalled()) {
-                        try {
-                            await this.installAndStartLspServer();
+                try {
+                    if (this.isValidOs()) {
+                        if (!this.isInstalled()) {
+                            try {
+                                await this.installAndStartLspServer();
+                                res(true);
+                            } catch (err) {
+                                Sentry.captureException(err);
+                                rej(err);
+                            }
+                        } else {
+                            console.log("[LSP]", "The server already exists.");
+                            await this.startClient();
+                            this.serverUpgradeIfAvailable();
                             res(true);
-                        } catch (err) {
-                            Sentry.captureException(err);
-                            rej(err);
                         }
                     } else {
-                        console.log("[LSP]", "The server already exists.");
-                        await this.startClient();
-                        this.serverUpgradeIfAvailable();
-                        res(true);
+                        console.error("[LSP]", "Invalid operating system.");
+                        rej(new ExtensionError(Errors.invalidOS, "Invalid operating system."));
+                        Sentry.captureException(new ExtensionError(Errors.invalidOS, "Invalid operating system."));
+                        return;
                     }
-                } else {
-                    console.error("[LSP]", "Invalid operating system.");
-                    rej(new ExtensionError(Errors.invalidOS, "Invalid operating system."));
-                    Sentry.captureException(new ExtensionError(Errors.invalidOS, "Invalid operating system."));
-                    return;
+                } catch (err) {
+                    rej(new ExtensionError(Errors.lspOnReadyFailure,err));
+                    Sentry.captureException(err);
                 }
             };
 
@@ -144,11 +152,11 @@ export default class LspClient {
             bufferStream
                 .pipe(gunzip)
                 .pipe(extract)
-                .on('finish', (d: any) => {
+                .on('finish', () => {
                     console.log("[LSP]", "Server installed.");
                     res("");
                 })
-                .on('error', (error: any) => {
+                .on('error', (error: Error) => {
                     console.error("[LSP]", "Error during decompression:", error);
                     rej("Error during compression");
                 });
@@ -198,7 +206,7 @@ export default class LspClient {
      */
     private async fetchLatestVersionNumber() {
         console.log("[LSP]", "Fetching latest version number.");
-        const response = await fetch(LATEST_VERSION_ENDPOINT);
+        const response = await fetchWithRetry(LATEST_VERSION_ENDPOINT);
         const latestVersion: string = await response.text();
 
         return new SemVer(latestVersion);
@@ -213,7 +221,7 @@ export default class LspClient {
         const endpoint = this.getEndpointByOs(latestVersion);
 
         console.log("[LSP]", `Fetching LSP from: ${endpoint}`);
-        const binaryResponse = await fetch(endpoint);
+        const binaryResponse = await fetchWithRetry(endpoint);
         const buffer = await binaryResponse.arrayBuffer();
 
         return buffer;
@@ -228,18 +236,19 @@ export default class LspClient {
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('materialize.formattingWidth')) {
                 console.log("[LSP]", "Formatting width has changed.");
-
-                // Restart client.
-                if (this.client) {
-                    this.client.onReady().then(() => {
-                        this.stop();
-                        this.startClient();
-                    }).catch(() => {
-                        console.error("[LSP]", "Error restarting client.");
-                    });
-                }
+                this.updateServerOptions();
             }
         });
+    }
+
+    /**
+     * Updates the schema and restarts the client.
+     * @param schema
+     */
+    async updateSchema(schema: ExplorerSchema) {
+        console.log("[LSP]", "Updating schema.");
+        this.schema = schema;
+        await this.updateServerOptions();
     }
 
     /**
@@ -257,13 +266,15 @@ export default class LspClient {
             run,
             debug: run,
         };
-        const configuration = vscode.workspace.getConfiguration('materialize');
-        const formattingWidth = configuration.get('formattingWidth');
+        const formattingWidth = this.getFormattingWidth();
         console.log("[LSP]", "Formatting width: ", formattingWidth);
+        console.log("[LSP]", "Schema: ", this.schema);
+
         const clientOptions: LanguageClientOptions = {
-            documentSelector: [{ scheme: "file", language: "materialize-sql"}],
+            documentSelector: [{ scheme: "file", language: "mzsql"}],
             initializationOptions: {
                 formattingWidth,
+                // schema: this.schema,
             }
         };
 
@@ -322,10 +333,40 @@ export default class LspClient {
 
     /**
      * Stops the LSP server client.
-     * This is useful before installing an upgrade.
+     *
+     * Note: This action should be executed only when deactivating the extension.
      */
-    stop() {
-        this.client && this.client.stop();
+    async stop() {
+        if (this.client) {
+            await this.client.onReady();
+            await this.client.stop();
+        }
+    }
+
+    /**
+     * @returns the current workspace formatting width.
+     */
+    private getFormattingWidth() {
+        const configuration = vscode.workspace.getConfiguration('materialize');
+        const formattingWidth = configuration.get('formattingWidth');
+
+        return formattingWidth;
+    }
+
+    /**
+     * Updates the LSP options.
+     */
+    private async updateServerOptions() {
+        // Send request
+        if (this.client) {
+            console.log("[LSP]", "Updating the server configuration.");
+            await this.client.sendRequest("workspace/executeCommand", {
+                command: "optionsUpdate",
+                arguments: [{
+                    formattingWidth: this.getFormattingWidth(),
+                    // schema: this.schema,
+            }]}) as ExecuteCommandParseResponse;
+        }
     }
 
     /**

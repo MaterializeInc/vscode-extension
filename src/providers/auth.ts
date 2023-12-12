@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
 import express, { Request, Response, Application, } from 'express';
-import { getUri } from "../utilities/getUri";
+import { getNonce, getUri } from "../utilities/utils";
 import AppPassword from "../context/appPassword";
-import { getNonce } from "../utilities/getNonce";
 import AsyncContext from "../context/asyncContext";
 import { Errors, ExtensionError } from "../utilities/error";
 

@@ -42,7 +42,7 @@ export function activate(vsContext: vscode.ExtensionContext) {
 
         // Focus the query results panel.
         const sqlCommand = buildRunSQLCommand(context);
-        vscode.commands.executeCommand('queryResults.focus').then(sqlCommand);
+        sqlCommand()
     });
 
     const copyDisposable = vscode.commands.registerCommand('materialize.copy', async ({ tooltip }) => {
