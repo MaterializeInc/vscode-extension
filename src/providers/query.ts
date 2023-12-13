@@ -33,8 +33,17 @@ export const buildRunSQLCommand = (context: AsyncContext) => {
         // the results from one query can overlap the results
         // from another. We only want to display the last results.
         const id = randomUUID();
+        let queryCanceled = false;
         try {
-            resultsProvider.setQueryId(id);
+            const cancelHandler = () => {
+                console.log("[RunSQLCommand]", "Canceling query.");
+                queryCanceled = true;
+                context.cancelQuery();
+            }
+            resultsProvider.setQuery(
+                id,
+                cancelHandler
+            );
             try {
                 const statements = await context.parseSql(query);
                 console.log("[RunSQLCommand]", "Running statements: ", statements);
@@ -78,13 +87,20 @@ export const buildRunSQLCommand = (context: AsyncContext) => {
                             sql: statement.sql
                         });
 
-                        resultsProvider.setResults(id,
-                            undefined,
-                            {
-                                message: error.toString(),
-                                position: error.position,
+                        if (!queryCanceled) {
+                            resultsProvider.setResults(id,
+                                undefined,
+                                {
+                                    message: error.toString(),
+                                    position: error.position,
+                                    query,
+                            });
+                        } else {
+                            resultsProvider.setResults(id, undefined, {
+                                message: "Query canceled.",
                                 query,
-                        });
+                            });
+                        }
 
                         // Break for-loop.
                         break;

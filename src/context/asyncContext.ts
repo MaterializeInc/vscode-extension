@@ -322,6 +322,21 @@ export default class AsyncContext extends Context {
     }
 
     /**
+     * Cancels a query by reconnecting the SQL client.
+     *
+     * This action will release the private client
+     * and create a new pool of clients.
+     *
+     */
+    async cancelQuery() {
+        try {
+            await this.clients.sql?.reconnect();
+        } catch (err) {
+            throw new ExtensionError(Errors.cancelQueryError, err);
+        }
+    }
+
+    /**
      * Adds a new profile.
      *
      * Requires to reload the context.
