@@ -78,6 +78,7 @@ import {
                         timerElement.style.paddingTop = "0.5rem";
                         document.body.appendChild(timerElement);
                     }
+
                     // Reset and show the timer content
                     timerElement.textContent = 'Time elapsed:';
                     timerElement.style.display = 'block';
@@ -131,6 +132,18 @@ import {
                             }, 500);
                         }
                     }, 103);
+
+                    const cancelQuery = () => {
+                        vscode.postMessage({ type: "cancelQuery" });
+                    };
+                    const cancelElement = document.createElement('vscode-button');
+                    cancelElement.innerHTML = "Cancel";
+                    cancelElement.style.float = "right";
+                    cancelElement.id = "cancelButton";
+                    cancelElement.setAttribute("appearance", "secondary");
+                    cancelElement.onclick = cancelQuery;
+                    container.appendChild(cancelElement);
+
                     break;
                 }
 
@@ -138,6 +151,10 @@ import {
                     const progressRing = document.getElementById("progress-ring");
                     if (progressRing) {
                         progressRing.style.display = "none";
+                    }
+                    const cancelButton = document.getElementById("cancelButton");
+                    if (cancelButton) {
+                        cancelButton.style.display = "none";
                     }
 
                     const { data: results } = message;

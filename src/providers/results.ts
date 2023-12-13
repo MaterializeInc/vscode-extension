@@ -21,6 +21,10 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
     // It is used to display the results and not overlap them from the results of a laggy query.
     private lastQueryId: string | undefined;
 
+    // Handles query cancelation. After running this function
+    // the context will reconnect the SQL client.
+    private cancelHandler: undefined | (() => void);
+
     // The provider can be invoked from `materialize.run`.
     // When this happens, the inner rendering script will not be ready
     // to listen changes. This variable holds the pending data to render
@@ -34,14 +38,19 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
     constructor(private readonly _extensionUri: vscode.Uri) {
         this._extensionUri = _extensionUri;
         this.isScriptReady = false;
+        this.cancelHandler = undefined;
     }
 
     /**
      * Cleans the results and sets a latest query id.
      * @param id
      */
-    public setQueryId(id: string) {
+    public setQuery(
+        id: string,
+        cancelHandler: () => void,
+    ) {
         this.lastQueryId = id;
+        this.cancelHandler = cancelHandler;
 
         if (this._view) {
             console.log("[ResultsProvider]", "New query.");
@@ -111,6 +120,12 @@ export default class ResultsProvider implements vscode.WebviewViewProvider {
                         return;
                     }
                     console.error("[ResultsProvider]", error);
+                    break;
+                }
+                case "cancelQuery": {
+                    if (this.cancelHandler) {
+                        this.cancelHandler();
+                    }
                     break;
                 }
                 case "ready": {

@@ -157,5 +157,9 @@ export enum Errors {
     /**
      * Raises when a fetch failes after a minute.
      */
-    fetchTimeoutError = "Failed to fetch after a minute."
+    fetchTimeoutError = "Failed to fetch after a minute.",
+    /**
+     * Raises when trying to cancel a query.
+     */
+    cancelQueryError = "Failed to cancel the query."
 }
