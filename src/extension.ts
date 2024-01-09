@@ -9,7 +9,7 @@ if (process.env.NODE_ENV !== "development") {
     });
 
     process.on('uncaughtException', (err) => {
-        Sentry.captureException(err);
+        // Sentry.captureException(err);
 
         // Allow VS Code to make the decision.
         // It will display an error notification to the user.
