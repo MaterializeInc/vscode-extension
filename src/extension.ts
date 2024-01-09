@@ -4,9 +4,9 @@ import AsyncContext from './context/asyncContext';
 import * as Sentry from "@sentry/node";
 
 if (process.env.NODE_ENV !== "development") {
-    Sentry.init({
-        dsn: "https://993291e6240141585c42efb7d0c958e2@o561021.ingest.sentry.io/4506269930029056",
-    });
+    // Sentry.init({
+    //     dsn: "https://993291e6240141585c42efb7d0c958e2@o561021.ingest.sentry.io/4506269930029056",
+    // });
 
     process.on('uncaughtException', (err) => {
         // Sentry.captureException(err);
