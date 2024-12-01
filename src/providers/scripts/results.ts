@@ -257,7 +257,8 @@ import {
                         // Create the header row
                         const headerRow = document.createElement("vscode-data-grid-row");
                         headerRow.setAttribute("row-type", "header");
-                        headerRow.style.backgroundColor = "#232323";
+                        headerRow.style.backgroundColor = "var(--vscode-editor-selectionBackground)";
+                        headerRow.style.fontWeight = "600";
 
                         // Create and append the header cells
                         fields.forEach(({name: field}: { name: string }, fi: number) => {
