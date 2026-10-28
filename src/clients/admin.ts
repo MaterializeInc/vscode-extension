@@ -16,7 +16,7 @@ interface AuthenticationRequest {
     secret: string,
 }
 
-const DEFAULT_ADMIN_ENDPOINT = 'https://admin.cloud.materialize.com';
+export const DEFAULT_ADMIN_ENDPOINT = 'https://admin.cloud.materialize.com';
 
 export default class AdminClient {
     auth?: AuthenticationResponse;

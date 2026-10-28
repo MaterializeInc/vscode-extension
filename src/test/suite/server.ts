@@ -1,7 +1,7 @@
 import express from 'express';
-import { json } from 'body-parser';
+import { json, urlencoded } from 'body-parser';
 import { sign } from 'node-jsonwebtoken';
-import { generateKeyPairSync } from 'crypto';
+import { createHash, generateKeyPairSync } from 'crypto';
 
 const passphrase = 'secret-passphrase';
 const keyPairOptions = {
@@ -21,6 +21,7 @@ export function mockServer(): Promise<string> {
     const app = express();
 
     app.use(json());
+    app.use(urlencoded({ extended: false }));
 
     const { privateKey, publicKey } = generateKeyPairSync('rsa', keyPairOptions);
 
@@ -43,6 +44,49 @@ export function mockServer(): Promise<string> {
             expires: "Mon, 31 Jul 2023 10:59:33 GMT",
             expiresIn: 600,
             refreshToken: "MOCK",
+        });
+    });
+
+    // OAuth authorization server. `/oauth/authorize` skips the login page and
+    // redirects straight back with a code bound to the PKCE challenge.
+    const MOCK_CLIENT_ID = "mock-oauth-client";
+    const challenges = new Map<string, string>();
+
+    app.post('/oauth/dcr/register', (req, res) => {
+        res.status(201).json({ client_id: MOCK_CLIENT_ID, redirect_uris: req.body.redirect_uris });
+    });
+
+    app.get('/oauth/authorize', (req, res) => {
+        const { client_id, redirect_uri, state, code_challenge } = req.query as Record<string, string>;
+        if (client_id !== MOCK_CLIENT_ID) {
+            res.status(400).send("unknown client");
+            return;
+        }
+        const code = `code-${challenges.size}`;
+        challenges.set(code, code_challenge);
+        res.redirect(`${redirect_uri}?code=${code}&state=${encodeURIComponent(state)}`);
+    });
+
+    app.post('/oauth/token', (req, res) => {
+        const { code, code_verifier } = req.body;
+        const challenge = createHash('sha256').update(code_verifier ?? '').digest('base64url');
+        if (!challenges.has(code) || challenges.get(code) !== challenge) {
+            res.status(400).json({ error: "invalid_grant" });
+            return;
+        }
+        challenges.delete(code);
+        res.json({ access_token: token, token_type: "Bearer", expires_in: 600 });
+    });
+
+    app.post('/frontegg/identity/resources/users/api-tokens/v1', (req, res) => {
+        if (req.headers.authorization !== `Bearer ${token}`) {
+            res.status(401).json({ errors: ["Invalid authentication"] });
+            return;
+        }
+        res.json({
+            clientId: "4e5c0aea-72ac-41de-946c-57f1b67bb3af",
+            secret: "4e5c0aea-72ac-41de-946c-57f1b67bb3af",
+            description: req.body.description,
         });
     });
 

@@ -1,70 +1,55 @@
 import * as vscode from "vscode";
-import express, { Request, Response, Application, } from 'express';
 import { getNonce, getUri } from "../utilities/utils";
 import AppPassword from "../context/appPassword";
 import AsyncContext from "../context/asyncContext";
 import { Errors, ExtensionError } from "../utilities/error";
-
-// Please update this link if the logo location changes in the future.
-const LOGO_URL = "https://materialize.com/svgs/brand-guide/materialize-purple-mark.svg";
-
-/**
- * Returns a proper HTML webpage to render the response in the browser.
- * @param output
- * @returns
- */
-function formatOutput(output: string): string {
-    return `
-        <body style="margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f0f0f0;">
-            <div style="text-align: center; padding: 100px; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);">
-                <img src="${LOGO_URL}" alt="logo">
-                <h2 style="padding-top: 20px; font-family: Inter, Arial, sans-serif;">${output}</h2>
-            </div>
-        </body>
-    `;
-}
-
-interface AppPasswordResponse {
-    appPassword: AppPassword,
-    region: string;
-}
+import AdminClient from "../clients/admin";
+import CloudClient from "../clients/cloud";
+import { oauthLogin } from "../clients/oauth";
 
 /**
- * Creates an express server to await the request from the browser.
- * @returns the app-password or nothing if the user cancels the action.
+ * Picks the region for a new profile: the only region with an enabled
+ * environment if there is exactly one, otherwise the user's choice.
+ * @returns the region ID, e.g. `aws/us-east-1`, or nothing if the user cancels.
  */
-async function loginServer(name: string): Promise<AppPasswordResponse | undefined> {
-    const app: Application = express();
+async function selectRegion(appPassword: AppPassword): Promise<string | undefined> {
+    const cloudClient = new CloudClient(new AdminClient(appPassword.toString()));
+    const providers = await cloudClient.listCloudProviders();
 
-    return await new Promise((resolve, reject) => {
-        app.get('/', (req: Request, res: Response) => {
-            const {secret, clientId, region } = req.query;
-            res.send(formatOutput('You can now close the tab.'));
-
-            try {
-                if (secret && clientId && region) {
-                    resolve({
-                        appPassword: new AppPassword(clientId as string, secret as string),
-                        region: new String(region).toLowerCase()
-                    });
-                } else {
-                    resolve(undefined);
-                }
-            } catch (err) {
-                reject(new ExtensionError(Errors.browserAuthFailure, err));
+    const enabled: string[] = [];
+    for (const provider of providers) {
+        try {
+            const { regionInfo } = await cloudClient.getRegion(provider);
+            if (regionInfo) {
+                enabled.push(provider.id);
             }
-        });
+        } catch (err) {
+            console.error("[AuthProvider]", "Error retrieving region: ", provider.id, err);
+        }
+    }
 
-        const server = app.listen(() => {
-            const serverAddress = server.address();
-            if (serverAddress !== null) {
-                const serverPort = typeof serverAddress === 'string' ? serverAddress : serverAddress.port;
-                vscode.env.openExternal(vscode.Uri.parse(`https://console.materialize.com/access/cli?redirectUri=http://localhost:${serverPort}&tokenDescription=${name}`));
-            } else {
-                reject(new Error("Error assigning address to the server."));
-            }
-        });
-    });
+    const candidates = enabled.length > 0 ? enabled : providers.map((provider) => provider.id);
+    if (candidates.length === 1) {
+        return candidates[0];
+    }
+    return vscode.window.showQuickPick(candidates, { placeHolder: "Select the region for this profile" });
+}
+
+/**
+ * Signs in through the browser and selects the profile's region.
+ * @returns the profile's app password and region, or nothing if the user cancels.
+ */
+async function browserLogin(name: string): Promise<{ appPassword: AppPassword, region: string } | undefined> {
+    try {
+        const appPassword = await oauthLogin(name, (url) => vscode.env.openExternal(vscode.Uri.parse(url)));
+        if (!appPassword) {
+            return undefined;
+        }
+        const region = await selectRegion(appPassword);
+        return region ? { appPassword, region: region.toLowerCase() } : undefined;
+    } catch (err) {
+        throw new ExtensionError(Errors.browserAuthFailure, err);
+    }
 }
 
 /**
@@ -123,7 +108,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
      * @param webviewView webview of the provider.
      */
     async checkLoginServerResponse(
-        appPasswordResponse: AppPasswordResponse | undefined,
+        appPasswordResponse: { appPassword: AppPassword, region: string } | undefined,
         name: string
     ) {
         if (appPasswordResponse) {
@@ -173,7 +158,7 @@ export default class AuthProvider implements vscode.WebviewViewProvider {
                 case "onAddProfile": {
                     const { name } = data;
 
-                    loginServer(name).then((appPasswordResponse) => {
+                    browserLogin(name).then((appPasswordResponse) => {
                         this.checkLoginServerResponse(appPasswordResponse, name).finally(async () => {
                             this.publish("onAddProfile", await this.getContext());
                         });
