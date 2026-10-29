@@ -10,6 +10,7 @@ import AppPassword from '../../context/appPassword';
 import { randomUUID } from 'crypto';
 import AsyncContext from '../../context/asyncContext';
 import LspClient from '../../clients/lsp';
+import { oauthLogin } from '../../clients/oauth';
 
 /**
  * Simple util function to use delay.
@@ -292,4 +293,30 @@ suite('Extension Test Suite', () => {
 		`, true);
 		assert.ok(createSource.length === 1);
 	}).timeout(30000);
+
+	test('OAuth login creates an app password', async () => {
+		const appPassword = await oauthLogin(
+			"test",
+			async (url) => { await fetch(url); },
+			"http://localhost:3000",
+		);
+
+		assert.ok(appPassword?.toString() === "mzp_4e5c0aea72ac41de946c57f1b67bb3af4e5c0aea72ac41de946c57f1b67bb3af");
+	});
+
+	test('OAuth login ignores callbacks with the wrong state', async () => {
+		const appPassword = await oauthLogin(
+			"test",
+			async (url) => {
+				const redirectUri = new URL(url).searchParams.get("redirect_uri");
+				const forged = await fetch(`${redirectUri}?code=forged&state=wrong`);
+				assert.ok(forged.status === 400);
+				await fetch(url);
+			},
+			"http://localhost:3000",
+		);
+
+		assert.ok(appPassword !== undefined);
+	});
+
 });

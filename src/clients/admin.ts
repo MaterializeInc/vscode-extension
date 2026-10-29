@@ -16,7 +16,7 @@ interface AuthenticationRequest {
     secret: string,
 }
 
-const DEFAULT_ADMIN_ENDPOINT = 'https://admin.cloud.materialize.com';
+export const DEFAULT_ADMIN_ENDPOINT = 'https://admin.cloud.materialize.com';
 
 export default class AdminClient {
     auth?: AuthenticationResponse;
@@ -55,7 +55,7 @@ export default class AdminClient {
                 this.auth = (await response.json()) as AuthenticationResponse;
                 return this.auth.accessToken;
             } else {
-                const { errors } = await response.json() as any;
+                const { errors } = await response.json() as { errors: string[] };
                 const [error] = errors;
                 console.error("[AdminClient]", "Error during getToken: ", error);
 
